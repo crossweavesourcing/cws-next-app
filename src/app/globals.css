@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-brand-gold: #D1A153;
+  --color-brand-gold-dark: #B6863C;
+  --color-brand-dark: #0D0E10;
+  --color-brand-dark-surface: #15171A;
+  --color-brand-dark-card: #1D2126;
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #15171A;
+}
+::-webkit-scrollbar-thumb {
+  background: #3B424D;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #D1A153;
+}
+
+/* Markdown Styles for the Chatbot */
+.markdown-body {
+  font-family: var(--font-sans);
+  font-size: 0.925rem;
+  line-height: 1.6;
+}
+.markdown-body p {
+  margin-bottom: 0.75rem;
+}
+.markdown-body strong {
+  font-weight: 600;
+  color: #F3F4F6;
+}
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.85rem;
+  background-color: rgba(29, 33, 38, 0.5);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.markdown-body th {
+  background-color: rgba(209, 161, 83, 0.1);
+  color: #D1A153;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.markdown-body td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #D1D5DB;
+}
+.markdown-body ul, .markdown-body ol {
+  margin-left: 1.25rem;
+  margin-bottom: 0.75rem;
+  list-style-type: cubic-bezier;
+}
+.markdown-body li {
+  margin-bottom: 0.25rem;
+}
+.markdown-body h1, .markdown-body h2, .markdown-body h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: #FCFCFB;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+.markdown-body h1 { font-size: 1.25rem; border-bottom: 1px solid rgba(209, 161, 83, 0.2); padding-bottom: 0.25rem; }
+.markdown-body h2 { font-size: 1.1rem; }
+.markdown-body h3 { font-size: 0.95rem; }
