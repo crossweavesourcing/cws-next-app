@@ -1,29 +1,46 @@
 "use client";
 
 import { useState } from 'react';
+import Image from 'next/image';
 import { motion } from 'motion/react';
-import { Menu, X, ArrowUpRight } from 'lucide-react';
+import { Menu, X, ArrowUpRight, Moon, Sun } from 'lucide-react';
 
-export default function TKOPage() {
+type ThemeMode = 'light' | 'dark';
+
+interface TKOPageProps {
+  theme?: ThemeMode;
+  onToggleTheme?: () => void;
+}
+
+export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const isDarkTheme = theme === 'dark';
 
   // Return to master platform
   const handleReturnToPortal = () => {
-    window.history.pushState({ tab: 'home' }, '', '/');
+    window.history.pushState({ tab: 'home' }, '', '/cws-portal');
     window.dispatchEvent(new Event('popstate'));
   };
 
   return (
-    <div className="bg-white text-[#1E1E1E] min-h-screen font-sans antialiased selection:bg-[#E02424]/10 selection:text-[#E02424]">
+    <div className={`tko-page tko-page-${theme} bg-white text-[#1E1E1E] min-h-screen font-sans antialiased selection:bg-[#E02424]/10 selection:text-[#E02424]`}>
       {/* 1. BRAND NAVIGATION HEADER */}
       <header className="sticky top-0 z-50 bg-[#000000]/95 backdrop-blur-md border-b border-neutral-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          
-          <div className="flex items-center gap-1.5 select-none">
-            <span className="font-serif lowercase font-bold tracking-tight text-xl text-white">
-              tko evolution <span className="text-gray-400 font-sans text-xs uppercase tracking-widest font-normal ml-1">apparel, inc.</span>
-            </span>
-          </div>
+
+          <button
+            onClick={handleReturnToPortal}
+            className="tko-logo-plate flex h-12 items-center select-none focus:outline-none focus:ring-2 focus:ring-white/30"
+            aria-label="Return to CWS portal"
+          >
+            <Image
+              src="/cws_logo.png"
+              alt="CWS"
+              width={630}
+              height={394}
+              className="h-full w-auto object-contain"
+            />
+          </button>
 
           {/* Nav links */}
           <nav className="hidden md:flex items-center gap-8 text-[11px] font-bold uppercase tracking-wider text-gray-300">
@@ -32,7 +49,18 @@ export default function TKOPage() {
             <a href="#strategy" className="hover:text-white transition-colors">Company Strategy</a>
             <a href="#brands" className="hover:text-white transition-colors">Our Brands</a>
             <a href="#responsibility" className="hover:text-white transition-colors">Corporate Responsibility</a>
-            <button 
+            {onToggleTheme && (
+              <button
+                onClick={onToggleTheme}
+                className="theme-toggle-btn h-9 w-9 rounded-full border border-white/15 bg-white/10 text-white hover:border-[#E02424]/60 hover:text-[#E02424] transition-all focus:outline-none focus:ring-2 focus:ring-[#E02424]/30 flex items-center justify-center"
+                aria-label={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
+                aria-pressed={isDarkTheme}
+                title={isDarkTheme ? 'Light mode' : 'Dark mode'}
+              >
+                {isDarkTheme ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+            )}
+            <button
               onClick={handleReturnToPortal}
               className="flex items-center gap-1 bg-[#E02424] text-white px-4 py-2 text-[10px] font-bold tracking-widest hover:bg-[#c11f1f] transition-all"
             >
@@ -42,8 +70,18 @@ export default function TKOPage() {
           </nav>
 
           {/* Hamburger Mobile Toggle */}
-          <div className="md:hidden">
-            <button 
+          <div className="md:hidden flex items-center gap-2">
+            {onToggleTheme && (
+              <button
+                onClick={onToggleTheme}
+                className="theme-toggle-btn h-9 w-9 rounded-full border border-white/15 bg-white/10 text-white hover:text-[#E02424] transition-all focus:outline-none focus:ring-2 focus:ring-[#E02424]/30 flex items-center justify-center"
+                aria-label={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
+                aria-pressed={isDarkTheme}
+              >
+                {isDarkTheme ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </button>
+            )}
+            <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 text-gray-450 hover:text-white focus:outline-none"
             >
@@ -54,7 +92,7 @@ export default function TKOPage() {
 
         {/* Mobile Navigation Dropdown */}
         {mobileMenuOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -66,7 +104,7 @@ export default function TKOPage() {
             <a href="#brands" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">Our Brands</a>
             <a href="#responsibility" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">Corporate Responsibility</a>
             <div className="pt-2">
-              <button 
+              <button
                 onClick={() => {
                   setMobileMenuOpen(false);
                   handleReturnToPortal();
@@ -85,9 +123,9 @@ export default function TKOPage() {
       <section className="relative h-[480px] sm:h-[600px] lg:h-[660px] bg-[#070707] overflow-hidden flex items-center">
         {/* Background photo collage exactly as shown */}
         <div className="absolute inset-0 z-0">
-          <img 
-            src="/src/assets/images/tko_hero_1780828164727.png" 
-            alt="TKO Design Workspace Collage" 
+          <img
+            src="/assets/images/tko_hero_1780828164727.png"
+            alt="TKO Design Workspace Collage"
             className="w-full h-full object-cover opacity-60"
           />
           <div className="absolute inset-0 bg-black/20" />
@@ -137,9 +175,9 @@ export default function TKOPage() {
 
           {/* Right Column: Image */}
           <div className="relative">
-            <img 
-              src="/src/assets/images/tko_workspace_1780828183652.png" 
-              alt="TKO Fashion Design Workspace" 
+            <img
+              src="/assets/images/tko_workspace_1780828183652.png"
+              alt="TKO Fashion Design Workspace"
               className="w-full h-[400px] lg:h-full object-cover min-h-[380px] lg:min-h-[500px]"
             />
           </div>
@@ -151,9 +189,9 @@ export default function TKOPage() {
         <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-stretch">
           {/* Left Column: Image */}
           <div className="relative order-2 lg:order-1">
-            <img 
-              src="/src/assets/images/tko_collaboration_1780828202517.png" 
-              alt="TKO Design Team Sourcing Sourcing Sourcing" 
+            <img
+              src="/assets/images/tko_collaboration_1780828202517.png"
+              alt="TKO Design Team Sourcing Sourcing Sourcing"
               className="w-full h-[450px] lg:h-full object-cover min-h-[380px]"
             />
           </div>
@@ -182,12 +220,12 @@ export default function TKOPage() {
       {/* 6. BRAND GRID / SHOWCASE (Seamless checkered pattern catalog layout) */}
       <section id="brands" className="w-full bg-white select-none">
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-0">
-          
+
           {/* Row 1: Left Model (MountainLogs) & Right Copper & Oak Emblem */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
-            <img 
-              src="/src/assets/images/tko_copper_oak_model_1780828221993.png" 
-              alt="Copper and Oak Flannel Styling" 
+            <img
+              src="/assets/images/tko_copper_oak_model_1780828221993.png"
+              alt="Copper and Oak Flannel Styling"
               className="w-full h-full object-cover"
             />
           </div>
@@ -234,28 +272,28 @@ export default function TKOPage() {
             </div>
           </div>
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
-            <img 
-              src="/src/assets/images/tko_english_laundry_model_1780828240798.png" 
-              alt="English Laundry Polo Fashion" 
+            <img
+              src="/assets/images/tko_english_laundry_model_1780828240798.png"
+              alt="English Laundry Polo Fashion"
               className="w-full h-full object-cover"
             />
           </div>
 
           {/* Row 3: Left Model & Right Weatherproof label card */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
-            <img 
-              src="/src/assets/images/tko_weatherproof_model_1780828259409.png" 
-              alt="Weatherproof Styling" 
+            <img
+              src="/assets/images/tko_weatherproof_model_1780828259409.png"
+              alt="Weatherproof Styling"
               className="w-full h-full object-cover"
             />
           </div>
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#DDDCCB] p-8 flex flex-col justify-center items-center relative overflow-hidden">
             {/* Dots background pattern */}
-            <div className="absolute inset-0 opacity-[0.08]" style={{ 
-              backgroundImage: 'radial-gradient(#1E1E1E 15%, transparent 16%)', 
-              backgroundSize: '12px 12px' 
+            <div className="absolute inset-0 opacity-[0.08]" style={{
+              backgroundImage: 'radial-gradient(#1E1E1E 15%, transparent 16%)',
+              backgroundSize: '12px 12px'
             }} />
-            
+
             {/* Clothing cardboard tag */}
             <div className="relative z-10 w-64 bg-[#EADBBD] border-2 border-[#C6B695] rounded-xs px-6 py-10 shadow-xl flex flex-col items-center text-center text-[#554A33] font-serif">
               <div className="w-5 h-5 rounded-full bg-[#DDDCCB] border border-[#C6B695] mb-4 flex items-center justify-center relative">
@@ -284,18 +322,18 @@ export default function TKOPage() {
             </div>
           </div>
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
-            <img 
-              src="/src/assets/images/tko_american_republic_1780828278114.png" 
-              alt="American Republic Plaid Shirts" 
+            <img
+              src="/assets/images/tko_american_republic_1780828278114.png"
+              alt="American Republic Plaid Shirts"
               className="w-full h-full object-cover"
             />
           </div>
 
           {/* Row 5: Left Sweaters hangar & Right Private Label 3D Text Card */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
-            <img 
-              src="/src/assets/images/tko_private_label_1780828295216.png" 
-              alt="Colorful Sweaters Activewear" 
+            <img
+              src="/assets/images/tko_private_label_1780828295216.png"
+              alt="Colorful Sweaters Activewear"
               className="w-full h-full object-cover"
             />
           </div>
@@ -318,11 +356,11 @@ export default function TKOPage() {
       {/* 7. TWO-COLUMN: CORPORATE RESPONSIBILITY & OUR MANAGEMENT (Taupe grid bg) */}
       <section id="responsibility" className="py-20 bg-[#EAEAEA] text-neutral-900 border-t border-b border-gray-300">
         <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
-          
+
           {/* Left Column: Corporate Responsibility */}
           <div className="space-y-8">
             <h2 className="text-xl md:text-2xl font-sans font-bold uppercase tracking-[0.2em] text-gray-950">CORPORATE RESPONSIBILITY</h2>
-            
+
             <p className="text-neutral-800 text-[15px] leading-relaxed font-sans font-light">
               At TKO, we have a long standing set of core principles: respect for people; ethics in the way we conduct our business; and integrity and honesty in everything we do. We often sum this up in four words:
             </p>
@@ -360,14 +398,14 @@ export default function TKOPage() {
           {/* Right Column: Our Management */}
           <div className="space-y-8 lg:pl-12 lg:border-l lg:border-gray-300">
             <h2 className="text-xl md:text-2xl font-sans font-bold uppercase tracking-[0.2em] text-gray-955">OUR MANAGEMENT</h2>
-            
+
             <div className="space-y-6 text-[#1E1E1E] text-[15px] leading-relaxed font-sans font-light">
               <p>
                 Our senior management team averages more than Thirty years in the apparel industry and has extensive creative and operational experience developing, marketing and growing brands. Building strong relationships with retailers, and global suppliers.
               </p>
               <p>
                 To learn more about our leadership,{' '}
-                <button 
+                <button
                   onClick={handleReturnToPortal}
                   className="font-bold underline text-black hover:text-red-650 transition-colors uppercase tracking-wider text-xs"
                 >
@@ -383,7 +421,7 @@ export default function TKOPage() {
       {/* 8. MINIMAL DESIGNER FOOTER */}
       <footer className="bg-[#DDDBCF] text-neutral-900 pt-16 pb-12 border-t border-neutral-300">
         <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-2 md:grid-cols-4 gap-10">
-          
+
           {/* Column 1: OUR STORY */}
           <div className="space-y-4">
             <h5 className="font-sans font-bold uppercase tracking-[0.15em] text-xs text-black">OUR STORY</h5>
@@ -428,11 +466,19 @@ export default function TKOPage() {
 
         {/* Footer Accent/Copyright bar */}
         <div className="max-w-7xl mx-auto px-6 md:px-12 pt-12 mt-12 border-t border-neutral-300 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-neutral-600">
-          <div className="flex items-center gap-1.5 select-none">
-            <span className="font-serif lowercase font-bold tracking-tight text-lg text-black">
-              tko evolution <span className="text-neutral-500 font-sans text-[10px] uppercase tracking-widest font-normal ml-0.5">apparel, inc.</span>
-            </span>
-          </div>
+          <button
+            onClick={handleReturnToPortal}
+            className="tko-logo-plate flex h-10 items-center select-none focus:outline-none focus:ring-2 focus:ring-black/20"
+            aria-label="Return to CWS portal"
+          >
+            <Image
+              src="/cws_logo.png"
+              alt="CWS"
+              width={630}
+              height={394}
+              className="h-full w-auto object-contain"
+            />
+          </button>
           <span>© {new Date().getFullYear()} TKO Evolution Apparel LLC. All rights reserved.</span>
         </div>
       </footer>

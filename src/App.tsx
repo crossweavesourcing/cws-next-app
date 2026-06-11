@@ -6,6 +6,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import {
   Globe,
   Layers,
@@ -28,6 +29,7 @@ import {
   X,
   ChevronDown,
   ArrowRight,
+  ArrowUpRight,
   ExternalLink,
   Mail,
   Phone,
@@ -46,10 +48,24 @@ import {
   Flame,
   Handshake,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import TKOPage from './components/TKOPage';
+
+type ThemeMode = 'light' | 'dark';
+type SiteTab = 'landing' | 'home' | 'our-group' | 'products' | 'promise' | 'locations' | 'news' | 'contact' | 'tko';
+
+const getInitialTheme = (): ThemeMode => {
+  if (typeof window === 'undefined') return 'light';
+
+  const storedTheme = window.localStorage.getItem('cws-theme');
+  if (storedTheme === 'light' || storedTheme === 'dark') return storedTheme;
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
 
 // Live timezone calculation offsets
 const OFFICE_OFFSETS: Record<string, number> = {
@@ -576,66 +592,13 @@ interface ProductType {
 export function CWSLogo({ className = "h-8" }: { className?: string }) {
   return (
     <div className={`inline-flex items-center select-none ${className}`}>
-      <svg className="h-full w-auto" viewBox="0 0 600 240" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="cGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#0B2349" />
-            <stop offset="100%" stopColor="#0D3B66" />
-          </linearGradient>
-          <linearGradient id="wGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#0D3B66" />
-            <stop offset="100%" stopColor="#0072BC" />
-          </linearGradient>
-          <linearGradient id="sGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#0072BC" />
-            <stop offset="100%" stopColor="#3FA6F2" />
-          </linearGradient>
-          <linearGradient id="orangeGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#D94E1F" />
-            <stop offset="40%" stopColor="#F15A24" />
-            <stop offset="80%" stopColor="#F8931F" />
-            <stop offset="100%" stopColor="#FEB300" />
-          </linearGradient>
-          <linearGradient id="blueSwoosh" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#00539C" />
-            <stop offset="100%" stopColor="#0097D7" />
-          </linearGradient>
-          <linearGradient id="darkBlueSwoosh" x1="0%" y1="100%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#051937" />
-            <stop offset="100%" stopColor="#0B2447" />
-          </linearGradient>
-        </defs>
-
-        {/* Orbit / Swooshes */}
-        <path d="M 60,180 C 40,150 48,110 80,95 C 105,82 140,78 190,80 C 130,72 90,80 70,98 C 50,116 48,145 68,172 C 78,185 92,195 110,202 C 90,198 72,192 60,180 Z" fill="url(#darkBlueSwoosh)" />
-        <path d="M 75,190 C 85,210 115,222 170,225 C 260,230 380,210 440,185 C 460,175 470,165 460,162 C 450,160 410,180 340,195 C 260,210 160,215 105,200 C 85,195 78,191 75,190 Z" fill="url(#blueSwoosh)" />
-        <path d="M 98,172 C 120,200 170,210 240,208 C 340,205 425,183 460,158 C 450,164 400,188 310,198 C 210,208 140,198 112,180 C 105,176 100,172 98,172 Z" fill="url(#blueSwoosh)" />
-
-        <path d="M 50,160 C 30,120 70,70 170,45 C 280,18 410,22 490,44 C 510,50 515,55 480,58 C 410,40 300,32 190,52 C 110,68 75,100 85,130 C 95,160 145,180 220,188 C 150,182 100,168 75,155 C 60,145 52,130 50,160 Z" fill="url(#orangeGrad)" />
-        <path d="M 72,150 C 58,115 105,72 205,48 C 315,22 445,20 518,48 C 480,38 370,30 250,42 C 140,55 80,90 92,130 C 98,148 112,162 135,172 C 110,168 90,160 72,150 Z" fill="url(#orangeGrad)" />
-
-        {/* CWS Typography in Italic futuristic font */}
-        <g transform="skewX(-18) translate(15, 0)">
-          {/* 'C' */}
-          <path d="M 195,78 C 160,78 125,102 125,142 C 125,182 155,204 195,204 C 230,204 250,186 250,186 L 240,162 C 240,162 222,176 195,176 C 170,176 155,160 155,142 C 155,122 170,106 195,106 C 220,106 238,118 238,118 L 246,94 C 246,94 225,78 195,78 Z" fill="url(#cGrad)" />
-          {/* 'W' */}
-          <path d="M 270,82 L 295,200 L 328,200 L 348,135 L 368,200 L 401,200 L 426,82 L 396,82 L 382,160 L 362,94 L 334,94 L 314,160 L 300,82 L 270,82 Z" fill="url(#wGrad)" />
-          {/* 'S' */}
-          <path d="M 495,80 C 465,80 442,95 442,118 C 442,136 456,146 480,152 C 505,158 515,164 515,174 C 515,184 502,192 485,192 C 465,192 448,180 448,180 L 438,202 C 438,202 458,214 485,214 C 515,214 544,200 544,174 C 544,152 525,142 505,137 C 480,131 471,126 471,118 C 471,110 482,104 498,104 C 515,104 530,114 530,114 L 540,92 C 540,92 522,80 495,80 Z" fill="url(#sGrad)" />
-        </g>
-
-        {/* Sparkles / Stars at the top right */}
-        <g transform="translate(520,35)">
-          <path d="M 0,-30 C 0,-10 10,0 30,0 C 10,0 0,10 0,30 C 0,10 -10,0 -30,0 C -10,0 0,-10 0,-30 Z" fill="#FEB300" />
-          <path d="M 0,-18 C 0,-6 6,0 18,0 C 6,0 0,6 0,18 C 0,6 -6,0 -18,0 C -6,0 0,-6 0,-18 Z" fill="#FFF200" />
-        </g>
-        <g transform="translate(565,65)">
-          <path d="M 0,-15 C 0,-5 5,0 15,0 C 5,0 0,5 0,15 C 0,5 -5,0 -15,0 C -5,0 0,-5 0,-15 Z" fill="#F8931F" />
-        </g>
-        <g transform="translate(490,68)">
-          <path d="M 0,-10 C 0,-3 3,0 10,0 C 3,0 0,3 0,10 C 0,3 -3,0 -10,0 C -3,0 0,-3 0,-10 Z" fill="#FEB300" />
-        </g>
-      </svg>
+      <Image
+        src="/cws_logo.png"
+        alt="CWS"
+        width={630}
+        height={394}
+        className="h-full w-auto object-contain"
+      />
     </div>
   );
 }
@@ -884,9 +847,24 @@ const PRODUCT_CATALOG: Record<string, ProductType[]> = {
 export default function App() {
   // Video reference for the 2030 environmental trailer
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [theme, setTheme] = useState<ThemeMode>(getInitialTheme);
+  const [landingMenuOpen, setLandingMenuOpen] = useState(false);
 
   // Navigation active view states to enable "full site experience"
-  const [activeTab, setActiveTab] = useState<'home' | 'our-group' | 'products' | 'promise' | 'locations' | 'news' | 'contact' | 'tko'>('home');
+  const [activeTab, setActiveTab] = useState<SiteTab>(() => {
+    if (typeof window === 'undefined') return 'landing';
+    const path = window.location.pathname;
+    if (path === '/' || path === '') return 'landing';
+    if (path === '/cws-portal' || path === '/cws-portal/') return 'home';
+    if (path === '/products' || path === '/products/') return 'products';
+    if (path === '/our-group' || path === '/our-group/') return 'our-group';
+    if (path === '/promise' || path === '/promise/') return 'promise';
+    if (path === '/locations' || path === '/locations/') return 'locations';
+    if (path === '/news' || path === '/news/') return 'news';
+    if (path === '/contact' || path === '/contact/') return 'contact';
+    if (path === '/tko' || path === '/tko/') return 'tko';
+    return 'landing';
+  });
   const [currentPage, setCurrentPage] = useState(1);
 
   // Page-level Contact Us form states
@@ -1022,6 +1000,17 @@ export default function App() {
 
   // Search Results State
   const [searchResults, setSearchResults] = useState<{ type: string; title: string; desc: string; action: () => void }[]>([]);
+  const isDarkTheme = theme === 'dark';
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
+  useEffect(() => {
+    document.documentElement.dataset.cwsTheme = theme;
+    document.documentElement.style.colorScheme = theme;
+    window.localStorage.setItem('cws-theme', theme);
+  }, [theme]);
 
   // Synchronize state with URL path
   useEffect(() => {
@@ -1042,8 +1031,10 @@ export default function App() {
         setActiveTab('contact');
       } else if (path === '/tko' || path === '/tko/') {
         setActiveTab('tko');
-      } else if (path === '/' || path === '') {
+      } else if (path === '/cws-portal' || path === '/cws-portal/') {
         setActiveTab('home');
+      } else if (path === '/' || path === '') {
+        setActiveTab('landing');
       }
     };
 
@@ -1062,7 +1053,9 @@ export default function App() {
     const currentPath = window.location.pathname;
     let targetPath = '/';
 
-    if (activeTab === 'products') {
+    if (activeTab === 'home') {
+      targetPath = '/cws-portal';
+    } else if (activeTab === 'products') {
       targetPath = '/products';
     } else if (activeTab === 'our-group') {
       targetPath = '/our-group';
@@ -1263,10 +1256,13 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFFDFB] text-gray-800 font-sans antialiased selection:bg-[#F15A24]/20 selection:text-[#F15A24] relative overflow-x-hidden">
+    <div
+      className={`min-h-screen bg-[#FFFDFB] text-gray-800 font-sans antialiased selection:bg-[#F15A24]/20 selection:text-[#F15A24] relative overflow-x-hidden ${isDarkTheme ? 'cws-theme-dark' : 'cws-theme-light'}`}
+      data-theme={theme}
+    >
 
       {/* HEADER NAVBAR STYLE - White high-end top fold */}
-      {activeTab !== 'tko' && (
+      {activeTab !== 'tko' && activeTab !== 'landing' && (
         <header className="sticky top-0 z-50 bg-[#FFFDFB]/95 backdrop-blur-md border-b border-gray-100 shadow-xs transition-all">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
 
@@ -1284,10 +1280,10 @@ export default function App() {
               <nav className="hidden md:flex items-center gap-8">
                 <button
                   onClick={() => setActiveTab('our-group')}
-                  className={`text-[15px] font-semibold tracking-wide transition-colors focus:outline-none ${activeTab === 'our-group' ? 'text-[#F15A24]' : 'text-gray-800 hover:text-[#F15A24]'}`}
+                  className={`text-[15px] font-semibold tracking-wide transition-colors focus:outline-none uppercase ${activeTab === 'our-group' ? 'text-[#F15A24]' : 'text-gray-800 hover:text-[#F15A24]'}`}
                   id="nav-group"
                 >
-                  Our Group
+                  About
                 </button>
 
                 {/* Product Sourcing link with dropdown icon style */}
@@ -1296,10 +1292,10 @@ export default function App() {
                     setActiveTab('products');
                     setSelectedProductCategory('All');
                   }}
-                  className={`text-[15px] font-semibold tracking-wide flex items-center gap-1 transition-colors focus:outline-none ${activeTab === 'products' ? 'text-[#F15A24]' : 'text-gray-800 hover:text-[#F15A24]'}`}
+                  className={`text-[15px] font-semibold tracking-wide flex items-center gap-1 transition-colors uppercase focus:outline-none ${activeTab === 'products' ? 'text-[#F15A24]' : 'text-gray-800 hover:text-[#F15A24]'}`}
                   id="nav-products"
                 >
-                  Products & Services
+                  Services
                   <ChevronDown className="w-4 h-4 transition-transform group-hover:rotate-180" />
                 </button>
 
@@ -1308,7 +1304,7 @@ export default function App() {
                   className={`text-[15px] font-semibold tracking-wide transition-colors focus:outline-none ${activeTab === 'promise' ? 'text-[#F15A24]' : 'text-gray-800 hover:text-[#F15A24]'}`}
                   id="nav-promise"
                 >
-                  Our Promise
+                  Vision
                 </button>
 
                 <button
@@ -1316,7 +1312,7 @@ export default function App() {
                   className={`text-[15px] font-semibold tracking-wide transition-colors focus:outline-none ${activeTab === 'locations' ? 'text-[#F15A24]' : 'text-gray-800 hover:text-[#F15A24]'}`}
                   id="nav-locations"
                 >
-                  Global Locations
+                  Locations
                 </button>
 
                 <button
@@ -1343,7 +1339,7 @@ export default function App() {
             </div>
 
             {/* Right header options matching screenshot */}
-            <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3 sm:gap-6">
 
               {/* Search Area */}
               <div className="relative hidden lg:flex items-center bg-gray-50/80 rounded-full border border-gray-100 hover:border-gray-200 transition-colors px-4 py-2 w-56">
@@ -1369,13 +1365,23 @@ export default function App() {
               {/* Contact Us - oval pill outline button */}
               <button
                 onClick={() => { setActiveTab('contact'); window.scrollTo({ top: 0, behavior: 'instant' }); }}
-                className={`px-6 py-2.5 rounded-full border font-display font-bold text-sm tracking-wide transition-all shadow-xs shrink-0 ${activeTab === 'contact'
-                    ? 'bg-[#1E293B] text-white border-transparent'
-                    : 'border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white'
+                className={`hidden sm:inline-flex px-6 py-2.5 rounded-full border font-display font-bold text-sm tracking-wide transition-all shadow-xs shrink-0 ${activeTab === 'contact'
+                  ? 'bg-[#1E293B] text-white border-transparent'
+                  : 'border-gray-800 text-gray-800 hover:bg-gray-800 hover:text-white'
                   }`}
                 id="header-contact-btn"
               >
                 Contact Us
+              </button>
+
+              <button
+                onClick={toggleTheme}
+                className="theme-toggle-btn h-10 w-10 rounded-full border border-gray-200 bg-white/80 text-gray-800 shadow-xs hover:border-[#F15A24]/40 hover:text-[#F15A24] transition-all focus:outline-none focus:ring-2 focus:ring-[#F15A24]/25 flex items-center justify-center"
+                aria-label={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
+                aria-pressed={isDarkTheme}
+                title={isDarkTheme ? 'Light mode' : 'Dark mode'}
+              >
+                {isDarkTheme ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </button>
 
               {/* Favorite / Heart icon (orange hex #F15A24) */}
@@ -1405,6 +1411,161 @@ export default function App() {
 
       {/* RENDER DYNAMIC PAGES OR MAIN INDEX HOME BASED ON TAB STATE */}
       <AnimatePresence mode="wait">
+
+        {activeTab === 'landing' && (
+          <motion.main
+            key="landing"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.45 }}
+            className="final-landing min-h-screen bg-[#070707] text-white"
+          >
+            <header className="sticky top-0 z-50 bg-[#000000]/95 backdrop-blur-md border-b border-neutral-900 text-white">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+                <button
+                  onClick={() => setActiveTab('landing')}
+                  className="tko-logo-plate flex h-12 items-center select-none focus:outline-none focus:ring-2 focus:ring-white/30"
+                  aria-label="CWS home"
+                >
+                  <CWSLogo className="h-full" />
+                </button>
+
+                <nav className="hidden md:flex items-center gap-8 text-[11px] font-bold uppercase tracking-wider text-gray-300">
+                  <button onClick={() => setActiveTab('tko')} className="hover:text-white transition-colors focus:outline-none">Our Story</button>
+                  <button onClick={() => setActiveTab('products')} className="hover:text-white transition-colors focus:outline-none">What We Do</button>
+                  <button onClick={() => setActiveTab('promise')} className="hover:text-white transition-colors focus:outline-none">Company Strategy</button>
+                  <button onClick={() => setActiveTab('tko')} className="hover:text-white transition-colors focus:outline-none">Our Brands</button>
+                  <button onClick={() => setActiveTab('promise')} className="hover:text-white transition-colors focus:outline-none">Corporate Responsibility</button>
+                  <button
+                    onClick={toggleTheme}
+                    className="theme-toggle-btn h-9 w-9 rounded-full border border-white/15 bg-white/10 text-white hover:border-[#E02424]/60 hover:text-[#E02424] transition-all focus:outline-none focus:ring-2 focus:ring-[#E02424]/30 flex items-center justify-center"
+                    aria-label={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
+                    aria-pressed={isDarkTheme}
+                    title={isDarkTheme ? 'Light mode' : 'Dark mode'}
+                  >
+                    {isDarkTheme ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('home')}
+                    className="flex items-center gap-1 bg-[#E02424] text-white px-4 py-2 text-[10px] font-bold tracking-widest hover:bg-[#c11f1f] transition-all"
+                  >
+                    CWS PORTAL
+                    <ArrowUpRight className="w-3 h-3" />
+                  </button>
+                </nav>
+
+                <div className="md:hidden flex items-center gap-2">
+                  <button
+                    onClick={toggleTheme}
+                    className="theme-toggle-btn h-9 w-9 rounded-full border border-white/15 bg-white/10 text-white hover:text-[#E02424] transition-all focus:outline-none focus:ring-2 focus:ring-[#E02424]/30 flex items-center justify-center"
+                    aria-label={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
+                    aria-pressed={isDarkTheme}
+                  >
+                    {isDarkTheme ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  </button>
+                  <button
+                    onClick={() => setLandingMenuOpen(!landingMenuOpen)}
+                    className="p-2 text-gray-300 hover:text-white focus:outline-none"
+                    aria-label="Toggle navigation"
+                  >
+                    {landingMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {landingMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="md:hidden bg-[#111] border-b border-neutral-900 px-4 py-6 space-y-4 text-xs uppercase tracking-wider text-gray-300"
+                >
+                  <button onClick={() => { setLandingMenuOpen(false); setActiveTab('tko'); }} className="block py-2 hover:text-white">Our Story</button>
+                  <button onClick={() => { setLandingMenuOpen(false); setActiveTab('products'); }} className="block py-2 hover:text-white">What We Do</button>
+                  <button onClick={() => { setLandingMenuOpen(false); setActiveTab('promise'); }} className="block py-2 hover:text-white">Company Strategy</button>
+                  <button onClick={() => { setLandingMenuOpen(false); setActiveTab('tko'); }} className="block py-2 hover:text-white">Our Brands</button>
+                  <button onClick={() => { setLandingMenuOpen(false); setActiveTab('promise'); }} className="block py-2 hover:text-white">Corporate Responsibility</button>
+                  <button
+                    onClick={() => { setLandingMenuOpen(false); setActiveTab('home'); }}
+                    className="w-full text-center flex items-center justify-center gap-1.5 bg-[#E02424] text-white py-3 text-xs font-bold tracking-widest"
+                  >
+                    CWS PORTAL
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </button>
+                </motion.div>
+              )}
+            </header>
+
+            <section className="relative min-h-[calc(100vh-80px)] overflow-hidden flex items-center bg-[#070707]">
+              <div className="absolute inset-0 z-0">
+                <img
+                  src="/assets/images/tko_hero_1780828164727.png"
+                  alt="Apparel design workspace"
+                  className="w-full h-full object-cover opacity-56"
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-black via-black/76 to-black/20" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#070707] via-transparent to-transparent" />
+              </div>
+
+              <div className="absolute inset-0 pointer-events-none z-0">
+                <div className="absolute -top-24 -left-20 w-[420px] h-[420px] rounded-full bg-[#F15A24]/28 blur-[110px]" />
+                <div className="absolute bottom-4 right-[18%] w-[520px] h-[520px] rounded-full bg-[#0072BC]/22 blur-[130px]" />
+              </div>
+
+              <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 py-20 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                <div className="lg:col-span-7 space-y-8">
+                  <div className="inline-flex items-center gap-3 border border-white/15 bg-white/8 backdrop-blur-md px-4 py-2 text-[10px] font-bold uppercase tracking-[0.28em] text-white/80">
+                    CWS International x TKO Apparel
+                  </div>
+
+                  <h1 className="leading-none tracking-normal">
+                    <span className="block text-4xl sm:text-5xl md:text-6xl font-sans font-light text-white uppercase tracking-[0.2em]">WE</span>
+                    <span className="block text-6xl sm:text-[96px] md:text-[120px] lg:text-[138px] font-sans font-black text-[#E02424] uppercase tracking-tighter leading-none my-1">DESIGN</span>
+                    <span className="block text-4xl sm:text-5xl md:text-6xl font-sans font-semibold text-white uppercase tracking-[0.1em] leading-none">GLOBAL APPAREL</span>
+                  </h1>
+
+                  <p className="max-w-2xl text-sm sm:text-lg leading-relaxed text-white/74 font-light">
+                    A combined sourcing and fashion-development platform: sustainable global supply from CWS, design-led apparel energy from TKO, and factory-to-retail execution across compliant partner networks.
+                  </p>
+
+                  <div className="flex flex-wrap gap-3 pt-2">
+                    <button
+                      onClick={() => setActiveTab('home')}
+                      className="px-7 py-3 bg-white text-black text-xs font-black uppercase tracking-widest hover:bg-[#E02424] hover:text-white transition-colors"
+                    >
+                      Enter CWS Portal
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('tko')}
+                      className="px-7 py-3 border border-white/35 text-white text-xs font-black uppercase tracking-widest hover:border-[#E02424] hover:text-[#E02424] transition-colors"
+                    >
+                      View TKO Apparel
+                    </button>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-5">
+                  <div className="impact-metrics-grid grid grid-cols-2 gap-5 w-full max-w-[460px] mx-auto">
+                    {[
+                      ['140', 'Partner', 'Factories'],
+                      ['5', 'Regional', 'Offices'],
+                      ['800', 'Global Team', 'Members'],
+                      ['20', 'Global', 'Recognitions']
+                    ].map(([value, lineOne, lineTwo]) => (
+                      <div key={`${value}-${lineOne}`} className="impact-metric-card group">
+                        <span className="relative z-10 font-sans font-extrabold text-[42px] sm:text-[48px] text-gray-900 leading-none mb-3 block">{value}</span>
+                        <span className="relative z-10 text-[11px] sm:text-[12px] font-bold text-gray-500 uppercase tracking-widest leading-tight">
+                          {lineOne}<br />{lineTwo}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </motion.main>
+        )}
 
         {activeTab === 'home' && (
           <motion.main
@@ -1485,36 +1646,38 @@ export default function App() {
 
                   {/* Right Column Stats Grid Area (2x2 floating layout in design) */}
                   <div className="lg:col-span-5 flex justify-center">
-                    <div className="grid grid-cols-2 gap-6 w-full max-w-[460px]">
+
+                    {/* Global Impact Metrics */}
+                    <div className="impact-metrics-grid grid grid-cols-2 gap-6 w-full max-w-[460px] ">
 
                       {/* Box 1: Partner Factories */}
-                      <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200/70 p-6 sm:p-8 flex flex-col justify-center items-center text-center shadow-lg shadow-gray-100/45 group hover:border-[#F15A24]/25 transition-all duration-300 hover:scale-[1.03]">
-                        <span className="font-sans font-extrabold text-[44px] sm:text-[50px] text-gray-900 leading-none mb-3 block">140</span>
-                        <span className="text-[12px] sm:text-[13px] font-bold text-gray-500 uppercase tracking-widest leading-tight">
+                      <div className="impact-metric-card group">
+                        <span className="relative z-10 font-sans font-extrabold text-[44px] sm:text-[50px] text-gray-900 leading-none mb-3 block ">140</span>
+                        <span className="relative z-10 text-[12px] sm:text-[13px] font-bold text-gray-500 uppercase tracking-widest leading-tight">
                           Partner<br />Factories
                         </span>
                       </div>
 
                       {/* Box 2: Regional Offices */}
-                      <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200/70 p-6 sm:p-8 flex flex-col justify-center items-center text-center shadow-lg shadow-gray-100/45 group hover:border-[#F15A24]/25 transition-all duration-300 hover:scale-[1.03]">
-                        <span className="font-sans font-extrabold text-[44px] sm:text-[50px] text-gray-900 leading-none mb-3 block">5</span>
-                        <span className="text-[12px] sm:text-[13px] font-bold text-gray-500 uppercase tracking-widest leading-tight">
+                      <div className="impact-metric-card group">
+                        <span className="relative z-10 font-sans font-extrabold text-[44px] sm:text-[50px] text-gray-900 leading-none mb-3 block">5</span>
+                        <span className="relative z-10 text-[12px] sm:text-[13px] font-bold text-gray-500 uppercase tracking-widest leading-tight">
                           Regional<br />Offices
                         </span>
                       </div>
 
                       {/* Box 3: Global Team Members */}
-                      <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200/70 p-6 sm:p-8 flex flex-col justify-center items-center text-center shadow-lg shadow-gray-100/45 group hover:border-[#F15A24]/25 transition-all duration-300 hover:scale-[1.03]">
-                        <span className="font-sans font-extrabold text-[44px] sm:text-[50px] text-gray-900 leading-none mb-3 block">800</span>
-                        <span className="text-[12px] sm:text-[13px] font-bold text-gray-500 uppercase tracking-widest leading-tight">
+                      <div className="impact-metric-card group">
+                        <span className="relative z-10 font-sans font-extrabold text-[44px] sm:text-[50px] text-gray-900 leading-none mb-3 block">800</span>
+                        <span className="relative z-10 text-[12px] sm:text-[13px] font-bold text-gray-500 uppercase tracking-widest leading-tight">
                           Global Team<br />Members
                         </span>
                       </div>
 
                       {/* Box 4: Global Recognitions */}
-                      <div className="bg-white/80 backdrop-blur-md rounded-2xl border border-gray-200/70 p-6 sm:p-8 flex flex-col justify-center items-center text-center shadow-lg shadow-gray-100/45 group hover:border-[#F15A24]/25 transition-all duration-300 hover:scale-[1.03]">
-                        <span className="font-sans font-extrabold text-[44px] sm:text-[50px] text-gray-900 leading-none mb-3 block">20</span>
-                        <span className="text-[12px] sm:text-[13px] font-bold text-gray-500 uppercase tracking-widest leading-tight">
+                      <div className="impact-metric-card group">
+                        <span className="relative z-10 font-sans font-extrabold text-[44px] sm:text-[50px] text-gray-900 leading-none mb-3 block">20</span>
+                        <span className="relative z-10 text-[12px] sm:text-[13px] font-bold text-gray-500 uppercase tracking-widest leading-tight">
                           Global<br />Recognitions
                         </span>
                       </div>
@@ -2090,7 +2253,7 @@ export default function App() {
                   <div className="lg:col-span-5">
                     <div className="relative rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white aspect-4/3 lg:aspect-square flex items-center justify-center group bg-gray-50">
                       <img
-                        src="/src/assets/images/abby_jamal_founder_1780823054622.png"
+                        src="/assets/images/abby_jamal_founder_1780823054622.png"
                         alt="Abby Jamal - Founder & Managing Director"
                         className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-500"
                         referrerPolicy="no-referrer"
@@ -2153,7 +2316,7 @@ export default function App() {
                         idx: 0,
                         name: "Manju",
                         role: "Global Technical",
-                        image: "/src/assets/images/manju_technical_1780823098895.png",
+                        image: "/assets/images/manju_technical_1780823098895.png",
                         bio: "Manju was born in Sri Lanka, grew up in Maharagama, and is now living and working in Dhaka, Bangladesh. His work goal is to be \"an exceptional technical ally\" and a resource within the industry and to CWS's supply partners.",
                         focus: "Manju's current focus is virtual development (3D technical) and the application of this technology within CWS's processes.",
                         quote: '"I always enjoy seeing our teams succeed, and this technology we are using is definitely energising us all," he explains.'
@@ -2162,7 +2325,7 @@ export default function App() {
                         idx: 1,
                         name: "Mou",
                         role: "CEO",
-                        image: "/src/assets/images/mou_ceo_1780823078715.png",
+                        image: "/assets/images/mou_ceo_1780823078715.png",
                         bio: "Mou mixes commercial strategic thinking and a love of sustainability. \"Building a team of eco and ethical specialists is my lifeblood and what gets me excited about the future possibilities,\" she says.",
                         focus: "A marketing specialist by day, and a wellbeing enthusiast by night, Mou has had a love of Italian food since her years as a student.",
                         quote: '"Sustainability isn\'t just a trend; it\'s the foundational thread of our entire group structure," she highlights.'
@@ -2171,7 +2334,7 @@ export default function App() {
                         idx: 2,
                         name: "Michael",
                         role: "Business Development",
-                        image: "/src/assets/images/michael_bus_dev_1780823118479.png",
+                        image: "/assets/images/michael_bus_dev_1780823118479.png",
                         bio: "Michael was born in Oldenburg, Germany, and studied Economics and Foreign Trade during the 1970s. He is passionate about the global supply chain and the products CWS supplies.",
                         focus: "Michael is grateful for his continued enthusiasm for business consultancy and sales management. I always try to keep my eyes open and learn as I go, he explains.",
                         quote: '"Along my journey, I endeavour to follow the timeless wisdom of \"Whatever you do - do it right.\""'
@@ -2182,8 +2345,8 @@ export default function App() {
                         <div
                           key={m.idx}
                           className={`bg-white border text-center rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-all duration-300 relative ${isActive
-                              ? 'border-[#F15A24]/35 ring-1 ring-[#F15A24]/2% shadow-xl md:scale-104 z-20'
-                              : 'border-gray-150/80 opacity-70 md:opacity-40 hidden md:flex scale-98 hover:opacity-75 z-10'
+                            ? 'border-[#F15A24]/35 ring-1 ring-[#F15A24]/2% shadow-xl md:scale-104 z-20'
+                            : 'border-gray-150/80 opacity-70 md:opacity-40 hidden md:flex scale-98 hover:opacity-75 z-10'
                             }`}
                         >
                           {/* Inner card contents */}
@@ -3302,8 +3465,8 @@ export default function App() {
                       <div
                         key={targetIdx}
                         className={`border rounded-2xl bg-white p-5 sm:p-6 transition-all duration-300 flex flex-col justify-between text-left h-[260px] cursor-pointer shadow-2xs ${isActive
-                            ? 'border-[#F15A24]/40 ring-1 ring-[#F15A24]/10 scale-102 shadow-md z-10'
-                            : 'border-gray-150 opacity-40 md:opacity-60 hover:opacity-100 md:scale-98'
+                          ? 'border-[#F15A24]/40 ring-1 ring-[#F15A24]/10 scale-102 shadow-md z-10'
+                          : 'border-gray-150 opacity-40 md:opacity-60 hover:opacity-100 md:scale-98'
                           } ${renderingPos !== 1 ? 'hidden md:flex' : 'flex'}`}
                         onClick={() => {
                           if (!isActive) {
@@ -3628,8 +3791,8 @@ export default function App() {
                       className="absolute inset-y-0 h-full w-[250%] transition-transform ease-out duration-150"
                       style={{
                         backgroundImage: `url(${active360Hub === "Türkiye"
-                            ? "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&q=80&w=1600"
-                            : "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&q=80&w=1600"
+                          ? "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?auto=format&fit=crop&q=80&w=1600"
+                          : "https://images.unsplash.com/photo-1542038784456-1ea8e935640e?auto=format&fit=crop&q=80&w=1600"
                           })`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
@@ -4040,8 +4203,8 @@ export default function App() {
                     key={countryName}
                     onClick={() => setActiveLocationIndex(idx)}
                     className={`focus:outline-none pb-1 transition-all ${isActive
-                        ? 'text-black font-extrabold border-b border-black'
-                        : 'text-gray-500 font-medium hover:text-black'
+                      ? 'text-black font-extrabold border-b border-black'
+                      : 'text-gray-500 font-medium hover:text-black'
                       }`}
                     id={`locations-tab-btn-${countryName.toLowerCase()}`}
                   >
@@ -4158,8 +4321,8 @@ export default function App() {
                       <button
                         onClick={() => setCurrentPage(1)}
                         className={`transition-all pb-0.5 focus:outline-none ${currentPage === 1
-                            ? 'text-[#F15A24] font-black border-b-2 border-[#F15A24] text-sm'
-                            : 'text-gray-500 hover:text-gray-800 font-bold'
+                          ? 'text-[#F15A24] font-black border-b-2 border-[#F15A24] text-sm'
+                          : 'text-gray-500 hover:text-gray-800 font-bold'
                           }`}
                       >
                         1
@@ -4167,8 +4330,8 @@ export default function App() {
                       <button
                         onClick={() => setCurrentPage(2)}
                         className={`transition-all pb-0.5 focus:outline-none ${currentPage === 2
-                            ? 'text-[#F15A24] font-black border-b-2 border-[#F15A24] text-sm'
-                            : 'text-gray-500 hover:text-gray-800 font-bold'
+                          ? 'text-[#F15A24] font-black border-b-2 border-[#F15A24] text-sm'
+                          : 'text-gray-500 hover:text-gray-800 font-bold'
                           }`}
                       >
                         2
@@ -4931,7 +5094,7 @@ export default function App() {
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4 }}
           >
-            <TKOPage />
+            <TKOPage theme={theme} onToggleTheme={toggleTheme} />
           </motion.div>
         )}
 
@@ -4992,7 +5155,7 @@ export default function App() {
           </section>
 
           {/* DOUBLE-LEVEL INTEGRATED FOOTER SECTION - Color scheme matches carbon-deep sapphire */}
-          <footer className="bg-[#0E1A29] text-gray-300 pt-16 pb-8 border-t border-slate-900">
+          <footer className={`bg-[#0E1A29] text-gray-300 pt-16 pb-8 border-t border-slate-900 ${activeTab === 'landing' ? 'landing-cws-footer' : ''}`}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-12 gap-12 border-b border-slate-800 pb-12">
 
               {/* Left Column - CWS summary text & dynamic newsletter subscribe state */}
