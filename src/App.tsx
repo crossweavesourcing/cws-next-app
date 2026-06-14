@@ -1421,17 +1421,30 @@ export default function App() {
             transition={{ duration: 0.45 }}
             className="final-landing min-h-screen bg-[#070707] text-white"
           >
-            <header className="sticky top-0 z-50 bg-[#000000]/95 backdrop-blur-md border-b border-neutral-900 text-white">
+            <motion.header
+              initial={{ y: -80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 120, damping: 20 }}
+              className="sticky top-0 z-50 bg-[#000000]/95 backdrop-blur-md border-b border-neutral-900 text-white"
+            >
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-                <button
+                <motion.button
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
                   onClick={() => setActiveTab('landing')}
                   className="tko-logo-plate flex h-12 items-center select-none focus:outline-none focus:ring-2 focus:ring-white/30"
                   aria-label="CWS home"
                 >
                   <CWSLogo className="h-full" />
-                </button>
-
-                <nav className="hidden md:flex items-center gap-8 text-[11px] font-bold uppercase tracking-wider text-gray-300">
+                </motion.button>
+ 
+                <motion.nav
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.3, duration: 0.5 }}
+                  className="hidden md:flex items-center gap-8 text-[11px] font-bold uppercase tracking-wider text-gray-300"
+                >
                   <button onClick={() => setActiveTab('tko')} className="hover:text-white transition-colors focus:outline-none">Our Story</button>
                   <button onClick={() => setActiveTab('products')} className="hover:text-white transition-colors focus:outline-none">What We Do</button>
                   <button onClick={() => setActiveTab('promise')} className="hover:text-white transition-colors focus:outline-none">Company Strategy</button>
@@ -1453,7 +1466,7 @@ export default function App() {
                     CWS PORTAL
                     <ArrowUpRight className="w-3 h-3" />
                   </button>
-                </nav>
+                </motion.nav>
 
                 <div className="md:hidden flex items-center gap-2">
                   <button
@@ -1495,7 +1508,7 @@ export default function App() {
                   </button>
                 </motion.div>
               )}
-            </header>
+            </motion.header>
 
             <section className="relative min-h-[calc(100vh-80px)] overflow-hidden flex items-center bg-[#070707]">
               <div className="absolute inset-0 z-0">
@@ -1509,27 +1522,64 @@ export default function App() {
               </div>
 
               <div className="absolute inset-0 pointer-events-none z-0">
-                <div className="absolute -top-24 -left-20 w-[420px] h-[420px] rounded-full bg-[#F15A24]/28 blur-[110px]" />
-                <div className="absolute bottom-4 right-[18%] w-[520px] h-[520px] rounded-full bg-[#0072BC]/22 blur-[130px]" />
+                <motion.div
+                  animate={{ scale: [1, 1.12, 1], x: [0, 15, 0], y: [0, -10, 0] }}
+                  transition={{ repeat: Infinity, duration: 8, ease: "easeInOut" }}
+                  className="absolute -top-24 -left-20 w-[420px] h-[420px] rounded-full bg-[#F15A24]/28 blur-[110px]"
+                />
+                <motion.div
+                  animate={{ scale: [1, 1.15, 1], x: [0, -20, 0], y: [0, 15, 0] }}
+                  transition={{ repeat: Infinity, duration: 10, ease: "easeInOut" }}
+                  className="absolute bottom-4 right-[18%] w-[520px] h-[520px] rounded-full bg-[#0072BC]/22 blur-[130px]"
+                />
               </div>
 
               <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-12 py-20 w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
                 <div className="lg:col-span-7 space-y-8">
-                  <div className="inline-flex items-center gap-3 border border-white/15 bg-white/8 backdrop-blur-md px-4 py-2 text-[10px] font-bold uppercase tracking-[0.28em] text-white/80">
-                    CWS International x TKO Apparel
-                  </div>
 
+                  {/* Combined Hero Messaging */}
                   <h1 className="leading-none tracking-normal">
-                    <span className="block text-4xl sm:text-5xl md:text-6xl font-sans font-light text-white uppercase tracking-[0.2em]">WE</span>
-                    <span className="block text-6xl sm:text-[96px] md:text-[120px] lg:text-[138px] font-sans font-black text-[#E02424] uppercase tracking-tighter leading-none my-1">DESIGN</span>
-                    <span className="block text-4xl sm:text-5xl md:text-6xl font-sans font-semibold text-white uppercase tracking-[0.1em] leading-none">GLOBAL APPAREL</span>
+                    <motion.span
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: 0.1 }}
+                      className="block text-2xl sm:text-3xl md:text-4xl font-sans font-light text-white uppercase tracking-[0.2em]"
+                    >
+                      WE
+                    </motion.span>
+                    <motion.span
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6, delay: 0.2 }}
+                      className="block text-5xl sm:text-6xl md:text-7xl lg:text-[90px] font-sans font-black text-[#E02424] uppercase tracking-tighter leading-none my-1"
+                    >
+                      DESIGN
+                    </motion.span>
+                    <motion.span
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5, delay: 0.3 }}
+                      className="block text-2xl sm:text-3xl md:text-4xl font-sans font-semibold text-white uppercase tracking-[0.1em] leading-none"
+                    >
+                      GLOBAL APPAREL
+                    </motion.span>
                   </h1>
 
-                  <p className="max-w-2xl text-sm sm:text-lg leading-relaxed text-white/74 font-light">
+                  <motion.p
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.4 }}
+                    className="max-w-2xl text-sm sm:text-lg leading-relaxed text-white/74 font-light"
+                  >
                     A combined sourcing and fashion-development platform: sustainable global supply from CWS, design-led apparel energy from TKO, and factory-to-retail execution across compliant partner networks.
-                  </p>
+                  </motion.p>
 
-                  <div className="flex flex-wrap gap-3 pt-2">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.4, delay: 0.5 }}
+                    className="flex flex-wrap gap-3 pt-2"
+                  >
                     <button
                       onClick={() => setActiveTab('home')}
                       className="px-7 py-3 bg-white text-black text-xs font-black uppercase tracking-widest hover:bg-[#E02424] hover:text-white transition-colors"
@@ -1542,7 +1592,7 @@ export default function App() {
                     >
                       View TKO Apparel
                     </button>
-                  </div>
+                  </motion.div>
                 </div>
 
                 <div className="lg:col-span-5">
@@ -1552,13 +1602,19 @@ export default function App() {
                       ['5', 'Regional', 'Offices'],
                       ['800', 'Global Team', 'Members'],
                       ['20', 'Global', 'Recognitions']
-                    ].map(([value, lineOne, lineTwo]) => (
-                      <div key={`${value}-${lineOne}`} className="impact-metric-card group">
+                    ].map(([value, lineOne, lineTwo], index) => (
+                      <motion.div
+                        key={`${value}-${lineOne}`}
+                        initial={{ opacity: 0, y: 25, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ duration: 0.5, delay: 0.6 + index * 0.1 }}
+                        className="impact-metric-card group"
+                      >
                         <span className="relative z-10 font-sans font-extrabold text-[42px] sm:text-[48px] text-gray-900 leading-none mb-3 block">{value}</span>
                         <span className="relative z-10 text-[11px] sm:text-[12px] font-bold text-gray-500 uppercase tracking-widest leading-tight">
                           {lineOne}<br />{lineTwo}
                         </span>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 </div>
@@ -5102,57 +5158,7 @@ export default function App() {
 
       {activeTab !== 'tko' && (
         <>
-          {/* FULL-STATION CERTIFICATION SPONSORS BANNER STRIP - Matches bottom strip exactly */}
-          <section className="bg-[#0E1B2D] py-10 mt-12 border-t border-slate-800">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4">
-              <span className="text-[10px] font-mono tracking-[0.25em] text-[#F15A24] uppercase font-bold">Verified Auditor Seals & Standard Compliance</span>
 
-              {/* Scrollable grid strip containing monochrome white logos of the standard certification companies */}
-              <div className="flex flex-wrap items-center justify-center gap-8 md:gap-14 opacity-75 py-4">
-
-                <div className="flex flex-col items-center">
-                  <span className="text-sm font-black text-white tracking-widest leading-none font-mono">ECOVADIS</span>
-                  <span className="text-[9px] text-[#F15A24]/80 font-mono uppercase tracking-widest mt-1">Silver Rating</span>
-                </div>
-
-                <div className="flex flex-col items-center">
-                  <span className="text-sm font-black text-white tracking-widest leading-none">ZDHC</span>
-                  <span className="text-[9px] text-gray-400 font-mono uppercase tracking-widest mt-1">Friend Vendor</span>
-                </div>
-
-                <div className="flex flex-col items-center">
-                  <span className="text-sm font-black text-white tracking-widest leading-none">OEKO-TEX</span>
-                  <span className="text-[9px] text-gray-400 font-mono uppercase tracking-widest mt-1">Standard 100</span>
-                </div>
-
-                <div className="flex flex-col items-center">
-                  <span className="text-sm font-black text-white tracking-widest leading-none">GRS</span>
-                  <span className="text-[9px] text-gray-400 font-mono uppercase tracking-widest mt-1">Recycled Standard</span>
-                </div>
-
-                <div className="flex flex-col items-center">
-                  <span className="text-sm font-black text-white tracking-widest leading-none">GOTS</span>
-                  <span className="text-[9px] text-[#F15A24]/80 font-mono uppercase tracking-widest mt-1">Organic Standard</span>
-                </div>
-
-                <div className="flex flex-col items-center">
-                  <span className="text-sm font-black text-white tracking-widest leading-none">TEXTILE</span>
-                  <span className="text-[9px] text-gray-400 font-mono uppercase tracking-wide mt-1">Exchange Group</span>
-                </div>
-
-                <div className="flex flex-col items-center">
-                  <span className="text-sm font-black text-white tracking-widest leading-none font-mono">ISO 9001</span>
-                  <span className="text-[9px] text-gray-400 font-mono uppercase tracking-widest mt-1">Registered</span>
-                </div>
-
-                <div className="flex flex-col items-center">
-                  <span className="text-sm font-black text-white tracking-widest leading-none">HIGG</span>
-                  <span className="text-[9px] text-gray-400 font-mono uppercase tracking-widest mt-1">Index Audited</span>
-                </div>
-
-              </div>
-            </div>
-          </section>
 
           {/* DOUBLE-LEVEL INTEGRATED FOOTER SECTION - Color scheme matches carbon-deep sapphire */}
           <footer className={`bg-[#0E1A29] text-gray-300 pt-16 pb-8 border-t border-slate-900 ${activeTab === 'landing' ? 'landing-cws-footer' : ''}`}>
