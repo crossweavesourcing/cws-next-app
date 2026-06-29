@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // output: "export", // Commented out to allow `next start`
+  images: {
+    unoptimized: true,
+  },
+  trailingSlash: true,
   turbopack: {
     root: __dirname,
   },

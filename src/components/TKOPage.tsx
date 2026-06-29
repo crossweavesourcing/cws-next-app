@@ -60,13 +60,6 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
                 {isDarkTheme ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </button>
             )}
-            <button
-              onClick={handleReturnToPortal}
-              className="flex items-center gap-1 bg-[#E02424] text-white px-4 py-2 text-[10px] font-bold tracking-widest hover:bg-[#c11f1f] transition-all"
-            >
-              CWS PORTAL
-              <ArrowUpRight className="w-3 h-3" />
-            </button>
           </nav>
 
           {/* Hamburger Mobile Toggle */}
@@ -316,7 +309,7 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#EAEAEA] text-[#1E1E1E] p-8 flex flex-col justify-center items-center text-center relative overflow-hidden border-b border-gray-200">
             <div className="space-y-2">
               <h3 className="text-4xl sm:text-5xl font-black font-serif text-gray-950 tracking-tight leading-none uppercase">
-                American<br/>Republic
+                American<br />Republic
               </h3>
               <p className="text-[10px] font-mono tracking-[0.4em] text-gray-500 uppercase pt-2">Premium Urban Sportswear</p>
             </div>
@@ -344,7 +337,7 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
                 <h3 className="text-4xl sm:text-5xl md:text-6xl font-black font-sans uppercase tracking-[0.05em] text-white" style={{
                   textShadow: '1px 1px 0px #3F3F3F, 2px 2px 0px #3F3F3F, 3px 3px 0px #2E2E2E, 4px 4px 0px #2E2E2E, 5px 5px 0px #1E1E1E, 6px 6px 12px rgba(0,0,0,0.9)'
                 }}>
-                  PRIVATE<br/>LABEL
+                  PRIVATE<br />LABEL
                 </h3>
               </div>
             </div>
