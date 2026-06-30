@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, ArrowUpRight, Moon, Sun, Linkedin, Instagram, Facebook } from 'lucide-react';
+import { Menu, X, ArrowUpRight, Moon, Sun, Linkedin, Instagram, Facebook, Mail, MapPin, Send } from 'lucide-react';
 
 type ThemeMode = 'light' | 'dark';
 
@@ -48,6 +48,23 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
     return () => clearTimeout(timer);
   }, [currentText, isDeleting, currentWordIndex]);
 
+  // Contact Form State
+  const [formState, setFormState] = useState({ name: '', email: '', subject: '', message: '' });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    // Simulate API request
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    setIsSubmitting(false);
+    setSubmitSuccess(true);
+    setFormState({ name: '', email: '', subject: '', message: '' });
+    // Reset success banner after 5 seconds
+    setTimeout(() => setSubmitSuccess(false), 5000);
+  };
+
   // Return to master platform
   const handleReturnToPortal = () => {
     window.history.pushState({ tab: 'home' }, '', '/cws-portal');
@@ -70,6 +87,7 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
               alt="CWS"
               width={630}
               height={394}
+              loading="eager"
               className="h-full w-auto object-contain"
             />
           </button>
@@ -153,6 +171,8 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             src="/assets/images/cws_hero_image.png"
             alt="TKO Design Workspace Collage"
             fill
+            loading="eager"
+            sizes="100vw"
             className="object-cover opacity-50"
           />
           {/* Dark overlay */}
@@ -360,6 +380,7 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
               src="/assets/images/tko_english_laundry_model_1780828240798.png"
               alt="English Laundry Polo Fashion"
               fill
+              loading="eager"
               className="object-cover"
             />
           </div>
@@ -510,79 +531,318 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
       <section id="contracting" className="py-24 bg-white text-neutral-900 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 md:px-12">
           <div className="text-center space-y-3 mb-16">
-            <span className="block text-xs sm:text-sm font-sans font-bold text-[#E02424] uppercase tracking-[0.3em]">DIRECT SOURCING CHANNELS</span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-neutral-900 tracking-tight uppercase leading-snug">
+            <span className="block text-xl sm:text-2xl font-sans font-bold text-[#E02424] uppercase tracking-[0.3em]">DIRECT SOURCING CHANNELS</span>
+            {/* <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-neutral-900 tracking-tight uppercase leading-snug">
               CONTRACTING WITH US
-            </h2>
+            </h2> */}
             <p className="text-neutral-500 text-base sm:text-lg font-light max-w-2xl mx-auto">
               Partner directly with our executive leadership to establish reliable production, quality assurance, and seamless apparel supply chains.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-16 items-start">
-
-
-            {/* Profile 2 */}
-            <div className="space-y-4 font-sans text-neutral-800">
-              <div className="border-t-2 border-[#E02424] pt-4">
-                <h3 className="text-xl font-bold tracking-tight text-neutral-950 font-sans">MD. SHAHNEWAZ RAJIN</h3>
-                <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-widest block mt-1">Co-Founder</span>
-                <span className="text-[10px] text-neutral-400 italic block mt-1">Helping Brands Grow with Reliable Production</span>
+          <div className="grid grid-cols-1 lg:grid-cols-12 overflow-hidden border border-neutral-200 bg-[#F8F7F3] shadow-[0_24px_80px_rgba(15,15,15,0.08)]">
+            <div className="lg:col-span-5 bg-[#101010] text-white p-8 sm:p-10 lg:p-12 flex flex-col justify-between gap-12 relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-1 bg-[#E02424]" />
+              <div className="space-y-5">
+                <span className="text-[11px] font-bold uppercase tracking-[0.25em] text-[#E02424]">
+                  Contact Information
+                </span>
+                <h3 className="text-2xl sm:text-3xl font-bold uppercase tracking-tight leading-tight">
+                  Let&apos;s build your next sourcing plan.
+                </h3>
+                <p className="text-sm sm:text-base leading-relaxed text-neutral-300 font-light">
+                  Send production details, sampling needs, or buying requirements. Our team will review the request and connect with you directly.
+                </p>
               </div>
-              <div className="space-y-2 text-sm pt-2">
-                <p className="text-neutral-600">
-                  <span className="font-semibold text-neutral-900 mr-2 text-xs uppercase tracking-wider">Phone:</span>
-                  <a href="tel:+8801672906628" className="hover:text-[#E02424] hover:underline font-medium">+880 1672-906628</a>
-                </p>
-                <p className="text-neutral-600">
-                  <span className="font-semibold text-neutral-900 mr-2 text-xs uppercase tracking-wider">Email:</span>
-                  <a href="mailto:rajin@crossweavesourcing.com" className="hover:text-[#E02424] hover:underline font-medium break-all">rajin@crossweavesourcing.com</a>
-                </p>
+
+              <div className="space-y-6">
+                <a
+                  href="mailto:info@crossweavesourcing.com"
+                  className="group flex items-start gap-4 border-t border-white/10 pt-6"
+                >
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-white/15 bg-white/5 text-[#E02424] transition-colors group-hover:border-[#E02424]/60 group-hover:bg-[#E02424] group-hover:text-white">
+                    <Mail className="h-5 w-5" />
+                  </span>
+                  <span className="space-y-1">
+                    <span className="block text-[11px] font-bold uppercase tracking-[0.24em] text-neutral-400">
+                      Email Us
+                    </span>
+                    <span className="block text-sm sm:text-base font-medium text-white">
+                      info@crossweavesourcing.com
+                    </span>
+                  </span>
+                </a>
+
+                <div className="flex items-start gap-4 border-t border-white/10 pt-6">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-white/15 bg-white/5 text-[#E02424]">
+                    <MapPin className="h-5 w-5" />
+                  </span>
+                  <div className="space-y-3">
+                    <span className="block text-[11px] font-bold uppercase tracking-[0.24em] text-neutral-400">
+                      Visit Us
+                    </span>
+                    <p className="text-sm leading-relaxed text-neutral-200 font-light">
+                      Bashundhara R/A, Road No. 3, Lane No. 3, House No. 1339/A, Ward No. 24, Chittagong, Bangladesh
+                    </p>
+                    <p className="text-sm leading-relaxed text-neutral-400 font-light">
+                      PO Box: 41, 26 S White Horse Pike, Somerdale, NJ 08083, USA
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Profile 3 */}
-            <div className="space-y-4 font-sans text-neutral-800">
-              <div className="border-t-2 border-[#E02424] pt-4">
-                <h3 className="text-xl font-bold tracking-tight text-neutral-950 font-sans">MD SHARIFUL ISLAM</h3>
-                <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-widest block mt-1">Founder</span>
-                <span className="text-[10px] text-neutral-400 italic block mt-1">Helping Brands Grow with Reliable Production</span>
-              </div>
-              <div className="space-y-2 text-sm pt-2">
-                <p className="text-neutral-600">
-                  <span className="font-semibold text-neutral-900 mr-2 text-xs uppercase tracking-wider">USA Phone:</span>
-                  <a href="tel:+16094535301" className="hover:text-[#E02424] hover:underline font-medium">+1 (609) 453-5301</a>
-                </p>
-                <p className="text-neutral-600">
-                  <span className="font-semibold text-neutral-900 mr-2 text-xs uppercase tracking-wider">BD Phone:</span>
-                  <a href="tel:+8801811182609" className="hover:text-[#E02424] hover:underline font-medium">+880 1811-182609</a>
-                </p>
-                <p className="text-neutral-600">
-                  <span className="font-semibold text-neutral-900 mr-2 text-xs uppercase tracking-wider">Email:</span>
-                  <a href="mailto:sharif@crossweavesourcing.com" className="hover:text-[#E02424] hover:underline font-medium break-all">sharif@crossweavesourcing.com</a>
-                </p>
+            <div className="lg:col-span-7 p-6 sm:p-10 lg:p-12 bg-white">
+              <form onSubmit={handleContactSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                  <label className="space-y-2">
+                    <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500">
+                      Name
+                    </span>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formState.name}
+                      onChange={(e) => setFormState((prev) => ({ ...prev, name: e.target.value }))}
+                      required
+                      placeholder="Your name"
+                      className="h-12 w-full border border-neutral-200 bg-[#F9F9F9] px-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424] focus:bg-white"
+                    />
+                  </label>
 
+                  <label className="space-y-2">
+                    <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500">
+                      Email Address
+                    </span>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formState.email}
+                      onChange={(e) => setFormState((prev) => ({ ...prev, email: e.target.value }))}
+                      required
+                      placeholder="you@example.com"
+                      className="h-12 w-full border border-neutral-200 bg-[#F9F9F9] px-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424] focus:bg-white"
+                    />
+                  </label>
+                </div>
+
+                <label className="block space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500">
+                    Subject
+                  </span>
+                  <input
+                    type="text"
+                    name="subject"
+                    value={formState.subject}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, subject: e.target.value }))}
+                    required
+                    placeholder="Production inquiry"
+                    className="h-12 w-full border border-neutral-200 bg-[#F9F9F9] px-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424] focus:bg-white"
+                  />
+                </label>
+
+                <label className="block space-y-2">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500">
+                    Message
+                  </span>
+                  <textarea
+                    name="message"
+                    value={formState.message}
+                    onChange={(e) => setFormState((prev) => ({ ...prev, message: e.target.value }))}
+                    required
+                    rows={6}
+                    placeholder="Tell us about product type, order volume, target timeline, and destination market."
+                    className="min-h-36 w-full resize-y border border-neutral-200 bg-[#F9F9F9] px-4 py-3 text-sm leading-relaxed text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424] focus:bg-white"
+                  />
+                </label>
+
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-2">
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 bg-[#E02424] px-7 text-xs font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:bg-neutral-400"
+                  >
+                    {isSubmitting ? 'Sending' : 'Contact Us'}
+                    <Send className="h-4 w-4" />
+                  </button>
+
+                  {submitSuccess && (
+                    <p className="text-sm font-medium text-[#E02424]">
+                      Request received. Our team will contact you soon.
+                    </p>
+                  )}
+                </div>
+              </form>
+            </div>
+          </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start mt-12">
+
+            {/* Left portion: Static Contact Info (5 cols) */}
+            <div className="lg:col-span-5 space-y-10">
+
+              {/* Email Us */}
+              <div className="space-y-4">
+                <div className="border-b border-[#E02424]/30 pb-3 flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 bg-[#E02424] rounded-full inline-block"></span>
+                  <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[#E02424] font-sans">
+                    EMAIL US
+                  </h3>
+                </div>
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">General Inquiries</span>
+                    <a href="mailto:info@crossweavesourcing.com" className="text-neutral-800 hover:text-[#E02424] text-base font-light transition-colors break-all">
+                      info@crossweavesourcing.com
+                    </a>
+                  </div>
+
+                  <div className="pt-2 space-y-3">
+                    <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">Direct Executive Channels</span>
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
+                      <div className="text-xs">
+                        <span className="font-semibold text-neutral-900 block">MD Shariful Islam</span>
+                        <span className="text-neutral-500 block text-[10px] font-normal uppercase tracking-wider">Founder</span>
+                        <a href="mailto:sharif@crossweavesourcing.com" className="text-neutral-600 hover:text-[#E02424] transition-colors break-all">
+                          sharif@crossweavesourcing.com
+                        </a>
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-semibold text-neutral-900 block">MD. Shahnewaz Rajin</span>
+                        <span className="text-neutral-500 block text-[10px] font-normal uppercase tracking-wider">Co-Founder</span>
+                        <a href="mailto:rajin@crossweavesourcing.com" className="text-neutral-600 hover:text-[#E02424] transition-colors break-all">
+                          rajin@crossweavesourcing.com
+                        </a>
+                      </div>
+                      <div className="text-xs col-span-1 sm:col-span-2 lg:col-span-1">
+                        <span className="font-semibold text-neutral-900 block">Ashrafur Rahaman</span>
+                        <span className="text-neutral-500 block text-[10px] font-normal uppercase tracking-wider">Co-Founder</span>
+                        <a href="mailto:ashrahaman@crossweavesourcing.com" className="text-neutral-600 hover:text-[#E02424] transition-colors break-all">
+                          ashrahaman@crossweavesourcing.com
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              {/* Visit Us */}
+              <div className="space-y-4">
+                <div className="border-b border-[#E02424]/30 pb-3 flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 bg-[#E02424] rounded-full inline-block"></span>
+                  <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-[#E02424] font-sans">
+                    VISIT US
+                  </h3>
+                </div>
+                <div className="space-y-5 text-sm">
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">Bangladesh Office</span>
+                    <p className="text-neutral-700 leading-relaxed font-light text-sm">
+                      Bashundhara R/A, Road No. 3, Lane No. 3, House No. 1339/A, Ward No. 24, Chittagong, Bangladesh
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">USA Office & Mailing Address</span>
+                    <p className="text-neutral-700 leading-relaxed font-light text-sm">
+                      PO Box: 41, 26 S White Horse Pike, Somerdale, NJ 08083, USA
+                    </p>
+                  </div>
+                </div>
+              </div>
+
             </div>
 
-            {/* Profile 1 */}
-            <div className="space-y-4 font-sans text-neutral-800">
-              <div className="border-t-2 border-[#E02424] pt-4">
-                <h3 className="text-xl font-bold tracking-tight text-neutral-950 font-sans">ASHRAFUR RAHAMAN</h3>
-                <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-widest block mt-1">Co-Founder</span>
-                <span className="text-[10px] text-neutral-400 italic block mt-1">Helping Brands Grow with Reliable Production</span>
-              </div>
-              <div className="space-y-2 text-sm pt-2">
-                <p className="text-neutral-600">
-                  <span className="font-semibold text-neutral-900 mr-2 text-xs uppercase tracking-wider">Phone:</span>
-                  <a href="tel:+13476592484" className="hover:text-[#E02424] hover:underline font-medium">+1 (347) 659-2484</a>
-                </p>
-                <p className="text-neutral-600">
-                  <span className="font-semibold text-neutral-900 mr-2 text-xs uppercase tracking-wider">Email:</span>
-                  <a href="mailto:ashrahaman@crossweavesourcing.com" className="hover:text-[#E02424] hover:underline font-medium break-all">ashrahaman@crossweavesourcing.com</a>
+            {/* Right portion: Message Form (7 cols) */}
+            <div className="lg:col-span-7 bg-[#FBFBFA] border border-neutral-200/80 rounded-xl p-8 md:p-10 shadow-sm">
+              <div className="space-y-2 mb-8">
+                <h3 className="text-lg font-bold text-neutral-900 font-sans tracking-tight">Send Us a Message</h3>
+                <p className="text-xs text-neutral-500 font-light">
+                  Have a specific sourcing request or inquiry? Send us a message and our executive leadership will get back to you.
                 </p>
               </div>
+
+              {submitSuccess ? (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-lg p-4 mb-6 flex flex-col gap-1 font-sans"
+                >
+                  <span className="font-bold">Thank you for reaching out!</span>
+                  <span className="font-light text-emerald-700">Your message has been sent successfully. We will get back to you shortly.</span>
+                </motion.div>
+              ) : null}
+
+              <form onSubmit={handleContactSubmit} className="space-y-6 font-sans">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label htmlFor="form-name" className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">Full Name</label>
+                    <input
+                      type="text"
+                      id="form-name"
+                      required
+                      value={formState.name}
+                      onChange={(e) => setFormState({ ...formState, name: e.target.value })}
+                      placeholder="e.g. John Doe"
+                      className="w-full bg-white border border-neutral-300 rounded-lg px-4 py-3 text-sm text-neutral-955 placeholder:text-neutral-400 focus:outline-none focus:border-[#E02424] focus:ring-1 focus:ring-[#E02424] transition-all"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="form-email" className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">Email Address</label>
+                    <input
+                      type="email"
+                      id="form-email"
+                      required
+                      value={formState.email}
+                      onChange={(e) => setFormState({ ...formState, email: e.target.value })}
+                      placeholder="e.g. john@example.com"
+                      className="w-full bg-white border border-neutral-300 rounded-lg px-4 py-3 text-sm text-neutral-955 placeholder:text-neutral-400 focus:outline-none focus:border-[#E02424] focus:ring-1 focus:ring-[#E02424] transition-all"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="form-subject" className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">Subject</label>
+                  <input
+                    type="text"
+                    id="form-subject"
+                    required
+                    value={formState.subject}
+                    onChange={(e) => setFormState({ ...formState, subject: e.target.value })}
+                    placeholder="e.g. Partnership Request / Custom Apparel Sourcing"
+                    className="w-full bg-white border border-neutral-300 rounded-lg px-4 py-3 text-sm text-neutral-955 placeholder:text-neutral-400 focus:outline-none focus:border-[#E02424] focus:ring-1 focus:ring-[#E02424] transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label htmlFor="form-message" className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider block">Message</label>
+                  <textarea
+                    id="form-message"
+                    required
+                    rows={5}
+                    value={formState.message}
+                    onChange={(e) => setFormState({ ...formState, message: e.target.value })}
+                    placeholder="Describe your requirements, volume requirements, or questions..."
+                    className="w-full bg-white border border-neutral-300 rounded-lg px-4 py-3 text-sm text-neutral-955 placeholder:text-neutral-400 focus:outline-none focus:border-[#E02424] focus:ring-1 focus:ring-[#E02424] transition-all resize-none"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full bg-[#E02424] hover:bg-neutral-950 text-white font-bold uppercase tracking-widest text-xs py-4 px-6 rounded-lg transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-[#E02424] focus:ring-offset-2 disabled:bg-neutral-400 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                      <span>SENDING REQUEST...</span>
+                    </>
+                  ) : (
+                    <span>SEND REQUEST</span>
+                  )}
+                </button>
+              </form>
             </div>
+
           </div>
         </div>
       </section>
@@ -633,6 +893,9 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
               <li><a href="#what-we-do" className="hover:text-black transition-colors">KNIT</a></li>
               <li><a href="#what-we-do" className="hover:text-black transition-colors">WOVEN</a></li>
               <li><a href="#what-we-do" className="hover:text-black transition-colors">SWEATER</a></li>
+              <li><a href="#what-we-do" className="hover:text-black transition-colors">BAG</a></li>
+              <li><a href="#what-we-do" className="hover:text-black transition-colors">WALLET</a></li>
+              <li><a href="#what-we-do" className="hover:text-black transition-colors">HAT</a></li>
             </ul>
           </div>
 
@@ -648,28 +911,28 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             <div className="space-y-4 border-t border-neutral-300/60 pt-5">
               <h5 className="font-sans font-bold uppercase tracking-[0.15em] text-xs text-black">FOLLOW US</h5>
               <div className="flex gap-4 pt-1">
-                <a 
-                  href="https://linkedin.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
+                <a
+                  href="https://linkedin.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="p-2 rounded-full bg-black/5 hover:bg-[#E02424] hover:text-white transition-all text-neutral-700 focus:outline-none focus:ring-1 focus:ring-black/25"
                   aria-label="LinkedIn"
                 >
                   <Linkedin className="w-4 h-4" />
                 </a>
-                <a 
-                  href="https://instagram.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
+                <a
+                  href="https://instagram.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="p-2 rounded-full bg-black/5 hover:bg-[#E02424] hover:text-white transition-all text-neutral-700 focus:outline-none focus:ring-1 focus:ring-black/25"
                   aria-label="Instagram"
                 >
                   <Instagram className="w-4 h-4" />
                 </a>
-                <a 
-                  href="https://facebook.com" 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
+                <a
+                  href="https://facebook.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="p-2 rounded-full bg-black/5 hover:bg-[#E02424] hover:text-white transition-all text-neutral-700 focus:outline-none focus:ring-1 focus:ring-black/25"
                   aria-label="Facebook"
                 >
