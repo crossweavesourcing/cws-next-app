@@ -154,14 +154,14 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             <div className="space-y-4">
               <h2 className="text-xl md:text-2xl font-sans font-bold uppercase tracking-[0.2em] text-gray-950">WHAT WE DO</h2>
               <p className="text-gray-700 text-sm sm:text-base leading-relaxed font-sans font-light">
-                We are fashion creators, makers, and idea people. We execute our brands vision by sourcing fabrics, trim and materials from across the globe to ensure value and high quality. TKO's technical expertise in design and eye for detail means that our customers are always assured the very best products at competitive pricing.
+                We are fashion creators, makers, and idea people. We execute our brands vision by sourcing fabrics, trim and materials from across the globe to ensure value and high quality. TKO&apos;s technical expertise in design and eye for detail means that our customers are always assured the very best products at competitive pricing.
               </p>
             </div>
 
             <div className="space-y-4">
-              <h2 className="text-xl md:text-2xl font-sans font-bold uppercase tracking-[0.2em] text-gray-950">OUR APPROACH</h2>
+              <h2 className="text-xl md:text-2xl font-sans font-bold uppercase tracking-[0.2em] text-gray-955">OUR APPROACH</h2>
               <p className="text-gray-700 text-sm sm:text-base leading-relaxed font-sans font-light">
-                TKO has assembled a world class design team, that is experienced and well-versed in many product categories. The company's core competency is menswear, offering products ranging from casual sportswear to niche lifestyle apparel. Our creative mission is to offer and market fashion-right branded lifestyle products that appeal to a broad and diverse customer base. Extensive consumer and fashion trend research, along with the ever vigilant monitoring of retail sales, enables us to deliver the right products at the right time to the right distribution channels.
+                TKO has assembled a world class design team, that is experienced and well-versed in many product categories. The company&apos;s core competency is menswear, offering products ranging from casual sportswear to niche lifestyle apparel. Our creative mission is to offer and market fashion-right branded lifestyle products that appeal to a broad and diverse customer base. Extensive consumer and fashion trend research, along with the ever vigilant monitoring of retail sales, enables us to deliver the right products at the right time to the right distribution channels.
               </p>
             </div>
           </div>
@@ -361,7 +361,7 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             <h3 className="text-2xl sm:text-3xl font-sans font-black tracking-wider text-black">DO THE RIGHT THING.</h3>
 
             <p className="text-neutral-800 text-[15px] leading-relaxed font-sans font-light">
-              For us, doing the right thing is more than just words - it's at the heart of who we are as a company. What does 'doing the right thing' mean in the context of our corporate social responsibility? We believe it means doing the right thing for people, the places we work and our planet. That's led us to establish the TKO Code of Conduct, that clearly specifies the minimum working and environmental conditions we require throughout our supply chain:
+              For us, doing the right thing is more than just words - it&apos;s at the heart of who we are as a company. What does &apos;doing the right thing&apos; mean in the context of our corporate social responsibility? We believe it means doing the right thing for people, the places we work and our planet. That&apos;s led us to establish the TKO Code of Conduct, that clearly specifies the minimum working and environmental conditions we require throughout our supply chain:
             </p>
 
             {/* Structured Tabular List in 2 columns (No checkboxes or checkmarks, pure text list matching screenshot!) */}
@@ -373,7 +373,7 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
                   <li>Harassment & Abuse</li>
                   <li>Customs</li>
                   <li>Non-Discrimination</li>
-                  <li>Wage & Benefit's</li>
+                  <li>Wage & Benefits</li>
                 </ul>
               </div>
               <div>

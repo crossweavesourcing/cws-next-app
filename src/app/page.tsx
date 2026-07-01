@@ -1,8 +1,10 @@
 "use client";
 import { Fragment, useState, useEffect } from 'react';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'motion/react';
+import Link from 'next/link';
+import { motion } from 'motion/react';
 import { Menu, X, ArrowUpRight, Moon, Sun, Linkedin, Instagram, Facebook, Mail, MapPin, Send } from 'lucide-react';
+import { categoryCards } from '@/lib/products';
 
 type ThemeMode = 'light' | 'dark';
 
@@ -44,11 +46,12 @@ const services = [
   },
 ];
 
+const words = ["SOURCE", "CRAFT", "DELIVER"];
+
 export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isDarkTheme = theme === 'dark';
 
-  const words = ["SOURCE", "CRAFT", "DELIVER"];
   const [currentWordIndex, setCurrentWordIndex] = useState(0);
   const [currentText, setCurrentText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
@@ -59,8 +62,10 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
 
     if (isDeleting) {
       if (currentText === "") {
-        setIsDeleting(false);
-        setCurrentWordIndex((prev) => (prev + 1) % words.length);
+        timer = setTimeout(() => {
+          setIsDeleting(false);
+          setCurrentWordIndex((prev) => (prev + 1) % words.length);
+        }, 40);
       } else {
         timer = setTimeout(() => {
           setCurrentText((prev) => prev.slice(0, -1));
@@ -319,6 +324,72 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
         </div>
       </section>
 
+      {/* PRODUCTS */}
+      <section id="products" className="py-16 md:py-24 bg-white border-t border-gray-100">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 space-y-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-end">
+            <div className="lg:col-span-5 space-y-3">
+              <span className="block text-xs sm:text-sm font-sans font-bold text-[#E02424] uppercase tracking-[0.3em]">
+                Product Portfolio
+              </span>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-neutral-900 tracking-tight uppercase leading-snug">
+                Products
+              </h2>
+            </div>
+            <p className="lg:col-span-7 text-gray-700 text-sm sm:text-base leading-relaxed font-sans font-light max-w-3xl lg:ml-auto">
+              Explore representative manufacturing categories supported by product development, private-label production, quality control and export coordination for global apparel programs.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6">
+            {categoryCards.map((category) => (
+              <Link
+                key={category.name}
+                href={`/products?category=${encodeURIComponent(category.name)}`}
+                className="group bg-[#F9F9F9] border border-neutral-100 transition-colors hover:border-[#E02424]/30 hover:bg-white"
+              >
+                <div className="relative h-72 overflow-hidden bg-neutral-200">
+                  <Image
+                    src={category.image}
+                    alt={`${category.name} product category`}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/10 transition-colors group-hover:bg-black/0" />
+                </div>
+                <article className="p-6 sm:p-8 space-y-5">
+                  <div className="flex items-center justify-between gap-4 border-b border-neutral-200 pb-4">
+                    <span className="text-[10px] font-sans font-bold uppercase tracking-[0.24em] text-[#E02424]">
+                      Category
+                    </span>
+                    <ArrowUpRight className="h-4 w-4 text-neutral-400 transition-colors group-hover:text-[#E02424]" />
+                  </div>
+                  <div className="space-y-3">
+                    <h3 className="text-base sm:text-lg font-sans font-bold uppercase tracking-[0.12em] text-neutral-950 leading-snug">
+                      {category.name}
+                    </h3>
+                    <p className="text-sm sm:text-base leading-relaxed text-neutral-600 font-sans font-light">
+                      {category.description}
+                    </p>
+                  </div>
+                </article>
+              </Link>
+            ))}
+          </div>
+
+          <div className="text-center">
+            <Link
+              href="/products"
+              className="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 bg-[#E02424] px-7 text-xs font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-black"
+            >
+              View All Products
+              <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* 5. REVERSED TWO-COLUMN: TEAM WORKING / COMPANY STRATEGY & BRANDS (Natural light gray bg) */}
       <section id="strategy" className="py-16 md:py-24 bg-[#EAEAEA]">
         <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-stretch">
@@ -343,6 +414,7 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
               </div>
             </div>
 
+            {/* This section need to replaced with own text */}
             {/* <div className="space-y-4 marker-class">
               <h2 className="text-xl md:text-2xl font-sans font-bold uppercase tracking-[0.2em] text-gray-955">OUR BRANDS</h2>
               <p className="text-gray-700 text-sm sm:text-base leading-relaxed font-sans font-light font-sans">
@@ -401,8 +473,8 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
       </section>
 
 
-            {/* SERVICES */}
-      <section id="services" className="marker-class py-16 md:py-24 bg-white border-t border-gray-100">
+      {/* SERVICES Section sample 1 */}
+      {/* <section id="services" className="py-16 md:py-24 bg-white border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-6 md:px-12 space-y-12">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-end">
             <div className="lg:col-span-5 space-y-3">
@@ -444,10 +516,10 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
-      {/* 5.5. SERVICES SECTION */}
-      <section id="services" className="py-20 md:py-28 bg-white border-b border-gray-150">
+      {/* 5.5. Service Section sample 2 */}
+      {/* <section id="services" className="py-20 md:py-28 bg-white border-b border-gray-150">
         <div className="max-w-7xl mx-auto px-6 md:px-12">
 
           <div className="text-center space-y-4 mb-16">
@@ -462,8 +534,6 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
-
-            {/* Service 1 */}
             <div className="bg-[#FBFBFA] border border-neutral-200/80 rounded-xl p-8 hover:border-[#E02424] hover:shadow-lg hover:shadow-neutral-955/[0.02] transition-all duration-300 flex flex-col justify-between group">
               <div className="space-y-4">
                 <span className="text-xs font-mono font-bold text-[#E02424] tracking-widest block">01 / CONCEPT</span>
@@ -476,7 +546,6 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
               </div>
             </div>
 
-            {/* Service 2 */}
             <div className="bg-[#FBFBFA] border border-neutral-200/80 rounded-xl p-8 hover:border-[#E02424] hover:shadow-lg hover:shadow-neutral-955/[0.02] transition-all duration-300 flex flex-col justify-between group">
               <div className="space-y-4">
                 <span className="text-xs font-mono font-bold text-[#E02424] tracking-widest block">02 / BRANDING</span>
@@ -489,7 +558,6 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
               </div>
             </div>
 
-            {/* Service 3 */}
             <div className="bg-[#FBFBFA] border border-neutral-200/80 rounded-xl p-8 hover:border-[#E02424] hover:shadow-lg hover:shadow-neutral-955/[0.02] transition-all duration-300 flex flex-col justify-between group">
               <div className="space-y-4">
                 <span className="text-xs font-mono font-bold text-[#E02424] tracking-widest block">03 / PRODUCTION</span>
@@ -502,7 +570,6 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
               </div>
             </div>
 
-            {/* Service 4 */}
             <div className="bg-[#FBFBFA] border border-neutral-200/80 rounded-xl p-8 hover:border-[#E02424] hover:shadow-lg hover:shadow-neutral-955/[0.02] transition-all duration-300 flex flex-col justify-between group">
               <div className="space-y-4">
                 <span className="text-xs font-mono font-bold text-[#E02424] tracking-widest block">04 / FINANCE</span>
@@ -515,7 +582,6 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
               </div>
             </div>
 
-            {/* Service 5 */}
             <div className="bg-[#FBFBFA] border border-neutral-200/80 rounded-xl p-8 hover:border-[#E02424] hover:shadow-lg hover:shadow-neutral-955/[0.02] transition-all duration-300 flex flex-col justify-between group">
               <div className="space-y-4">
                 <span className="text-xs font-mono font-bold text-[#E02424] tracking-widest block">05 / AUDITING</span>
@@ -528,7 +594,6 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
               </div>
             </div>
 
-            {/* Service 6 */}
             <div className="bg-[#FBFBFA] border border-neutral-200/80 rounded-xl p-8 hover:border-[#E02424] hover:shadow-lg hover:shadow-neutral-955/[0.02] transition-all duration-300 flex flex-col justify-between group">
               <div className="space-y-4">
                 <span className="text-xs font-mono font-bold text-[#E02424] tracking-widest block">06 / LOGISTICS</span>
@@ -544,13 +609,12 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
           </div>
 
         </div>
-      </section>
+      </section> */}
 
-      {/* 5.8. SERVICES GRID SHOWCASE (checkered pattern catalog layout matching brand showcase) */}
-      <section id="services-showcase" className="w-full bg-white select-none border-t border-gray-200">
+      {/* Service sample 3 */}
+      {/* <section id="services-showcase" className="w-full bg-white select-none border-t border-gray-200">
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-0">
 
-          {/* Service 1: Left Image & Right Text Card */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
             <Image
               src="/assets/images/tko_workspace_1780828183652.png"
@@ -573,7 +637,6 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             </div>
           </div>
 
-          {/* Service 2: Left Text Card & Right Image */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#F8F7F3] text-neutral-900 p-8 sm:p-12 lg:p-16 flex flex-col justify-center items-center relative text-center order-2 md:order-1">
             <div className="absolute inset-x-0 top-0 h-[3px] bg-[#E02424]" />
             <div className="max-w-md space-y-4 font-sans">
@@ -596,7 +659,6 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             />
           </div>
 
-          {/* Service 3: Left Image & Right Text Card */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
             <Image
               src="/assets/images/tko_hero_1780828164727.png"
@@ -619,7 +681,6 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             </div>
           </div>
 
-          {/* Service 4: Left Text Card & Right Image */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#1A1A1A] text-white p-8 sm:p-12 lg:p-16 flex flex-col justify-center items-center relative text-center order-2 md:order-1">
             <div className="absolute inset-x-0 top-0 h-[3px] bg-[#E02424]" />
             <div className="max-w-md space-y-4 font-sans">
@@ -642,12 +703,12 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             />
           </div>
 
-          {/* Service 5: Left Image & Right Text Card */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
             <Image
               src="/assets/images/tko_weatherproof_model_1780828259409.png"
               alt="Quality Control Sourcing Inspection"
               fill
+              loading="eager"
               className="object-cover"
             />
           </div>
@@ -665,7 +726,6 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             </div>
           </div>
 
-          {/* Service 6: Left Text Card & Right Image */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#DDDCCB] p-8 flex flex-col justify-center items-center relative overflow-hidden order-2 md:order-1 text-center">
             <div className="absolute inset-0 opacity-[0.08]" style={{
               backgroundImage: 'radial-gradient(#1E1E1E 15%, transparent 16%)',
@@ -693,13 +753,11 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
           </div>
 
         </div>
-      </section>
+      </section> */}
 
-      {/* 6. BRAND GRID / SHOWCASE (Seamless checkered pattern catalog layout) */}
-      <section id="brands" className="marker-class w-full bg-white select-none">
+      {/* Templets dummy codes */}
+      {/* <section id="brands" className="w-full bg-white select-none marker-class2">
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-0">
-
-          {/* Row 1: Left Model (MountainLogs) & Right Copper & Oak Emblem */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
             <Image
               src="/assets/images/tko_copper_oak_model_1780828221993.png"
@@ -732,8 +790,6 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
               </div>
             </div>
           </div>
-
-          {/* Row 2: Left English Laundry Logo block & Right Portrait Image */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-white text-gray-905 p-8 flex flex-col justify-center items-center relative text-center border-b border-gray-100">
             <div className="max-w-md space-y-5">
               <div className="border border-neutral-900 rounded-full w-24 h-24 mx-auto flex flex-col items-center justify-center p-2 relative">
@@ -759,24 +815,20 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
               className="object-cover"
             />
           </div>
-
-          {/* Row 3: Left Model & Right Weatherproof label card */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
             <Image
               src="/assets/images/tko_weatherproof_model_1780828259409.png"
               alt="Weatherproof Styling"
               fill
+              loading="eager"
               className="object-cover"
             />
           </div>
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#DDDCCB] p-8 flex flex-col justify-center items-center relative overflow-hidden">
-            {/* Dots background pattern */}
             <div className="absolute inset-0 opacity-[0.08]" style={{
               backgroundImage: 'radial-gradient(#1E1E1E 15%, transparent 16%)',
               backgroundSize: '12px 12px'
             }} />
-
-            {/* Clothing cardboard tag */}
             <div className="relative z-10 w-64 bg-[#EADBBD] border-2 border-[#C6B695] rounded-xs px-6 py-10 shadow-xl flex flex-col items-center text-center text-[#554A33] font-serif">
               <div className="w-5 h-5 rounded-full bg-[#DDDCCB] border border-[#C6B695] mb-4 flex items-center justify-center relative">
                 <div className="absolute w-[2px] h-6 bg-stone-500 -top-6 rotate-12" />
@@ -794,7 +846,6 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             </div>
           </div>
 
-          {/* Row 4: Left American Republic Card & Right hanger products */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#EAEAEA] text-[#1E1E1E] p-8 flex flex-col justify-center items-center text-center relative overflow-hidden border-b border-gray-200">
             <div className="space-y-2">
               <h3 className="text-4xl sm:text-5xl font-black font-serif text-gray-950 tracking-tight leading-none uppercase">
@@ -812,7 +863,6 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             />
           </div>
 
-          {/* Row 5: Left Sweaters hangar & Right Private Label 3D Text Card */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
             <Image
               src="/assets/images/tko_private_label_1780828295216.png"
@@ -835,7 +885,7 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
           </div>
 
         </div>
-      </section>
+      </section> */}
 
       {/* 7. TWO-COLUMN: CORPORATE RESPONSIBILITY & OUR MANAGEMENT (Taupe grid bg) */}
       <section id="responsibility" className="py-20 bg-[#EAEAEA] text-neutral-900 border-t border-b border-gray-300">
@@ -864,7 +914,7 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
                   <li>Harassment & Abuse</li>
                   <li>Customs</li>
                   <li>Non-Discrimination</li>
-                  <li>Wage & Benefit's</li>
+                  <li>Wage & Benefits</li>
                 </ul>
               </div>
               <div>
@@ -1054,12 +1104,11 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start mt-12">
 
-            {/* Left portion: Static Contact Info (5 cols) */}
+          {/* Deprecated code .... remove if needed */}
+          {/* <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start mt-12">
+
             <div className="lg:col-span-5 space-y-10">
-
-              {/* Email Us */}
               <div className="space-y-4">
                 <div className="border-b border-[#E02424]/30 pb-3 flex items-center gap-2">
                   <span className="h-1.5 w-1.5 bg-[#E02424] rounded-full inline-block"></span>
@@ -1103,8 +1152,6 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
                   </div>
                 </div>
               </div>
-
-              {/* Visit Us */}
               <div className="space-y-4">
                 <div className="border-b border-[#E02424]/30 pb-3 flex items-center gap-2">
                   <span className="h-1.5 w-1.5 bg-[#E02424] rounded-full inline-block"></span>
@@ -1130,7 +1177,6 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
 
             </div>
 
-            {/* Right portion: Message Form (7 cols) */}
             <div className="lg:col-span-7 bg-[#FBFBFA] border border-neutral-200/80 rounded-xl p-8 md:p-10 shadow-sm">
               <div className="space-y-2 mb-8">
                 <h3 className="text-lg font-bold text-neutral-900 font-sans tracking-tight">Send Us a Message</h3>
@@ -1221,7 +1267,7 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
               </form>
             </div>
 
-          </div>
+          </div> */}
         </div>
       </section>
 

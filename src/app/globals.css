@@ -457,6 +457,39 @@ html[data-cws-theme='dark'] body {
   background: #e3dfd3 !important;
 }
 
+.product-site-shell .tko-logo-plate {
+  border-radius: 14px;
+  padding: 0.15rem 0;
+  background: transparent !important;
+  border: 0;
+  box-shadow: none;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.16));
+}
+
+.product-site-shell header {
+  background: rgba(247, 245, 239, 0.94) !important;
+  border-color: rgba(25, 25, 25, 0.10) !important;
+  color: #191919 !important;
+}
+
+.product-site-shell header nav {
+  color: #4b4742 !important;
+}
+
+.product-site-shell header nav a:hover {
+  color: #e02424 !important;
+}
+
+.product-site-shell header > div + div {
+  background: rgba(247, 245, 239, 0.98) !important;
+  border-color: rgba(25, 25, 25, 0.10) !important;
+  color: #4b4742 !important;
+}
+
+.product-site-shell footer {
+  background: #e3dfd3 !important;
+}
+
 .tko-page-dark {
   --tko-paper: #080808;
   --tko-ink: #f5f2ea;

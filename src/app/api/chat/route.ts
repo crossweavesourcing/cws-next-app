@@ -64,9 +64,14 @@ Would you like us to generate a full digital sample (ZXY Apparel Labs) or match 
       });
     }
 
+    interface ChatHistoryItem {
+      sender: string;
+      text: string;
+    }
+
     // Map client chat history format to GoogleGenAI Chat Content format
     // GoogleGenAI chat expects: { role: 'user' | 'model', parts: [{ text: string }] }
-    const contents = history ? history.map((h: any) => ({
+    const contents = history ? (history as ChatHistoryItem[]).map((h) => ({
       role: h.sender === 'user' ? 'user' : 'model',
       parts: [{ text: h.text }]
     })) : [];
@@ -88,11 +93,12 @@ Would you like us to generate a full digital sample (ZXY Apparel Labs) or match 
     });
 
     return NextResponse.json({ text: response.text });
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as Error;
     console.error('Gemini API Error:', error);
     return NextResponse.json({
       error: 'Failed to communicate with ZXY Sourcing Co-Pilot. Please try again.',
-      details: error.message
+      details: err.message
     }, { status: 500 });
   }
 }
