@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { Fragment, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, X, ArrowUpRight, Moon, Sun, Linkedin, Instagram, Facebook, Mail, MapPin, Send } from 'lucide-react';
@@ -10,6 +10,39 @@ interface TKOPageProps {
   theme?: ThemeMode;
   onToggleTheme?: () => void;
 }
+
+const services = [
+  {
+    title: 'Product Development & Sampling',
+    description: 'Support from concept review and material selection through fit samples, proto samples and pre-production approvals.',
+    image: '/assets/images/service_product_development_sampling.jpg',
+  },
+  {
+    title: 'Private Label Manufacturing',
+    description: 'End-to-end production for buyer-owned labels with brand-specific trims, packaging and quality requirements.',
+    image: '/assets/images/service_private_label_manufacturing.jpg',
+  },
+  {
+    title: 'Knit, Woven & Sweater Production',
+    description: 'Reliable manufacturing coordination across core apparel categories through a trusted production network.',
+    image: '/assets/images/service_knit_woven_sweater_production.jpg',
+  },
+  {
+    title: 'Costing & Commercial Support',
+    description: 'Transparent costing, supplier negotiation and commercial guidance to help brands meet target margins.',
+    image: '/assets/images/service_costing_commercial_support.jpg',
+  },
+  {
+    title: 'Quality Control & Inspection',
+    description: 'Inline, midline and final inspection support to maintain product quality, compliance and shipment readiness.',
+    image: '/assets/images/service_quality_control_inspection.jpg',
+  },
+  {
+    title: 'Export Documentation & Logistics Coordination',
+    description: 'Shipment follow-up, export document coordination and logistics support from production handover to delivery.',
+    image: '/assets/images/service_export_documentation_logistics.jpg',
+  },
+];
 
 export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -320,8 +353,350 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
         </div>
       </section>
 
+      {/* SERVICES SHOWCASE */}
+      <section id="services-showcase" className="w-full bg-white select-none border-t border-gray-100">
+        <h2 className="sr-only">Services Showcase</h2>
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-0">
+          {services.map((service, index) => {
+            const imagePanel = (
+              <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
+                <Image
+                  src={service.image}
+                  alt={service.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-black/10" />
+              </div>
+            );
+
+            const textPanel = (
+              <article className={`w-full h-[380px] sm:h-[480px] lg:h-[540px] p-8 sm:p-10 flex flex-col justify-center items-center relative text-center overflow-hidden ${index % 3 === 0 ? 'bg-[#1E1C1A] text-white' : index % 3 === 1 ? 'bg-white text-neutral-950 border-b border-gray-100' : 'bg-[#EAEAEA] text-neutral-950 border-b border-gray-200'}`}>
+                <div className="max-w-md space-y-6">
+                  <div className="space-y-2">
+                    <span className="block text-[10px] uppercase tracking-[0.4em] text-[#E02424] font-sans font-bold">
+                      Service {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <span className={`block h-[1px] w-16 mx-auto ${index % 3 === 0 ? 'bg-white/20' : 'bg-neutral-300'}`} />
+                  </div>
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-sans font-black uppercase tracking-[0.12em] leading-tight">
+                    {service.title}
+                  </h2>
+                  <p className={`text-sm sm:text-base leading-relaxed font-sans font-light ${index % 3 === 0 ? 'text-neutral-300' : 'text-neutral-600'}`}>
+                    {service.description}
+                  </p>
+                </div>
+              </article>
+            );
+
+            return (
+              <Fragment key={service.title}>
+                {index % 2 === 0 ? textPanel : imagePanel}
+                {index % 2 === 0 ? imagePanel : textPanel}
+              </Fragment>
+            );
+          })}
+        </div>
+      </section>
+
+
+            {/* SERVICES */}
+      <section id="services" className="marker-class py-16 md:py-24 bg-white border-t border-gray-100">
+        <div className="max-w-7xl mx-auto px-6 md:px-12 space-y-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-end">
+            <div className="lg:col-span-5 space-y-3">
+              <span className="block text-xs sm:text-sm font-sans font-bold text-[#E02424] uppercase tracking-[0.3em]">
+                Our Capabilities
+              </span>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-neutral-900 tracking-tight uppercase leading-snug">
+                Services
+              </h2>
+            </div>
+            <p className="lg:col-span-7 text-gray-700 text-sm sm:text-base leading-relaxed font-sans font-light max-w-3xl lg:ml-auto">
+              CWS provides complete apparel manufacturing and sourcing support for international brands, retailers and importers, managing each stage with transparent communication, reliable execution and shipment-focused coordination.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6">
+            {services.map((service, index) => (
+              <article
+                key={service.title}
+                className="group bg-[#F9F9F9] border border-neutral-100 p-6 sm:p-8 min-h-56 flex flex-col justify-between transition-colors hover:border-[#E02424]/30 hover:bg-white"
+              >
+                <div className="space-y-5">
+                  <div className="flex items-center justify-between gap-4 border-b border-neutral-200 pb-4">
+                    <span className="text-[10px] font-sans font-bold uppercase tracking-[0.24em] text-[#E02424]">
+                      Service
+                    </span>
+                    <span className="text-xs font-sans font-bold text-neutral-400 tabular-nums">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-sans font-bold uppercase tracking-[0.12em] text-neutral-950 leading-snug">
+                    {service.title}
+                  </h3>
+                </div>
+                <p className="pt-6 text-sm sm:text-base leading-relaxed text-neutral-600 font-sans font-light">
+                  {service.description}
+                </p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 5.5. SERVICES SECTION */}
+      <section id="services" className="py-20 md:py-28 bg-white border-b border-gray-150">
+        <div className="max-w-7xl mx-auto px-6 md:px-12">
+
+          <div className="text-center space-y-4 mb-16">
+            <span className="block text-xs sm:text-sm font-sans font-bold text-[#E02424] uppercase tracking-[0.3em]">OUR CAPABILITIES</span>
+            <h2 className="text-3xl sm:text-4xl font-sans font-bold text-neutral-955 tracking-tight uppercase">
+              SERVICES
+            </h2>
+            <div className="h-0.5 w-16 bg-[#E02424] mx-auto mt-4" />
+            <p className="text-neutral-500 text-sm sm:text-base font-light max-w-2xl mx-auto mt-4">
+              Providing end-to-end global apparel sourcing and manufacturing solutions with a strict focus on quality, speed, and reliability.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
+
+            {/* Service 1 */}
+            <div className="bg-[#FBFBFA] border border-neutral-200/80 rounded-xl p-8 hover:border-[#E02424] hover:shadow-lg hover:shadow-neutral-955/[0.02] transition-all duration-300 flex flex-col justify-between group">
+              <div className="space-y-4">
+                <span className="text-xs font-mono font-bold text-[#E02424] tracking-widest block">01 / CONCEPT</span>
+                <h3 className="text-lg font-bold text-neutral-900 font-sans tracking-tight group-hover:text-[#E02424] transition-colors">
+                  Product Development & Sampling
+                </h3>
+                <p className="text-neutral-600 text-sm leading-relaxed font-light font-sans">
+                  Technical design translation, pattern creation, and raw material sourcing. We deliver rapid prototype sampling to finalize fit and construction before bulk production.
+                </p>
+              </div>
+            </div>
+
+            {/* Service 2 */}
+            <div className="bg-[#FBFBFA] border border-neutral-200/80 rounded-xl p-8 hover:border-[#E02424] hover:shadow-lg hover:shadow-neutral-955/[0.02] transition-all duration-300 flex flex-col justify-between group">
+              <div className="space-y-4">
+                <span className="text-xs font-mono font-bold text-[#E02424] tracking-widest block">02 / BRANDING</span>
+                <h3 className="text-lg font-bold text-neutral-900 font-sans tracking-tight group-hover:text-[#E02424] transition-colors">
+                  Private Label Manufacturing
+                </h3>
+                <p className="text-neutral-600 text-sm leading-relaxed font-light font-sans">
+                  Comprehensive OEM/ODM services built around your brand identity. We handle custom labeling, tags, custom hardware, and personalized packaging specifications.
+                </p>
+              </div>
+            </div>
+
+            {/* Service 3 */}
+            <div className="bg-[#FBFBFA] border border-neutral-200/80 rounded-xl p-8 hover:border-[#E02424] hover:shadow-lg hover:shadow-neutral-955/[0.02] transition-all duration-300 flex flex-col justify-between group">
+              <div className="space-y-4">
+                <span className="text-xs font-mono font-bold text-[#E02424] tracking-widest block">03 / PRODUCTION</span>
+                <h3 className="text-lg font-bold text-neutral-900 font-sans tracking-tight group-hover:text-[#E02424] transition-colors">
+                  Knit, Woven & Sweater Production
+                </h3>
+                <p className="text-neutral-600 text-sm leading-relaxed font-light font-sans">
+                  Multi-product manufacturing capabilities. Our partner facilities produce high-quality garments from lightweight circular knits to heavy-gauge sweaters.
+                </p>
+              </div>
+            </div>
+
+            {/* Service 4 */}
+            <div className="bg-[#FBFBFA] border border-neutral-200/80 rounded-xl p-8 hover:border-[#E02424] hover:shadow-lg hover:shadow-neutral-955/[0.02] transition-all duration-300 flex flex-col justify-between group">
+              <div className="space-y-4">
+                <span className="text-xs font-mono font-bold text-[#E02424] tracking-widest block">04 / FINANCE</span>
+                <h3 className="text-lg font-bold text-neutral-900 font-sans tracking-tight group-hover:text-[#E02424] transition-colors">
+                  Costing & Commercial Support
+                </h3>
+                <p className="text-neutral-600 text-sm leading-relaxed font-light font-sans">
+                  Transparent cost structures and financial planning. We optimize fabric consumption and production efficiency to offer competitive pricing options.
+                </p>
+              </div>
+            </div>
+
+            {/* Service 5 */}
+            <div className="bg-[#FBFBFA] border border-neutral-200/80 rounded-xl p-8 hover:border-[#E02424] hover:shadow-lg hover:shadow-neutral-955/[0.02] transition-all duration-300 flex flex-col justify-between group">
+              <div className="space-y-4">
+                <span className="text-xs font-mono font-bold text-[#E02424] tracking-widest block">05 / AUDITING</span>
+                <h3 className="text-lg font-bold text-neutral-900 font-sans tracking-tight group-hover:text-[#E02424] transition-colors">
+                  Quality Control & Inspection
+                </h3>
+                <p className="text-neutral-600 text-sm leading-relaxed font-light font-sans">
+                  Strict inline and final AQL inspections conducted by our certified QA team. We ensure all garments align with international standards and client requirements.
+                </p>
+              </div>
+            </div>
+
+            {/* Service 6 */}
+            <div className="bg-[#FBFBFA] border border-neutral-200/80 rounded-xl p-8 hover:border-[#E02424] hover:shadow-lg hover:shadow-neutral-955/[0.02] transition-all duration-300 flex flex-col justify-between group">
+              <div className="space-y-4">
+                <span className="text-xs font-mono font-bold text-[#E02424] tracking-widest block">06 / LOGISTICS</span>
+                <h3 className="text-lg font-bold text-neutral-900 font-sans tracking-tight group-hover:text-[#E02424] transition-colors">
+                  Export Documentation & Logistics
+                </h3>
+                <p className="text-neutral-600 text-sm leading-relaxed font-light font-sans">
+                  End-to-end logistics coordination. We manage export documentation, customs clearances, shipping line relations, and deliver cargo up to the designated port.
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+      {/* 5.8. SERVICES GRID SHOWCASE (checkered pattern catalog layout matching brand showcase) */}
+      <section id="services-showcase" className="w-full bg-white select-none border-t border-gray-200">
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-0">
+
+          {/* Service 1: Left Image & Right Text Card */}
+          <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
+            <Image
+              src="/assets/images/tko_workspace_1780828183652.png"
+              alt="Product Development and Sampling"
+              fill
+              className="object-cover"
+            />
+          </div>
+          <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#101010] text-white p-8 sm:p-12 lg:p-16 flex flex-col justify-center items-center relative text-center">
+            <div className="absolute inset-x-0 top-0 h-[3px] bg-[#E02424]" />
+            <div className="max-w-md space-y-4 font-sans">
+              <span className="text-[10px] uppercase tracking-[0.4em] text-[#E02424] font-bold block">01 / CONCEPT</span>
+              <h3 className="text-2xl sm:text-3xl font-bold tracking-tight uppercase leading-tight text-white">
+                PRODUCT DEVELOPMENT & SAMPLING
+              </h3>
+              <span className="text-xs italic text-neutral-400 block font-light">From concept sketch to physical prototype</span>
+              <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed font-light font-sans pt-2">
+                Technical design translation, expert pattern creation, fabric sourcing, and rapid sampling to establish precise styling and fit before bulk manufacturing begins.
+              </p>
+            </div>
+          </div>
+
+          {/* Service 2: Left Text Card & Right Image */}
+          <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#F8F7F3] text-neutral-900 p-8 sm:p-12 lg:p-16 flex flex-col justify-center items-center relative text-center order-2 md:order-1">
+            <div className="absolute inset-x-0 top-0 h-[3px] bg-[#E02424]" />
+            <div className="max-w-md space-y-4 font-sans">
+              <span className="text-[10px] uppercase tracking-[0.4em] text-[#E02424] font-bold block">02 / OEM & ODM</span>
+              <h3 className="text-2xl sm:text-3xl font-bold tracking-tight uppercase leading-tight text-neutral-955">
+                PRIVATE LABEL MANUFACTURING
+              </h3>
+              <span className="text-xs italic text-neutral-500 block font-light">Engineered around your brand identity</span>
+              <p className="text-xs sm:text-sm text-neutral-605 leading-relaxed font-light font-sans pt-2">
+                Tailored manufacturing featuring custom labels, hangtags, brand detailing, custom hardware, and buyer-specific packaging solutions to fit your exact retail guidelines.
+              </p>
+            </div>
+          </div>
+          <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden order-1 md:order-2">
+            <Image
+              src="/assets/images/tko_private_label_1780828295216.png"
+              alt="Private Label Sourcing and Packaging"
+              fill
+              className="object-cover"
+            />
+          </div>
+
+          {/* Service 3: Left Image & Right Text Card */}
+          <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
+            <Image
+              src="/assets/images/tko_hero_1780828164727.png"
+              alt="Knit Woven and Sweater Garments"
+              fill
+              className="object-cover"
+            />
+          </div>
+          <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#DDDBCF] text-neutral-900 p-8 sm:p-12 lg:p-16 flex flex-col justify-center items-center relative text-center">
+            <div className="absolute inset-x-0 top-0 h-[3px] bg-neutral-800" />
+            <div className="max-w-md space-y-4 font-sans">
+              <span className="text-[10px] uppercase tracking-[0.4em] text-neutral-850 font-bold block">03 / PRODUCTION</span>
+              <h3 className="text-2xl sm:text-3xl font-bold tracking-tight uppercase leading-tight text-neutral-950">
+                KNIT, Woven & Sweater
+              </h3>
+              <span className="text-xs italic text-neutral-600 block font-light">Versatile capabilities for global retail</span>
+              <p className="text-xs sm:text-sm text-neutral-705 leading-relaxed font-light font-sans pt-2">
+                High-fidelity manufacturing across diverse fabric structures, from lightweight circular knits and structured wovens to heavy-gauge sweaters and outer layers.
+              </p>
+            </div>
+          </div>
+
+          {/* Service 4: Left Text Card & Right Image */}
+          <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#1A1A1A] text-white p-8 sm:p-12 lg:p-16 flex flex-col justify-center items-center relative text-center order-2 md:order-1">
+            <div className="absolute inset-x-0 top-0 h-[3px] bg-[#E02424]" />
+            <div className="max-w-md space-y-4 font-sans">
+              <span className="text-[10px] uppercase tracking-[0.4em] text-[#E02424] font-bold block">04 / FINANCE</span>
+              <h3 className="text-2xl sm:text-3xl font-bold tracking-tight uppercase leading-tight text-white">
+                COSTING & COMMERCIAL SUPPORT
+              </h3>
+              <span className="text-xs italic text-neutral-400 block font-light">Maximizing margins with full transparency</span>
+              <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed font-light font-sans pt-2">
+                Granular costing analyses, yield optimizations, raw material negotiation, and supply chain efficiency reviews to secure target margins without compromising quality.
+              </p>
+            </div>
+          </div>
+          <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden order-1 md:order-2">
+            <Image
+              src="/assets/images/tko_collaboration_1780828202517.png"
+              alt="Commercial Sourcing Negotiation Meeting"
+              fill
+              className="object-cover"
+            />
+          </div>
+
+          {/* Service 5: Left Image & Right Text Card */}
+          <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
+            <Image
+              src="/assets/images/tko_weatherproof_model_1780828259409.png"
+              alt="Quality Control Sourcing Inspection"
+              fill
+              className="object-cover"
+            />
+          </div>
+          <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#FFFFFF] text-neutral-900 p-8 sm:p-12 lg:p-16 flex flex-col justify-center items-center relative text-center border-b border-neutral-100">
+            <div className="absolute inset-x-0 top-0 h-[3px] bg-[#E02424]" />
+            <div className="max-w-md space-y-4 font-sans">
+              <span className="text-[10px] uppercase tracking-[0.4em] text-[#E02424] font-bold block">05 / ASSURANCE</span>
+              <h3 className="text-2xl sm:text-3xl font-bold tracking-tight uppercase leading-tight text-neutral-950">
+                QUALITY CONTROL & INSPECTION
+              </h3>
+              <span className="text-xs italic text-neutral-500 block font-light">Zero-defect standard from line to carton</span>
+              <p className="text-xs sm:text-sm text-neutral-600 leading-relaxed font-light font-sans pt-2">
+                Dedicated in-house QA teams executing pre-production checking, inline inspections, and final AQL random audits to guarantee compliance with international standards.
+              </p>
+            </div>
+          </div>
+
+          {/* Service 6: Left Text Card & Right Image */}
+          <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#DDDCCB] p-8 flex flex-col justify-center items-center relative overflow-hidden order-2 md:order-1 text-center">
+            <div className="absolute inset-0 opacity-[0.08]" style={{
+              backgroundImage: 'radial-gradient(#1E1E1E 15%, transparent 16%)',
+              backgroundSize: '12px 12px'
+            }} />
+            <div className="absolute inset-x-0 top-0 h-[3px] bg-neutral-800" />
+            <div className="max-w-md space-y-4 font-sans relative z-10">
+              <span className="text-[10px] uppercase tracking-[0.4em] text-neutral-900 font-bold block">06 / DISTRIBUTION</span>
+              <h3 className="text-2xl sm:text-3xl font-bold tracking-tight uppercase leading-tight text-neutral-955">
+                EXPORT LOGISTICS & COORDINATION
+              </h3>
+              <span className="text-xs italic text-neutral-700 block font-light">Seamless delivery to your global warehouses</span>
+              <p className="text-xs sm:text-sm text-neutral-800 leading-relaxed font-light font-sans pt-2">
+                End-to-end management of export documentation, customs clearance, shipping line bookings, and freight tracking for reliable delivery to your port of choice.
+              </p>
+            </div>
+          </div>
+          <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden order-1 md:order-2">
+            <Image
+              src="/assets/images/tko_american_republic_1780828278114.png"
+              alt="Apparel Shipping Sourcing Logistics"
+              fill
+              className="object-cover"
+            />
+          </div>
+
+        </div>
+      </section>
+
       {/* 6. BRAND GRID / SHOWCASE (Seamless checkered pattern catalog layout) */}
-      <section id="brands" className="w-full bg-white select-none">
+      <section id="brands" className="marker-class w-full bg-white select-none">
         <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-0">
 
           {/* Row 1: Left Model (MountainLogs) & Right Copper & Oak Emblem */}
@@ -593,7 +968,10 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             </div>
 
             <div className="lg:col-span-7 p-6 sm:p-10 lg:p-12 bg-white">
-              <form onSubmit={handleContactSubmit} className="space-y-6">
+              <div className="space-y-2 mb-8">
+                <h3 className="text-lg font-bold text-neutral-900 font-sans tracking-tight">Send Us a Message</h3>
+              </div>
+              <form onSubmit={handleContactSubmit} className=" space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <label className="space-y-2">
                     <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500">
@@ -676,7 +1054,7 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             </div>
           </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start mt-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start mt-12">
 
             {/* Left portion: Static Contact Info (5 cols) */}
             <div className="lg:col-span-5 space-y-10">
