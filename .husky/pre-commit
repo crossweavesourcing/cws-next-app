@@ -1,0 +1,3 @@
+node security-scan.js
+pnpm lint
+pnpm build
