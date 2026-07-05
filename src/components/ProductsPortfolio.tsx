@@ -54,12 +54,12 @@ export default function ProductsPortfolio({ initialCategory = 'All' }: ProductsP
   return (
     <section className="py-16 md:py-24 bg-white border-t border-gray-100">
       <div className="max-w-7xl mx-auto px-6 md:px-12 space-y-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-end">
+        <div id='products' className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-end">
           <div className="lg:col-span-5 space-y-3">
             <span className="block text-xs sm:text-sm font-sans font-bold text-[#E02424] uppercase tracking-[0.3em]">
               Manufacturing Portfolio
             </span>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-neutral-900 tracking-tight uppercase leading-snug">
+            <h2  className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-neutral-900 tracking-tight uppercase leading-snug">
               All Products
             </h2>
           </div>

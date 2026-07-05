@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function ProductsPage() {
   return (
     <main className="product-site-shell bg-white text-[#1E1E1E] min-h-screen font-sans antialiased selection:bg-[#E02424]/10 selection:text-[#E02424]">
-      <ProductHeader />
+      {/* <ProductHeader /> */}
 
       <section className="relative h-[420px] sm:h-[520px] bg-[#070707] overflow-hidden flex items-end">
         <div className="absolute inset-0">

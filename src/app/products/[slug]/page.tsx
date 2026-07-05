@@ -49,7 +49,7 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
 
   return (
     <main className="product-site-shell bg-white text-[#1E1E1E] min-h-screen font-sans antialiased selection:bg-[#E02424]/10 selection:text-[#E02424]">
-      <ProductHeader />
+      {/* <ProductHeader /> */}
 
       <section className="bg-[#101010] text-white">
         <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[560px]">

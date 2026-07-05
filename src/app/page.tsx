@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { motion } from 'motion/react';
 import { Menu, X, ArrowUpRight, Moon, Sun, Linkedin, Instagram, Facebook, Mail, MapPin, Send } from 'lucide-react';
 import { categoryCards } from '@/lib/products';
+import Header from '@/components/Header';
+import ContactInformationForm from '@/components/ContactInformationForm';
 
 type ThemeMode = 'light' | 'dark';
 
-interface TKOPageProps {
+interface PageProps {
   theme?: ThemeMode;
   onToggleTheme?: () => void;
 }
@@ -48,7 +50,7 @@ const services = [
 
 const words = ["SOURCE", "CRAFT", "DELIVER"];
 
-export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps) {
+export default function TKOPage({ theme = 'light', onToggleTheme }: PageProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isDarkTheme = theme === 'dark';
 
@@ -103,22 +105,16 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
     setTimeout(() => setSubmitSuccess(false), 5000);
   };
 
-  // Return to master platform
-  const handleReturnToPortal = () => {
-    window.history.pushState({ tab: 'home' }, '', '/cws-portal');
-    window.dispatchEvent(new Event('popstate'));
-  };
-
   return (
-    <div className={`tko-page  tko-page-${theme} bg-white text-[#1E1E1E] min-h-screen font-sans antialiased selection:bg-[#E02424]/10 selection:text-[#E02424]`}>
+    <div className={` text-[#1E1E1E] min-h-screen font-sans antialiased selection:bg-[#E02424]/10 selection:text-[#E02424]`}>
       {/* 1. BRAND NAVIGATION HEADER */}
-      <header className="sticky top-0 z-50 bg-[#000000]/95 backdrop-blur-md border-b border-neutral-900 text-white">
+      
+      {/* <header className=" sticky top-0 z-50 bg-[#000000]/95 backdrop-blur-md border-b border-neutral-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
 
-          <button
-            onClick={handleReturnToPortal}
-            className="tko-logo-plate flex h-12 items-center select-none focus:outline-none focus:ring-2 focus:ring-white/30"
-            aria-label="Return to CWS portal"
+          <Link href="/"
+            className="flex h-12 items-center select-none focus:outline-none focus:ring-2 focus:ring-white/30"
+            aria-label="Return to portal"
           >
             <Image
               src="/cws_logo.png"
@@ -128,19 +124,19 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
               loading="eager"
               className="h-full w-auto object-contain"
             />
-          </button>
+          </Link>
 
-          {/* Nav links */}
+          Nav links
           <nav className="hidden md:flex items-center gap-8 text-[11px] font-bold uppercase tracking-wider text-gray-300">
-            <a href="#about" className="hover:text-white transition-colors">About Us</a>
-            <a href="#what-we-do" className="hover:text-white transition-colors">What We Do</a>
-            <a href="#strategy" className="hover:text-white transition-colors">Company Strategy</a>
-            <a href="#brands" className="hover:text-white transition-colors">Our Brands</a>
-            <a href="#responsibility" className="hover:text-white transition-colors">Corporate Responsibility</a>
+            <Link href="#about" className="hover:text-white transition-colors">About Us</Link>
+            <Link href="#what-we-do" className="hover:text-white transition-colors">What We Do</Link>
+            <Link href="#strategy" className="hover:text-white transition-colors">Company Strategy</Link>
+            <Link href="#brands" className="hover:text-white transition-colors">Our Brands</Link>
+            <Link href="#responsibility" className="hover:text-white transition-colors">Corporate Responsibility</Link>
             {onToggleTheme && (
               <button
                 onClick={onToggleTheme}
-                className="theme-toggle-btn h-9 w-9 rounded-full border border-white/15 bg-white/10 text-white hover:border-[#E02424]/60 hover:text-[#E02424] transition-all focus:outline-none focus:ring-2 focus:ring-[#E02424]/30 flex items-center justify-center"
+                className="marker-class theme-toggle-btn h-9 w-9 rounded-full border border-white/15 bg-white/10 text-white hover:border-[#E02424]/60 hover:text-[#E02424] transition-all focus:outline-none focus:ring-2 focus:ring-[#E02424]/30 flex items-center justify-center"
                 aria-label={isDarkTheme ? 'Switch to light mode' : 'Switch to dark mode'}
                 aria-pressed={isDarkTheme}
                 title={isDarkTheme ? 'Light mode' : 'Dark mode'}
@@ -150,7 +146,7 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             )}
           </nav>
 
-          {/* Hamburger Mobile Toggle */}
+          Hamburger Mobile Toggle
           <div className="md:hidden flex items-center gap-2">
             {onToggleTheme && (
               <button
@@ -171,7 +167,7 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
           </div>
         </div>
 
-        {/* Mobile Navigation Dropdown */}
+        Mobile Navigation Dropdown
         {mobileMenuOpen && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -179,26 +175,15 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             exit={{ opacity: 0, y: -10 }}
             className="md:hidden bg-[#111] border-b border-neutral-900 px-4 py-6 space-y-4 text-xs uppercase tracking-wider text-gray-300"
           >
-            <a href="#about" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">About Us</a>
-            <a href="#what-we-do" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">What We Do</a>
-            <a href="#strategy" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">Company Strategy</a>
-            <a href="#brands" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">Our Brands</a>
-            <a href="#responsibility" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">Corporate Responsibility</a>
-            <div className="pt-2">
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  handleReturnToPortal();
-                }}
-                className="w-full text-center flex items-center justify-center gap-1.5 bg-[#E02424] text-white py-3 text-xs font-bold tracking-widest"
-              >
-                RETURN TO CWS PORTAL
-                <ArrowUpRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+            <Link href="#about" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">About Us</Link>
+            <Link href="#what-we-do" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">What We Do</Link>
+            <Link href="#strategy" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">Company Strategy</Link>
+            <Link href="#brands" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">Our Brands</Link>
+            <Link href="#responsibility" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">Corporate Responsibility</Link>
+
           </motion.div>
         )}
-      </header>
+      </header> */}
 
       {/* 2. HERO COVER SECTION (Right Aligned bold typography matching the design asset) */}
       <section className="relative h-[480px] sm:h-[600px] lg:h-[660px] bg-[#070707] overflow-hidden flex items-center">
@@ -245,7 +230,7 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
       </section>
 
       {/* 3. ABOUT US BLOCK (Pristine catalog look) */}
-      <section id="about" className="py-20 md:py-28 bg-white">
+      <section id="about" className="py-20 md:py-28 bg-transparent">
         <div className="max-w-7xl mx-auto px-6 md:px-12 space-y-16">
           <div className="text-center space-y-3">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-[#E02424] tracking-tight uppercase leading-snug">
@@ -1021,86 +1006,10 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
               <div className="space-y-2 mb-8">
                 <h3 className="text-lg font-bold text-neutral-900 font-sans tracking-tight">Send Us a Message</h3>
               </div>
-              <form onSubmit={handleContactSubmit} className=" space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <label className="space-y-2">
-                    <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500">
-                      Name
-                    </span>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formState.name}
-                      onChange={(e) => setFormState((prev) => ({ ...prev, name: e.target.value }))}
-                      required
-                      placeholder="Your name"
-                      className="h-12 w-full border border-neutral-200 bg-[#F9F9F9] px-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424] focus:bg-white"
-                    />
-                  </label>
 
-                  <label className="space-y-2">
-                    <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500">
-                      Email Address
-                    </span>
-                    <input
-                      type="email"
-                      name="email"
-                      value={formState.email}
-                      onChange={(e) => setFormState((prev) => ({ ...prev, email: e.target.value }))}
-                      required
-                      placeholder="you@example.com"
-                      className="h-12 w-full border border-neutral-200 bg-[#F9F9F9] px-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424] focus:bg-white"
-                    />
-                  </label>
-                </div>
-
-                <label className="block space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500">
-                    Subject
-                  </span>
-                  <input
-                    type="text"
-                    name="subject"
-                    value={formState.subject}
-                    onChange={(e) => setFormState((prev) => ({ ...prev, subject: e.target.value }))}
-                    required
-                    placeholder="Production inquiry"
-                    className="h-12 w-full border border-neutral-200 bg-[#F9F9F9] px-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424] focus:bg-white"
-                  />
-                </label>
-
-                <label className="block space-y-2">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500">
-                    Message
-                  </span>
-                  <textarea
-                    name="message"
-                    value={formState.message}
-                    onChange={(e) => setFormState((prev) => ({ ...prev, message: e.target.value }))}
-                    required
-                    rows={6}
-                    placeholder="Tell us about product type, order volume, target timeline, and destination market."
-                    className="min-h-36 w-full resize-y border border-neutral-200 bg-[#F9F9F9] px-4 py-3 text-sm leading-relaxed text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424] focus:bg-white"
-                  />
-                </label>
-
-                <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-2">
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 bg-[#E02424] px-7 text-xs font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:bg-neutral-400"
-                  >
-                    {isSubmitting ? 'Sending' : 'Contact Us'}
-                    <Send className="h-4 w-4" />
-                  </button>
-
-                  {submitSuccess && (
-                    <p className="text-sm font-medium text-[#E02424]">
-                      Request received. Our team will contact you soon.
-                    </p>
-                  )}
-                </div>
-              </form>
+              {/* Contact Information form */}
+              <ContactInformationForm/>
+              
             </div>
           </div>
 
