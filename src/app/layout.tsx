@@ -1,7 +1,6 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import "./globals.css";
-import Header from '@/components/Header';
 
 export const metadata: Metadata = {
   title: 'Cross Weave Sourcing | Export-Oriented Garments Manufacturer & Buyer Agent',
@@ -16,7 +15,6 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark scroll-smooth tko-page  tko-page-light" data-scroll-behavior="smooth">
       <body className="antialiased">
-        <Header/>
         {children}
       </body>
     </html>
