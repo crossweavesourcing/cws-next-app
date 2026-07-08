@@ -48,6 +48,37 @@ const services = [
   },
 ];
 
+const contractingProfiles = [
+  {
+    name: "MD. SHAHNEWAZ RAJIN",
+    role: "Co-Founder",
+    tagline: "Helping Brands Grow with Reliable Production",
+    contacts: [
+      { label: "Phone", value: "+880 1672-906628", href: "tel:+8801672906628" },
+      { label: "Email", value: "rajin@crossweavesourcing.com", href: "mailto:rajin@crossweavesourcing.com" }
+    ]
+  },
+  {
+    name: "MD SHARIFUL ISLAM",
+    role: "Founder",
+    tagline: "Helping Brands Grow with Reliable Production",
+    contacts: [
+      { label: "USA Phone", value: "+1 (609) 453-5301", href: "tel:+16094535301" },
+      { label: "BD Phone", value: "+880 1811-182609", href: "tel:+8801811182609" },
+      { label: "Email", value: "sharif@crossweavesourcing.com", href: "mailto:sharif@crossweavesourcing.com" }
+    ]
+  },
+  {
+    name: "ASHRAFUR RAHAMAN",
+    role: "Co-Founder",
+    tagline: "Helping Brands Grow with Reliable Production",
+    contacts: [
+      { label: "Phone", value: "+1 (347) 659-2484", href: "tel:+13476592484" },
+      { label: "Email", value: "ashrahaman@crossweavesourcing.com", href: "mailto:ashrahaman@crossweavesourcing.com" }
+    ]
+  }
+];
+
 const words = ["SOURCE", "CRAFT", "DELIVER"];
 
 export default function TKOPage({ theme = 'light', onToggleTheme }: PageProps) {
@@ -108,7 +139,7 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: PageProps) {
   return (
     <div className={` text-[#1E1E1E] min-h-screen font-sans antialiased selection:bg-[#E02424]/10 selection:text-[#E02424]`}>
       {/* 1. BRAND NAVIGATION HEADER */}
-      
+
       {/* <header className=" sticky top-0 z-50 bg-[#000000]/95 backdrop-blur-md border-b border-neutral-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
 
@@ -1008,8 +1039,8 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: PageProps) {
               </div>
 
               {/* Contact Information form */}
-              <ContactInformationForm/>
-              
+              <ContactInformationForm />
+
             </div>
           </div>
 
@@ -1177,8 +1208,83 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: PageProps) {
             </div>
 
           </div> */}
+
+
+    {/* 7.5. CONTRACTING WITH US SECTION */}
+      <section id="contracting" className="py-24 bg-white text-neutral-900 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-6 md:px-12">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 items-end mb-20 pb-10 border-b border-neutral-100">
+            <div className="lg:col-span-6 space-y-4">
+              <div className="flex items-center gap-2.5">
+                <span className="h-1.5 w-1.5 bg-[#E02424] rounded-full"></span>
+                <span className="text-xs font-bold text-[#E02424] uppercase tracking-[0.35em] font-sans">
+                  START A PARTNERSHIP
+                </span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-sans font-black text-neutral-950 tracking-tight uppercase leading-[1.1]">
+                LET&apos;S BUILD<br />TOGETHER
+              </h2>
+            </div>
+            <div className="lg:col-span-6 lg:border-l lg:border-neutral-200/60 lg:pl-10">
+              <p className="text-neutral-500 text-base sm:text-lg font-light leading-relaxed max-w-xl">
+                From initial inquiry to sampling, production, and final shipment — connect directly with our founding team to bring your apparel vision to market with confidence.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-start justify-start -mx-6 md:-mx-8 lg:-mx-10">
+            {contractingProfiles.map((profile, index) => {
+              const borderClass = "border-neutral-200/60 " +
+                "border-l-0 " +
+                "md:border-l " + (index % 2 === 0 ? "md:border-l-0" : "") + " " +
+                "lg:border-l " + (index % 3 === 0 ? "lg:border-l-0" : "");
+
+              return (
+                <div key={index} className={`w-full md:w-1/2 lg:w-1/3 px-6 md:px-8 lg:px-10 mb-12 lg:mb-0 ${borderClass}`}>
+                  <div className="space-y-4 font-sans text-neutral-800">
+                    <div className="pt-2">
+                      <h3 className="text-xl font-bold tracking-tight text-neutral-950 font-sans uppercase">
+                        {profile.name}
+                      </h3>
+                      <span className="text-[11px] font-bold text-neutral-500 uppercase tracking-widest block mt-1">
+                        {profile.role}
+                      </span>
+                      <span className="text-[10px] text-neutral-400 italic block mt-1">
+                        {profile.tagline}
+                      </span>
+                    </div>
+                    <div className="space-y-2 text-sm pt-2">
+                      {profile.contacts.map((contact, cIdx) => (
+                        <p key={cIdx} className="text-neutral-600">
+                          <span className="font-semibold text-neutral-900 mr-2 text-xs uppercase tracking-wider">
+                            {contact.label}:
+                          </span>
+                          <a
+                            href={contact.href}
+                            className="hover:text-[#E02424] hover:underline font-medium break-all"
+                          >
+                            {contact.value}
+                          </a>
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
+
+
+
+
+
+
+        </div>
+      </section>
+
+      
 
       {/* 8. MINIMAL DESIGNER FOOTER */}
       <footer className="bg-[#DDDBCF] text-neutral-900 pt-16 pb-12 border-t border-neutral-300">
