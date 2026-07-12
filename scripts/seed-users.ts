@@ -7,7 +7,7 @@ import type { UserDocument } from '@/types/auth';
 
 export async function seedUsers(): Promise<void> {
   const env = getEnv();
-  const db = getDb();
+  const db = await getDb();
   
   console.log('Seeding predefined users...');
 
