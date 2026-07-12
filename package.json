@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "prepare": "husky",
-    "db:init": "tsx --env-file=.env scripts/db-init.ts"
+    "db:init": "tsx --env-file=.env scripts/db-init.ts",
+    "db:seed": "tsx --env-file=.env scripts/db-seed.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -34,6 +35,7 @@
     "typescript": "^5"
   },
   "onlyBuiltDependencies": [
-    "esbuild"
+    "esbuild",
+    "argon2"
   ]
 }

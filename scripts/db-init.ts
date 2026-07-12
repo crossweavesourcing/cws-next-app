@@ -76,7 +76,12 @@ ${BOLD}╔═══════════════════════�
   }
 
   // ── 6. Seed predefined users ────────────────────────────────────────────────
-  await seedUsers();
+  const shouldSeed = process.argv.includes('--seed');
+  if (shouldSeed) {
+    await seedUsers();
+  } else {
+    console.log('  Seeding skipped. Run with --seed flag to seed default admin.');
+  }
 
   // ── 7. Post-flight health check ─────────────────────────────────────────────
   const post = await checkDatabaseHealth();

@@ -11,6 +11,15 @@ export async function seedUsers(): Promise<void> {
   
   console.log('Seeding predefined users...');
 
+  const email = env.ADMIN_SEED_EMAIL;
+  const password = env.ADMIN_SEED_PASSWORD;
+  const employeeId = env.ADMIN_SEED_EMPLOYEE_ID;
+
+  if (!email || !password || !employeeId) {
+    console.warn('⚠️ Seeding skipped: ADMIN_SEED_EMAIL, ADMIN_SEED_PASSWORD, and ADMIN_SEED_EMPLOYEE_ID must be configured in environment.');
+    return;
+  }
+
   // Ensure default roles exist
   const rolesCollection = db.collection(COLLECTION_NAMES.ROLES);
   
@@ -43,24 +52,25 @@ export async function seedUsers(): Promise<void> {
   // Seed default admin user
   const usersCollection = db.collection<UserDocument>(COLLECTION_NAMES.USERS);
   
-  const email = env.ADMIN_SEED_EMAIL;
-  const password = env.ADMIN_SEED_PASSWORD;
-  const employeeId = env.ADMIN_SEED_EMPLOYEE_ID;
 
   // Hash the seed password
   const hash = await argon2.hash(password, {
     secret: env.ARGON2_SECRET ? Buffer.from(env.ARGON2_SECRET) : undefined,
   });
 
+  const firstName = env.ADMIN_SEED_FIRST_NAME || 'System';
+  const lastName = env.ADMIN_SEED_LAST_NAME || 'Admin';
+  const department = env.ADMIN_SEED_DEPARTMENT || 'Operations';
+
   const adminProfile = {
-    displayName: `${env.ADMIN_SEED_FIRST_NAME} ${env.ADMIN_SEED_LAST_NAME}`,
-    firstName: env.ADMIN_SEED_FIRST_NAME,
-    lastName: env.ADMIN_SEED_LAST_NAME,
+    displayName: `${firstName} ${lastName}`,
+    firstName,
+    lastName,
     avatar: null,
     timezone: null,
     locale: null,
-    employeeId: employeeId,
-    department: env.ADMIN_SEED_DEPARTMENT,
+    employeeId,
+    department,
   };
 
   const adminSecurity = {
