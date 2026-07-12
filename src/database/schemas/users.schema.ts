@@ -1,0 +1,93 @@
+import type { Document } from 'mongodb';
+
+/**
+ * $jsonSchema validator for the `users` collection.
+ * validationLevel: "strict", validationAction: "error"
+ *
+ * Key design notes:
+ * - profile.avatar is a structured object (not a plain URL) to support
+ *   source tracking and lazy provider sync.
+ * - password is nullable — OAuth-only / WhatsApp-only users have none.
+ * - No email / phone fields — contact data lives in dedicated collections.
+ */
+export const usersSchema: Document = {
+  bsonType: 'object',
+  title: 'users',
+  required: ['_id', 'profile', 'role', 'status', 'loginMethods', 'security', 'metadata', 'createdAt', 'updatedAt'],
+  additionalProperties: false,
+  properties: {
+    _id: { bsonType: 'objectId' },
+
+    profile: {
+      bsonType: 'object',
+      required: ['displayName'],
+      additionalProperties: false,
+      properties: {
+        displayName: { bsonType: 'string', minLength: 1, maxLength: 120 },
+        firstName:   { bsonType: ['string', 'null'], maxLength: 80 },
+        lastName:    { bsonType: ['string', 'null'], maxLength: 80 },
+
+        avatar: {
+          bsonType: ['object', 'null'],
+          additionalProperties: false,
+          properties: {
+            url:         { bsonType: ['string', 'null'], maxLength: 2048 },
+            source:      { bsonType: ['string', 'null'], enum: ['upload', 'google', 'linkedin', 'gravatar', null] },
+            originalUrl: { bsonType: ['string', 'null'], maxLength: 2048 },
+            updatedAt:   { bsonType: ['date', 'null'] },
+          },
+        },
+
+        timezone: { bsonType: ['string', 'null'], maxLength: 64 },
+        locale:   { bsonType: ['string', 'null'], maxLength: 20 },
+      },
+    },
+
+    password: {
+      bsonType: ['object', 'null'],
+      additionalProperties: false,
+      required: ['hash', 'algorithm'],
+      properties: {
+        hash:      { bsonType: 'string' },
+        algorithm: { bsonType: 'string', enum: ['argon2id', 'bcrypt'] },
+      },
+    },
+
+    passwordChangedAt: { bsonType: ['date', 'null'] },
+
+    role:   { bsonType: 'string', enum: ['admin', 'member', 'viewer'] },
+    status: { bsonType: 'string', enum: ['active', 'suspended', 'deactivated', 'pending_invite'] },
+
+    loginMethods: {
+      bsonType: 'array',
+      minItems: 0,
+      uniqueItems: true,
+      items: { bsonType: 'string', enum: ['password', 'google', 'linkedin', 'whatsapp'] },
+    },
+
+    security: {
+      bsonType: 'object',
+      required: ['failedLoginAttempts', 'lockedUntil', 'mfaEnabled'],
+      additionalProperties: false,
+      properties: {
+        failedLoginAttempts:        { bsonType: 'int', minimum: 0 },
+        lockedUntil:                { bsonType: ['date', 'null'] },
+        mfaEnabled:                 { bsonType: 'bool' },
+        lastPasswordResetRequestAt: { bsonType: ['date', 'null'] },
+      },
+    },
+
+    metadata: {
+      bsonType: 'object',
+      additionalProperties: false,
+      properties: {
+        invitedBy: { bsonType: ['objectId', 'null'] },
+        invitedAt: { bsonType: ['date', 'null'] },
+        notes:     { bsonType: ['string', 'null'], maxLength: 1000 },
+      },
+    },
+
+    createdAt: { bsonType: 'date' },
+    updatedAt: { bsonType: 'date' },
+  },
+};

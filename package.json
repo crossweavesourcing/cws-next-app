@@ -7,11 +7,13 @@
     "build": "node security-scan.js && next build",
     "start": "next start",
     "lint": "eslint",
-    "prepare": "husky"
+    "prepare": "husky",
+    "db:init": "tsx --env-file=.env scripts/db-init.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
     "lucide-react": "^0.546.0",
+    "mongodb": "^6.16.0",
     "motion": "^12.23.24",
     "next": "16.2.7",
     "react": "19.2.4",
@@ -26,6 +28,10 @@
     "eslint-config-next": "16.2.7",
     "husky": "^9.1.7",
     "tailwindcss": "^4",
+    "tsx": "^4.23.0",
     "typescript": "^5"
-  }
+  },
+  "onlyBuiltDependencies": [
+    "esbuild"
+  ]
 }
