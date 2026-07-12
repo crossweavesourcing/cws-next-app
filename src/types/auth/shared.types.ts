@@ -6,7 +6,17 @@
 
 export type UserRole = 'admin' | 'member' | 'viewer';
 
-export type UserStatus = 'active' | 'suspended' | 'deactivated' | 'pending_invite';
+export type UserStatus = 
+  | 'active' 
+  | 'inactive' 
+  | 'suspended' 
+  | 'locked' 
+  | 'disabled' 
+  | 'pending_password_reset' 
+  | 'password_expired' 
+  | 'force_password_change' 
+  | 'deleted' 
+  | 'pending_invite';
 
 export type LoginMethod = 'password' | 'google' | 'linkedin' | 'whatsapp';
 

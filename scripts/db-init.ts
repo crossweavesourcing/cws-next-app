@@ -15,6 +15,8 @@ import { checkDatabaseHealth }    from '@/database/health';
 import { initializeDatabase }     from '@/database/init';
 import { getCollectionStats }     from '@/database/maintenance';
 import { registerShutdownHandlers } from '@/database/shutdown';
+import { getEnv }                 from '@/auth/config/env';
+import { seedUsers }              from './seed-users';
 
 const BOLD  = '\x1b[1m';
 const GREEN = '\x1b[32m';
@@ -28,8 +30,9 @@ function pad(s: string, len: number): string {
 }
 
 async function main(): Promise<void> {
-  // ── 1. Validate config ──────────────────────────────────────────────────────
+  // ── 1. Validate config & environment ──────────────────────────────────────────────
   const config = getDatabaseConfig(); // throws DatabaseConfigError if invalid
+  getEnv(); // validates auth secrets and seed credentials
 
   // ── 2. Register shutdown handlers ───────────────────────────────────────────
   registerShutdownHandlers();
@@ -72,13 +75,16 @@ ${BOLD}╔═══════════════════════�
     console.log(`  ${GREEN}✓${RESET}  ${pad(r.collection, nameWidth)} ${action}  ${YELLOW}${idxStr}${RESET}`);
   }
 
-  // ── 6. Post-flight health check ─────────────────────────────────────────────
+  // ── 6. Seed predefined users ────────────────────────────────────────────────
+  await seedUsers();
+
+  // ── 7. Post-flight health check ─────────────────────────────────────────────
   const post = await checkDatabaseHealth();
 
-  // ── 7. Collection stats ─────────────────────────────────────────────────────
+  // ── 8. Collection stats ─────────────────────────────────────────────────────
   const stats = await getCollectionStats();
 
-  // ── 8. Summary ──────────────────────────────────────────────────────────────
+  // ── 9. Summary ──────────────────────────────────────────────────────────────
   console.log(`
   ${BOLD}Summary${RESET}
   ──────────────────────────────────────────────────────

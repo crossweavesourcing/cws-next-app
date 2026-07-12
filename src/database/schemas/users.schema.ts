@@ -24,22 +24,24 @@ export const usersSchema: Document = {
       additionalProperties: false,
       properties: {
         displayName: { bsonType: 'string', minLength: 1, maxLength: 120 },
-        firstName:   { bsonType: ['string', 'null'], maxLength: 80 },
-        lastName:    { bsonType: ['string', 'null'], maxLength: 80 },
+        firstName: { bsonType: ['string', 'null'], maxLength: 80 },
+        lastName: { bsonType: ['string', 'null'], maxLength: 80 },
 
         avatar: {
           bsonType: ['object', 'null'],
           additionalProperties: false,
           properties: {
-            url:         { bsonType: ['string', 'null'], maxLength: 2048 },
-            source:      { bsonType: ['string', 'null'], enum: ['upload', 'google', 'linkedin', 'gravatar', null] },
+            url: { bsonType: ['string', 'null'], maxLength: 2048 },
+            source: { bsonType: ['string', 'null'], enum: ['upload', 'google', 'linkedin', 'gravatar', null] },
             originalUrl: { bsonType: ['string', 'null'], maxLength: 2048 },
-            updatedAt:   { bsonType: ['date', 'null'] },
+            updatedAt: { bsonType: ['date', 'null'] },
           },
         },
 
         timezone: { bsonType: ['string', 'null'], maxLength: 64 },
-        locale:   { bsonType: ['string', 'null'], maxLength: 20 },
+        locale: { bsonType: ['string', 'null'], maxLength: 20 },
+        employeeId: { bsonType: ['string', 'null'], maxLength: 100 },
+        department: { bsonType: ['string', 'null'], maxLength: 100 },
       },
     },
 
@@ -48,15 +50,20 @@ export const usersSchema: Document = {
       additionalProperties: false,
       required: ['hash', 'algorithm'],
       properties: {
-        hash:      { bsonType: 'string' },
+        hash: { bsonType: 'string' },
         algorithm: { bsonType: 'string', enum: ['argon2id', 'bcrypt'] },
       },
     },
 
     passwordChangedAt: { bsonType: ['date', 'null'] },
+    passwordExpiresAt: { bsonType: ['date', 'null'] },
 
-    role:   { bsonType: 'string', enum: ['admin', 'member', 'viewer'] },
-    status: { bsonType: 'string', enum: ['active', 'suspended', 'deactivated', 'pending_invite'] },
+    role: { bsonType: 'string', enum: ['admin', 'member', 'viewer'] },
+    roleId: { bsonType: ['objectId', 'null'], description: 'References roles._id for RBAC' },
+    status: { 
+      bsonType: 'string', 
+      enum: ['active', 'inactive', 'suspended', 'locked', 'disabled', 'pending_password_reset', 'password_expired', 'force_password_change', 'deleted', 'pending_invite'] 
+    },
 
     loginMethods: {
       bsonType: 'array',
@@ -70,10 +77,12 @@ export const usersSchema: Document = {
       required: ['failedLoginAttempts', 'lockedUntil', 'mfaEnabled'],
       additionalProperties: false,
       properties: {
-        failedLoginAttempts:        { bsonType: 'int', minimum: 0 },
-        lockedUntil:                { bsonType: ['date', 'null'] },
-        mfaEnabled:                 { bsonType: 'bool' },
+        failedLoginAttempts: { bsonType: 'int', minimum: 0 },
+        lockedUntil: { bsonType: ['date', 'null'] },
+        mfaEnabled: { bsonType: 'bool' },
         lastPasswordResetRequestAt: { bsonType: ['date', 'null'] },
+        forcePasswordChange: { bsonType: 'bool' },
+        accountSecurityVersion: { bsonType: 'int', minimum: 1, description: 'Incremented to invalidate all sessions/tokens' },
       },
     },
 
@@ -83,11 +92,12 @@ export const usersSchema: Document = {
       properties: {
         invitedBy: { bsonType: ['objectId', 'null'] },
         invitedAt: { bsonType: ['date', 'null'] },
-        notes:     { bsonType: ['string', 'null'], maxLength: 1000 },
+        notes: { bsonType: ['string', 'null'], maxLength: 1000 },
       },
     },
 
     createdAt: { bsonType: 'date' },
     updatedAt: { bsonType: 'date' },
+    deletedAt: { bsonType: ['date', 'null'] },
   },
 };

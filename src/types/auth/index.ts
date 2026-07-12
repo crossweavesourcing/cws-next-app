@@ -47,17 +47,13 @@ export type {
   SessionDocument,
 } from './session.types';
 
-export type { RefreshTokenDocument }       from './refresh-token.types';
-export type {
-  VerificationTokenPayload,
-  VerificationTokenDocument,
-} from './verification-token.types';
-export type { OtpCodeDocument }            from './otp-code.types';
-export type {
-  ActorType,
-  AuditActor,
-  AuditSource,
-  AuditResource,
-  AuditLogDocument,
-} from './audit-log.types';
-export type { LoginAttemptDocument }       from './login-attempt.types';
+export * from './refresh-token.types';
+export * from './verification-token.types';
+export * from './otp-code.types';
+export * from './audit-log.types';
+export * from './login-attempt.types';
+export * from './role.types';
+export * from './permission.types';
+export * from './system-setting.types';
+export * from './password-policy.types';
+export * from './password-history.types';

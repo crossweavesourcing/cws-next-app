@@ -18,6 +18,11 @@ export const COLLECTION_NAMES = {
   OTP_CODES:           'otp_codes',
   AUDIT_LOGS:          'audit_logs',
   LOGIN_ATTEMPTS:      'login_attempts',
+  ROLES:               'roles',
+  PERMISSIONS:         'permissions',
+  SYSTEM_SETTINGS:     'system_settings',
+  PASSWORD_POLICIES:   'password_policies',
+  PASSWORD_HISTORY:    'password_history',
 } as const;
 
 /**
@@ -45,4 +50,9 @@ export const COLLECTION_ORDER: readonly CollectionName[] = [
   COLLECTION_NAMES.OTP_CODES,
   COLLECTION_NAMES.AUDIT_LOGS,
   COLLECTION_NAMES.LOGIN_ATTEMPTS,
+  COLLECTION_NAMES.ROLES,
+  COLLECTION_NAMES.PERMISSIONS,
+  COLLECTION_NAMES.SYSTEM_SETTINGS,
+  COLLECTION_NAMES.PASSWORD_POLICIES,
+  COLLECTION_NAMES.PASSWORD_HISTORY,
 ] as const;

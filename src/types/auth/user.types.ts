@@ -33,6 +33,8 @@ export interface UserProfile {
   timezone:    string | null;
   /** BCP 47 locale tag, e.g. "en-US" */
   locale:      string | null;
+  employeeId:  string | null;
+  department:  string | null;
 }
 
 export interface UserPassword {
@@ -48,6 +50,8 @@ export interface UserSecurity {
   lockedUntil:               Date | null;
   mfaEnabled:                boolean;
   lastPasswordResetRequestAt: Date | null;
+  forcePasswordChange:       boolean;
+  accountSecurityVersion:    number;
 }
 
 export interface UserMetadata {
@@ -75,8 +79,10 @@ export interface UserDocument {
 
   /** Timestamp of last password change — used to invalidate pre-change sessions. */
   passwordChangedAt: Date | null;
+  passwordExpiresAt: Date | null;
 
   role:   UserRole;
+  roleId: ObjectId | null;
   status: UserStatus;
 
   /**
@@ -91,4 +97,5 @@ export interface UserDocument {
 
   readonly createdAt: Date;
   updatedAt:          Date;
+  deletedAt:          Date | null;
 }
