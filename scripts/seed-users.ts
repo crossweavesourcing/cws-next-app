@@ -11,6 +11,10 @@ export async function seedUsers(): Promise<void> {
   
   console.log('Seeding predefined users...');
 
+  // Clear any past rate limits & login attempt records to reset E2E state
+  await db.collection(COLLECTION_NAMES.LOGIN_ATTEMPTS).deleteMany({});
+  console.log('Cleared past login attempts and rate limits.');
+
   const email = env.ADMIN_SEED_EMAIL;
   const password = env.ADMIN_SEED_PASSWORD;
   const employeeId = env.ADMIN_SEED_EMPLOYEE_ID;
@@ -53,10 +57,12 @@ export async function seedUsers(): Promise<void> {
   const usersCollection = db.collection<UserDocument>(COLLECTION_NAMES.USERS);
   
 
+  console.log(`Seeding password: "${password}" (length: ${password.length})`);
   // Hash the seed password
   const hash = await argon2.hash(password, {
     secret: env.ARGON2_SECRET ? Buffer.from(env.ARGON2_SECRET) : undefined,
   });
+  console.log(`Generated seed hash: "${hash}"`);
 
   const firstName = env.ADMIN_SEED_FIRST_NAME || 'System';
   const lastName = env.ADMIN_SEED_LAST_NAME || 'Admin';
@@ -92,7 +98,6 @@ export async function seedUsers(): Promise<void> {
         roleId: adminRoleId,
         status: 'active',
         loginMethods: ['password'],
-        security: adminSecurity,
         metadata: {
           invitedBy: null,
           invitedAt: null,
@@ -105,6 +110,7 @@ export async function seedUsers(): Promise<void> {
           hash,
           algorithm: 'argon2id',
         },
+        security: adminSecurity,
         passwordChangedAt: new Date(),
         passwordExpiresAt: null,
         updatedAt: new Date(),

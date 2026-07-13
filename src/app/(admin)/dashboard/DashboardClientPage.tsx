@@ -261,7 +261,18 @@ export default function DashboardPage() {
               })}
             </nav>
 
-            <div className="border-t border-white/10 p-6">
+            <div className="border-t border-white/10 p-6 space-y-4">
+              <button
+                type="button"
+                onClick={async () => {
+                  await fetch('/api/auth/logout', { method: 'POST' });
+                  window.location.href = '/dashboard/login';
+                }}
+                className="w-full flex items-center justify-center gap-2 border border-red-500/25 bg-red-500/5 hover:bg-[#E02424] hover:text-white transition-colors py-2.5 text-xs font-bold uppercase tracking-[0.14em] text-[#E02424]"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </button>
               <div className="grid grid-cols-2 gap-3 text-center">
                 <StatusMiniCard label="Visible" value={String(visibleSections.length)} />
                 <StatusMiniCard label="Paused" value={String(pausedSections.length)} tone="red" />

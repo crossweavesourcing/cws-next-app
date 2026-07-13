@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { verifySessionSignature } from '@/auth/crypto/token';
+import { getEnv } from '@/auth/config/env';
 
 const COOKIE_NAME = 'cws_session';
 
@@ -15,19 +17,29 @@ export function proxy(request: NextRequest) {
   const sessionCookie = request.cookies.get(COOKIE_NAME)?.value;
   const { pathname } = request.nextUrl;
 
-  const isProtectedPath = pathname.startsWith('/dashboard');
-  const isLoginPage = pathname === '/dashboard/login';
-
-  // 1. Unauthenticated users visiting protected pages -> redirect to login
-  if (isProtectedPath && !isLoginPage && !sessionCookie) {
-    const loginUrl = new URL('/dashboard/login', request.url);
-    return NextResponse.redirect(loginUrl);
+  // Normalize pathname to handle trailingSlash: true in next.config.ts
+  let normalizedPath = pathname;
+  if (normalizedPath.endsWith('/') && normalizedPath !== '/') {
+    normalizedPath = normalizedPath.slice(0, -1);
   }
 
-  // 2. Already authenticated users visiting login page -> redirect to dashboard
-  if (isLoginPage && sessionCookie) {
-    const dashboardUrl = new URL('/dashboard', request.url);
-    return NextResponse.redirect(dashboardUrl);
+  let hasValidSession = false;
+  if (sessionCookie) {
+    try {
+      const env = getEnv();
+      hasValidSession = verifySessionSignature(sessionCookie, env.SESSION_SECRET) !== null;
+    } catch {
+      hasValidSession = false;
+    }
+  }
+
+  const isProtectedPath = normalizedPath.startsWith('/dashboard');
+  const isLoginPage = normalizedPath === '/dashboard/login';
+
+  // Unauthenticated users visiting protected pages -> redirect to login (with trailing slash)
+  if (isProtectedPath && !isLoginPage && !hasValidSession) {
+    const loginUrl = new URL('/dashboard/login/', request.url);
+    return NextResponse.redirect(loginUrl);
   }
 
   return NextResponse.next();

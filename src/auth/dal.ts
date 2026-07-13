@@ -20,9 +20,18 @@ export async function getAuthSession(): Promise<SessionDocument | null> {
   }
 
   try {
-    return await sessionService.validateSession(sessionCookie.value);
+    const session = await sessionService.validateSession(sessionCookie.value);
+    if (!session) {
+      cookieStore.delete(COOKIE_NAME);
+    }
+    return session;
   } catch (err) {
     console.error('Session validation error in DAL:', err);
+    try {
+      cookieStore.delete(COOKIE_NAME);
+    } catch {
+      // Ignore errors in edge environments
+    }
     return null;
   }
 }

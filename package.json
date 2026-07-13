@@ -9,7 +9,8 @@
     "lint": "eslint",
     "prepare": "husky",
     "db:init": "tsx --env-file=.env scripts/db-init.ts",
-    "db:seed": "tsx --env-file=.env scripts/db-seed.ts"
+    "db:seed": "tsx --env-file=.env scripts/db-seed.ts",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -23,6 +24,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "dotenv": "^16.4.5",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
