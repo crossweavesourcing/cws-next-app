@@ -12,8 +12,6 @@ import { verificationTokensIndexes } from './verification-tokens.indexes';
 import { otpCodesIndexes }           from './otp-codes.indexes';
 import { auditLogsIndexes }          from './audit-logs.indexes';
 import { loginAttemptsIndexes }      from './login-attempts.indexes';
-import { rolesIndexes }              from './roles.indexes';
-import { permissionsIndexes }        from './permissions.indexes';
 import { systemSettingsIndexes }     from './system-settings.indexes';
 import { passwordPoliciesIndexes }   from './password-policies.indexes';
 import { passwordHistoryIndexes }    from './password-history.indexes';
@@ -39,8 +37,6 @@ export const ALL_INDEXES: Record<CollectionName, IndexDescription[]> = {
   [COLLECTION_NAMES.OTP_CODES]:           otpCodesIndexes,
   [COLLECTION_NAMES.AUDIT_LOGS]:          auditLogsIndexes,
   [COLLECTION_NAMES.LOGIN_ATTEMPTS]:      loginAttemptsIndexes,
-  [COLLECTION_NAMES.ROLES]:               rolesIndexes,
-  [COLLECTION_NAMES.PERMISSIONS]:         permissionsIndexes,
   [COLLECTION_NAMES.SYSTEM_SETTINGS]:     systemSettingsIndexes,
   [COLLECTION_NAMES.PASSWORD_POLICIES]:   passwordPoliciesIndexes,
   [COLLECTION_NAMES.PASSWORD_HISTORY]:    passwordHistoryIndexes,
@@ -62,8 +58,6 @@ export {
   otpCodesIndexes,
   auditLogsIndexes,
   loginAttemptsIndexes,
-  rolesIndexes,
-  permissionsIndexes,
   systemSettingsIndexes,
   passwordPoliciesIndexes,
   passwordHistoryIndexes,

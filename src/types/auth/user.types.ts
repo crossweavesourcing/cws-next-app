@@ -84,7 +84,6 @@ export interface UserDocument {
   passwordExpiresAt: Date | null;
 
   role:   UserRole;
-  roleId: ObjectId | null;
   status: UserStatus;
 
   /**

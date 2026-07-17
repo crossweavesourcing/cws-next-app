@@ -111,25 +111,23 @@ export class LoginService {
     const isMatch = await verifyPassword(user.password.hash, password);
 
     if (!isMatch) {
-      // H-5 fix: atomically increment the failed-login counter AND read the
-      // updated security state in a single conditional write. The predicate
-      // `'security.failedLoginAttempts': { $lt: THRESHOLD }` means the increment
-      // only applies while still below the threshold, and the returned doc is the
-      // authoritative post-increment count — no separate `findById` reload, so
-      // concurrent failures cannot interleave and miscount (delaying lockout).
-      const updatedUser = await this.userRepo.incrementFailedAndGet(
+      // Atomic lockout decision: a single conditional write increments the
+      // failed-login counter AND sets `lockedUntil` (if the new count reaches
+      // the threshold) in the SAME MongoDB update. The update filter only
+      // matches when the account is not already locked, so two concurrent
+      // failures at count = threshold-1 cannot both cross the threshold
+      // inconsistently — exactly one write applies the lock, and the returned
+      // state tells the caller whether a lock was just applied. No separate
+      // `findById` reload or follow-up `lockAccount` write, so there is no
+      // lost-update window (H-5).
+      const { locked } = await this.userRepo.recordFailedLoginAndMaybeLock(
         userId,
-        this.LOCKOUT_THRESHOLD
+        this.LOCKOUT_THRESHOLD,
+        this.LOCKOUT_DURATION_MS
       );
 
-      // Guards against a null return (doc already at/above threshold — another
-      // concurrent failure already locked it) and any missing counter.
-      const failedCount = updatedUser?.security.failedLoginAttempts ?? this.LOCKOUT_THRESHOLD;
-
-      let lockExpiresAt: Date | null = null;
-      if (failedCount >= this.LOCKOUT_THRESHOLD) {
-        lockExpiresAt = new Date(Date.now() + this.LOCKOUT_DURATION_MS);
-        await this.userRepo.lockAccount(userId, lockExpiresAt);
+      if (locked) {
+        const lockExpiresAt = new Date(Date.now() + this.LOCKOUT_DURATION_MS);
         await this.recordFailure(userId, email, ipAddress, userAgent, 'Lockout triggered', lockExpiresAt);
         throw new AccountLockedError(lockExpiresAt, 'Lockout triggered on password mismatch');
       }

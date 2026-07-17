@@ -9,14 +9,22 @@ import { verifySessionSignature } from '../crypto/token';
 import { getEnv } from '../config/env';
 import { getClientIp } from '../lib/request';
 import { ensureDeviceId, setServerDeviceToken } from '../lib/device';
-import { setAuthCookies } from '../lib/cookies';
+import { setAuthCookies, clearingCookieOpts } from '../lib/cookies';
+import { withCsrfGuard } from '../lib/csrf';
 
 export type VerifyTotpState = { error?: string };
 
 const TWO_FA_PENDING_COOKIE = 'cws_2fa_pending';
 const STEPUP_PENDING_COOKIE = 'cws_stepup_pending';
 
-export async function verifyTotpAction(
+/**
+ * Server Action: verifies the TOTP code and, on success, issues the real
+ * session + refresh cookies (completing the login).
+ *
+ * C1: wrapped with `withCsrfGuard`; the pending cookies are cleared Strict
+ * (mirroring issuance in login.ts where applicable).
+ */
+async function verifyTotpActionImpl(
   _prev: VerifyTotpState,
   formData: FormData
 ): Promise<VerifyTotpState> {
@@ -75,9 +83,14 @@ export async function verifyTotpAction(
 
   await setAuthCookies({ sessionCookie, refreshToken });
 
+  // Clear both pending cookies. Use Strict to mirror issuance (same as
+  // verify-2fa.ts). clearingCookieOpts routes the `secure` flag through the
+  // single `isSecureCookies()` source of truth.
   for (const name of [TWO_FA_PENDING_COOKIE, STEPUP_PENDING_COOKIE]) {
-    cookieStore.set(name, '', { maxAge: 0, path: '/' });
+    cookieStore.set(name, '', clearingCookieOpts('strict', '/'));
   }
 
   return {}; // success -> client redirects
 }
+
+export const verifyTotpAction = withCsrfGuard(verifyTotpActionImpl);

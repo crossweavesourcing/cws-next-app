@@ -13,7 +13,10 @@ import { getDatabaseConfig }      from '@/database/config';
 import { getMongoClient }         from '@/database/client';
 import { checkDatabaseHealth }    from '@/database/health';
 import { initializeDatabase }     from '@/database/init';
-import { getCollectionStats }     from '@/database/maintenance';
+import {
+  getCollectionStats,
+  sweepExpiredAuthState,
+}                                 from '@/database/maintenance';
 import { registerShutdownHandlers } from '@/database/shutdown';
 import { getEnv }                 from '@/auth/config/env';
 import { seedUsers }              from './seed-users';
@@ -60,7 +63,7 @@ ${BOLD}╔═══════════════════════�
   }
   console.log(` ${GREEN}OK${RESET} (${pre.latencyMs}ms)\n`);
 
-  // ── 5. Initialize ───────────────────────────────────────────────────────────
+  // ── 5. Initialize (collections + idempotent indexes) ─────────────────────────
   const report = await initializeDatabase();
 
   const nameWidth = Math.max(...report.collections.map(r => r.collection.length)) + 2;
@@ -72,7 +75,12 @@ ${BOLD}╔═══════════════════════�
     const idxStr = r.indexesAdded > 0
       ? `(${r.indexesAdded} index${r.indexesAdded !== 1 ? 'es' : ''})`
       : '';
-    console.log(`  ${GREEN}✓${RESET}  ${pad(r.collection, nameWidth)} ${action}  ${YELLOW}${idxStr}${RESET}`);
+    const warn = r.indexErrors.length > 0 ? ` ${YELLOW}(index errors: ${r.indexErrors.length})${RESET}` : '';
+    console.log(`  ${GREEN}✓${RESET}  ${pad(r.collection, nameWidth)} ${action}  ${YELLOW}${idxStr}${RESET}${warn}`);
+  }
+
+  if (report.hadIndexErrors) {
+    console.log(`  ${YELLOW}⚠ Some indexes failed to build (non-fatal). Re-run db:init or the maintenance job to heal.${RESET}`);
   }
 
   // ── 6. Seed predefined users ────────────────────────────────────────────────
@@ -83,13 +91,29 @@ ${BOLD}╔═══════════════════════�
     console.log('  Seeding skipped. Run with --seed flag to seed default admin.');
   }
 
-  // ── 7. Post-flight health check ─────────────────────────────────────────────
+  // ── 7. Post-init cleanup sweep ──────────────────────────────────────────────
+  // Removes expired/revoked refresh tokens + sessions immediately (the TTL
+  // monitor only runs every ~60s). Safe + idempotent; never fails boot.
+  let sweep;
+  try {
+    sweep = await sweepExpiredAuthState();
+    console.log(
+      `  ${CYAN}↻ Sweep:${RESET} deleted ` +
+      `${sweep.refreshTokensExpired} expired + ${sweep.refreshTokensRevoked} revoked refresh tokens, ` +
+      `${sweep.sessionsRevoked} revoked + ${sweep.sessionsExpired} expired sessions ` +
+      `(${sweep.durationMs}ms)`,
+    );
+  } catch (err) {
+    console.log(`  ${YELLOW}⚠ Sweep skipped (non-fatal): ${err instanceof Error ? err.message : String(err)}${RESET}`);
+  }
+
+  // ── 8. Post-flight health check ─────────────────────────────────────────────
   const post = await checkDatabaseHealth();
 
-  // ── 8. Collection stats ─────────────────────────────────────────────────────
+  // ── 9. Collection stats ─────────────────────────────────────────────────────
   const stats = await getCollectionStats();
 
-  // ── 9. Summary ──────────────────────────────────────────────────────────────
+  // ── 10. Summary ─────────────────────────────────────────────────────────────
   console.log(`
   ${BOLD}Summary${RESET}
   ──────────────────────────────────────────────────────

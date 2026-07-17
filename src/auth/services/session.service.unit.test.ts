@@ -250,7 +250,6 @@ function makeUser(): UserDocument {
     passwordChangedAt: null,
     passwordExpiresAt: null,
     role: 'admin',
-    roleId: null,
     status: 'active',
     loginMethods: ['password'],
     security: {

@@ -92,8 +92,8 @@ export class InsufficientRoleError extends Error {
  * Asserts that the request is authenticated AND that the user holds the
  * required role. This is the single point of RBAC enforcement for now.
  *
- * We trust `users.role` as the authoritative capability value (the schema's
- * `roleId` → `roles` collection is not yet enforced). `admin` is always
+ * Authorization is role-string based; no roles/permissions collection is used.
+ * We trust `users.role` as the authoritative capability value. `admin` is always
  * sufficient; for any other required role we require an exact match.
  */
 export async function requireRole(required: UserRole): Promise<SessionDocument> {

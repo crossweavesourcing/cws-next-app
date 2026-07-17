@@ -11,7 +11,7 @@ export class UserRepository {
    */
   async findByEmail(email: string): Promise<UserDocument | null> {
     const emailsColl = await getUserEmailsCollection();
-    
+
     // Find verified/enabled record for this email
     const emailRecord = await emailsColl.findOne({
       email: email.trim().toLowerCase(),
@@ -88,6 +88,76 @@ export class UserRepository {
       { returnDocument: 'after' }
     );
     return (result as unknown as { value: UserDocument | null } | null)?.value ?? null;
+  }
+
+  /**
+   * Atomically increments failed attempts and, if the new count reaches the
+   * threshold, sets lockedUntil in the SAME write. Returns the resulting state
+   * so the caller knows whether a lock was just applied. Uses a filter so the
+   * write only succeeds when not already locked, preventing a race where two
+   * concurrent failures both cross the threshold.
+   *
+   * Unlike {@link incrementFailedAndGet}, the threshold crossing and the lock
+   * are performed in a single conditional update (aggregation pipeline with
+   * `$add`/`$cond`), so two concurrent failures at count = threshold-1 cannot
+   * both cross the threshold inconsistently, and `lockedUntil` is never set in
+   * a separate follow-up write. This is the atomic lockout path used by
+   * `LoginService` on a bad password.
+   *
+   * @param userId         the user to count a failed attempt against
+   * @param threshold      the lockout threshold (e.g. 5)
+   * @param lockDurationMs duration in ms to lock the account for once the
+   *                       threshold is reached
+   * @returns the resulting failed-attempt count and whether the account is now
+   *          locked (i.e. a non-expired `lockedUntil` was set). `locked` is true
+   *          only when the lock was/remains in effect, so the caller can decide
+   *          whether to record a lockout event exactly once.
+   */
+  async recordFailedLoginAndMaybeLock(
+    userId: ObjectId,
+    threshold: number,
+    lockDurationMs: number
+  ): Promise<{ failedAttempts: number; locked: boolean }> {
+    const usersColl = await getUsersCollection();
+    const now = new Date();
+    const res = await usersColl.findOneAndUpdate(
+      {
+        _id: userId,
+        $or: [
+          { 'security.lockedUntil': null },
+          { 'security.lockedUntil': { $lte: now } },
+        ],
+      },
+      [
+        {
+          $set: {
+            'security.failedLoginAttempts': {
+              $add: ['$security.failedLoginAttempts', 1],
+            },
+            'security.lockedUntil': {
+              $cond: [
+                {
+                  $gte: [
+                    { $add: ['$security.failedLoginAttempts', 1] },
+                    threshold,
+                  ],
+                },
+                new Date(Date.now() + lockDurationMs),
+                '$security.lockedUntil',
+              ],
+            },
+            updatedAt: now,
+          },
+        },
+      ],
+      { returnDocument: 'after' }
+    );
+
+    const failedAttempts = res?.security?.failedLoginAttempts ?? 0;
+    const locked =
+      !!res?.security?.lockedUntil &&
+      res.security.lockedUntil.getTime() > Date.now();
+    return { failedAttempts, locked };
   }
 
   /**

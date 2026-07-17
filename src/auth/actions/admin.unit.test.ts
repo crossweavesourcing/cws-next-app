@@ -156,7 +156,6 @@ function makeUser(overrides: Partial<UserDocument> = {}): UserDocument {
     passwordChangedAt: null,
     passwordExpiresAt: null,
     role: 'admin',
-    roleId: null,
     status: 'active',
     loginMethods: ['password'],
     security: {

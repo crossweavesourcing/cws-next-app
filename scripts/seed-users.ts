@@ -2,13 +2,12 @@ import { getDb } from '@/database/client';
 import { getEnv } from '@/auth/config/env';
 import { COLLECTION_NAMES } from '@/database/constants';
 import * as argon2 from 'argon2';
-import { ObjectId } from 'mongodb';
 import type { UserDocument } from '@/types/auth';
 
 export async function seedUsers(): Promise<void> {
   const env = getEnv();
   const db = await getDb();
-  
+
   console.log('Seeding predefined users...');
 
   // Clear any past rate limits & login attempt records to reset E2E state.
@@ -30,36 +29,9 @@ export async function seedUsers(): Promise<void> {
     return;
   }
 
-  // Ensure default roles exist
-  const rolesCollection = db.collection(COLLECTION_NAMES.ROLES);
-  
-  const systemAdminRole = {
-    name: 'System Admin',
-    slug: 'system-admin',
-    description: 'Full system access',
-    permissions: ['*'], // Special wildcard or explicitly all permissions
-    isSystem: true,
-  };
-
-  const roleUpdateResult = await rolesCollection.findOneAndUpdate(
-    { slug: 'system-admin' },
-    { 
-      $setOnInsert: { 
-        ...systemAdminRole, 
-        createdAt: new Date() 
-      },
-      $set: { updatedAt: new Date() }
-    },
-    { upsert: true, returnDocument: 'after' }
-  );
-  
-  const adminRoleId = roleUpdateResult?._id;
-
-  if (!adminRoleId) {
-    throw new Error('Failed to create or retrieve System Admin role.');
-  }
-
-  // Seed default admin user
+  // Seed default admin user.
+  // Authorization is role-string based (see src/auth/dal.ts requireRole);
+  // there is intentionally NO roles/permissions collection.
   const usersCollection = db.collection<UserDocument>(COLLECTION_NAMES.USERS);
 
   // Hash the seed password (do NOT log the plaintext password or its hash).
@@ -107,7 +79,6 @@ export async function seedUsers(): Promise<void> {
       $setOnInsert: {
         profile: adminProfile,
         role: 'admin',
-        roleId: adminRoleId,
         status: 'active',
         loginMethods: ['password'],
         metadata: {

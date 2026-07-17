@@ -2,10 +2,19 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { OAuthService, AlertingService } from '@/auth/services';
+import { LoginAttemptRepository } from '@/auth/repositories';
 import { getClientIp } from '@/auth/lib/request';
 import { getEnv } from '@/auth/config/env';
+import { isSecureCookies } from '@/auth/lib/cookies';
 import { signSessionId } from '@/auth/crypto/token';
 import { AuditLogRepository } from '@/auth/repositories';
+
+// ─── OAuth callback per-IP rate limit (MongoDB-backed, no in-memory state). ───
+// Caps raw token-exchange attempts (abuse / token-guessing) per IP. The counter
+// is keyed by `oauth:google` so it is shared across all serverless instances.
+const OAUTH_PER_IP_MAX = 20;
+const OAUTH_PER_IP_WINDOW_MS = 15 * 60 * 1000;
+const OAUTH_ATTEMPT_IDENTIFIER = 'oauth:google';
 
 const OAUTH_STATE_COOKIE = 'cws_oauth_state';
 const SESSION_COOKIE = 'cws_session';
@@ -30,7 +39,7 @@ export async function GET(request: NextRequest) {
   const error = url.searchParams.get('error');
 
   const stateCookie = cookieStore.get(OAUTH_STATE_COOKIE);
-  const secure = process.env.NODE_ENV === 'production';
+  const secure = isSecureCookies();
 
   // Clear the one-time state cookie regardless of outcome.
   const clearState = () =>
@@ -61,6 +70,35 @@ export async function GET(request: NextRequest) {
 
   const ipAddress = await getClientIp();
   const userAgent = request.headers.get('user-agent') || null;
+
+  // Per-IP rate limit on the OAuth token exchange (abuse / token-guessing).
+  // The counter is MongoDB-backed so it is coherent across serverless instances
+  // with no Redis. On exceed, redirect to login with a generic error.
+  const attemptRepo = new LoginAttemptRepository();
+  const oauthRecent = await attemptRepo.countRecentByIpFilter(
+    ipAddress,
+    { identifier: OAUTH_ATTEMPT_IDENTIFIER },
+    OAUTH_PER_IP_WINDOW_MS
+  );
+  if (oauthRecent >= OAUTH_PER_IP_MAX) {
+    clearState();
+    return NextResponse.redirect(`${env.APP_URL}/dashboard/login/?error=oauth_rate_limited`);
+  }
+  // Record the exchange attempt so the counter above accrues even on failure.
+  await attemptRepo.recordAttempt({
+    userId: null,
+    identifierType: 'GOOGLE',
+    identifier: OAUTH_ATTEMPT_IDENTIFIER,
+    ipAddress,
+    userAgent,
+    device: null,
+    success: false,
+    failureReason: 'oauth token exchange attempt',
+    lockExpiresAt: null,
+    correlationId: null,
+    country: null,
+    city: null,
+  });
 
   try {
     const oauth = new OAuthService();

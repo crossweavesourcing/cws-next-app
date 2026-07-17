@@ -13,6 +13,7 @@ import {
   buildPasswordSchema,
   passwordChangeSchema,
   DEFAULT_PASSWORD_POLICY,
+  type PasswordPolicy,
 } from '../validation/password-policy';
 import { sendMail } from './mailer';
 import { getEnv } from '../config/env';
@@ -20,6 +21,15 @@ import { hashToken } from '../crypto/token';
 import { SessionRepository } from '../repositories/session.repository';
 
 const RESET_TTL_MS = 30 * 60 * 1000; // 30 minutes
+
+/**
+ * Generic, non-enumerating message used whenever a candidate password fails the
+ * active policy or matches a recently used password. We deliberately avoid
+ * revealing WHICH rule failed (length vs. character class vs. reuse) to limit
+ * attacker feedback.
+ */
+const GENERIC_PASSWORD_REJECTION =
+  'The new password does not meet the account requirements.';
 
 /**
  * Password lifecycle: change (authenticated), reset (email link), history +
@@ -34,23 +44,46 @@ export class PasswordService {
   private loginAttemptRepo = new LoginAttemptRepository();
   private alertingService = new AlertingService();
 
+  /**
+   * Shared pre-write gate used by BOTH changePassword and resetPassword.
+   *
+   * 1. Loads the active policy (defaults applied by the repo when none exists).
+   * 2. Validates the candidate against the policy (length + character classes).
+   *    Any failure yields a single generic message — no rule enumeration.
+   * 3. Rejects the candidate if it matches any of the last `historyCount`
+   *    stored hashes (verified with the peppered Argon2 verifier).
+   *
+   * Throws on violation; resolves otherwise. No writes happen here.
+   */
+  async evaluateNewPassword(userId: ObjectId, newPassword: string): Promise<void> {
+    const policy = await this.policyRepo.getActivePolicy();
+
+    const parsed = buildPasswordSchema(policy).safeParse(newPassword);
+    if (!parsed.success) {
+      throw new Error(GENERIC_PASSWORD_REJECTION);
+    }
+
+    await this.rejectIfReused(userId, newPassword, policy.historyCount);
+  }
+
   async changePassword(
     userId: ObjectId,
     currentPassword: string,
     newPassword: string,
     currentSessionId?: string
   ): Promise<void> {
+    // (1) Validate new password against the active policy and (2) reject reuse
+    // of any of the last N stored hashes — BEFORE any write happens.
+    await this.evaluateNewPassword(userId, newPassword);
+
     const policy = await this.policyRepo.getActivePolicy();
-    const parsed = buildPasswordSchema(policy).safeParse(newPassword);
-    if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? 'Password does not meet policy.');
-    }
 
     const user = await this.userRepo.findById(userId);
     if (!user || !user.password?.hash) {
       throw new Error('No password set for this account.');
     }
 
+    // Keep the change-password authn check: the current password is required.
     const ok = await verifyPassword(user.password.hash, currentPassword);
     if (!ok) {
       await this.auditRepo.log({
@@ -63,8 +96,6 @@ export class PasswordService {
       });
       throw new Error('Current password is incorrect.');
     }
-
-    await this.rejectIfReused(userId, newPassword, policy.historyCount);
 
     const hash = await hashPassword(newPassword);
     const usersColl = await getUsersCollection();
@@ -81,6 +112,7 @@ export class PasswordService {
       }
     );
 
+    // Persist the same peppered Argon2 hash to history, capped at policy size.
     await this.historyRepo.record(userId, hash, 'argon2id', policy.historyCount);
     // Revoke every OTHER active session so a stolen session is ended on password change.
     await new SessionRepository().revokeAllUserSessionsExcept(
@@ -101,19 +133,18 @@ export class PasswordService {
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {
-    const policy = await this.policyRepo.getActivePolicy();
-    const parsed = buildPasswordSchema(policy).safeParse(newPassword);
-    if (!parsed.success) {
-      throw new Error(parsed.error.issues[0]?.message ?? 'Password does not meet policy.');
-    }
-
+    // Redeem first so we know the userId before evaluating against history.
     const redeemed = await this.tokenRepo.redeem(hashToken(token));
     if (!redeemed || redeemed.userId === null) {
       throw new Error('This password reset link is invalid or has expired.');
     }
 
     const userId = redeemed.userId;
-    await this.rejectIfReused(userId, newPassword, policy.historyCount);
+
+    // (1) Validate against policy + (2) reject reuse — BEFORE any write.
+    await this.evaluateNewPassword(userId, newPassword);
+
+    const policy = await this.policyRepo.getActivePolicy();
 
     const hash = await hashPassword(newPassword);
     const usersColl = await getUsersCollection();
@@ -130,6 +161,7 @@ export class PasswordService {
       }
     );
 
+    // Persist the same peppered Argon2 hash to history, capped at policy size.
     await this.historyRepo.record(userId, hash, 'argon2id', policy.historyCount);
     await new SessionRepository().revokeAllUserSessionsExcept(userId, null, 'user');
     await this.tokenRepo.invalidateAll(userId, 'password_reset');
@@ -209,12 +241,17 @@ export class PasswordService {
     return ageMs > policy.expirationDays * 24 * 60 * 60 * 1000;
   }
 
+  /**
+   * Rejects `newPassword` if it matches any of the user's last `historyCount`
+   * stored hashes. The stored hashes are peppered Argon2id hashes (never
+   * plaintext); we verify using the same pepper via `verifyPassword`.
+   */
   private async rejectIfReused(userId: ObjectId, newPassword: string, historyCount: number): Promise<void> {
     if (historyCount <= 0) return;
     const recent = await this.historyRepo.getRecent(userId, historyCount);
     for (const entry of recent) {
       if (await verifyPassword(entry.hash, newPassword)) {
-        throw new Error(`You cannot reuse one of your last ${historyCount} passwords.`);
+        throw new Error(GENERIC_PASSWORD_REJECTION);
       }
     }
   }

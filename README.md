@@ -91,6 +91,26 @@ committed**. Follow these steps for each new/changed deployment:
 > CI-level secret scan (e.g. gitleaks / trufflehog on the full history) as a
 > second line of defense. The pre-commit hook is intentionally left unchanged.
 
+### Step-up MFA (Item 9) — ON by default
+
+Step-up is an **opt-out** control, not opt-in: `STEP_UP_ENABLED` defaults to
+**true**. When active, a login from a **new device** OR a **resolvable country
+change** requires email 2FA (the existing `verify-2fa` flow) before the session
+becomes usable. It is strictly fail-open:
+
+- A new device is the only signal that fires without geo (it needs no lookup).
+- A country-change step-up only fires when `GEOIP_LOOKUP_URL` is configured —
+  geo resolution is fail-open (`null` on miss), so an unknown country is **never**
+  treated as a change (no false-positive lockouts).
+- If the geo lookup or step-up evaluation throws, login proceeds **without**
+  step-up (logged).
+
+**Emergency disable:** set `STEP_UP_ENABLED=false` (or `'0'`) in the environment.
+This is a deliberate relaxation — `validateSecurityConfig` emits a **loud
+`console.warn`** (it does **not** throw) so the relaxation is visible in logs.
+Re-enable (unset, or set `true`) as soon as the emergency passes. Known devices
+from known countries are never re-stepped, so there is no per-login loop.
+
 ### Sensitive variables
 
 These MUST be sourced from a secret manager / platform environment in **every
@@ -100,7 +120,7 @@ hard-coded, or pasted into a checked-in file:
 | Variable | Why it is sensitive |
 |---|---|
 | `MONGODB_URI` | Embeds the Atlas database username + password |
-| `SESSION_SECRET` | HMAC-signs the `cws_session` / `cws_2fa_pending` / `cws_pw_pending` cookies (forgery risk if leaked) |
+| `SESSION_SECRET` | HMAC-signs the `cws_session` / `cws_2fa_pending` / `cws_pw_pending` / `cws_stepup_pending` cookies (forgery risk if leaked) |
 | `ARGON2_SECRET` | Application-side password-hash pepper; protects hashes in a DB leak |
 | `GOOGLE_CLIENT_SECRET` | OAuth client secret |
 | `EMAIL_PASSWORD` | Gmail SMTP "App Password" |
@@ -459,7 +479,7 @@ All collection names sourced from `COLLECTION_NAMES` — no raw strings ✅
 | Config files modified | 2 (`.env`, `package.json`) | 2 | ✅ |
 | New config files | 1 (`.env.example`) | 1 | ✅ |
 | Next.js integration | `src/instrumentation.ts` | ✅ Created | ✅ |
-| **Grand total** | **52 new + 2 modified** | **52 new + 2 modified** | **✅** |
+| **Grand total** | **52 new + 2 modified** | **52 new + 2 modified** | ✅ |
 
 ---
 

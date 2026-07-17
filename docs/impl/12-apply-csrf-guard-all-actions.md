@@ -59,3 +59,36 @@ For actions that return `void` (e.g. `resend2faAction`), the wrapper still retur
 - Do NOT change cookie `SameSite` values in this task (separate task).
 - Do NOT touch the `withCsrfGuard` implementation unless you find a bug — if you do, keep it generic and origin-based.
 - Keep `assertSameOrigin()` as the single source of truth for the origin check.
+
+## Status — COMPLETE (verified)
+
+All mutating auth Server Actions are wrapped with `withCsrfGuard` (C1 hardening).
+The only non-wrapped exported action is `getRecoveryCodesStatusAction`
+(read-only: returns remaining-code counts, never mutates state) — correctly excluded.
+
+### Wrapped actions (16)
+- `login.ts` -> `loginAction`
+- `verify-2fa.ts` -> `verify2faAction`, `resend2faAction`
+- `change-password.ts` -> `changePasswordAction`
+- `session.ts` -> `revokeSessionAction`, `revokeAllOtherSessionsAction`
+- `admin.ts` -> `adminRevokeUserSessionsAction`, `adminRevokeAllSessionsAction`
+- `recovery-codes.ts` -> `generateRecoveryCodesAction`, `regenerateRecoveryCodesAction`
+- `password-reset.ts` -> `requestResetAction`, `resetPasswordAction`
+- `device.ts` -> `trustDeviceAction`, `blockDeviceAction`, `renameDeviceAction`
+- `verify-totp.ts` -> `verifyTotpAction`
+
+Additionally, the JSON API route handlerAdditionally, the JSON API route handlerAdditionally, the JSON API route handlerAdditionally, the JSON API rout AcAdditionally, the JSON APriteria
+1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1)
+2. Cross-origin POST returns `{ error: 'Request blocked.' }` and performs NO state
+   change — covered by `csrf-guard.unit.test.ts` (criterion 2 block).
+3. Same-origin requests pass through to the inner action unchanged — covered by the
+   same-origin tests in `csrf-guard.unit.test.ts`; no signature/behaviour changes.
+4. `csrf-guard.unit.test.ts` "withCsrfGuard — CsrfError mapping (criterion 4)"
+   asserts `CsrfError` -> `{ error: 'Request blocked.' }` and that non-Csrf errors
+   are rethrown.
+5. No Redis / shared in-memory state introduced; tests only mock per-action
+   collaborators.
+
+### Test result
+Test Files  2 passed (2)
+     Tests  32 passed (32)

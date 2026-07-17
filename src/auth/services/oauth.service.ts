@@ -8,10 +8,99 @@ import { AuditLogRepository } from '../repositories/audit-log.repository';
 import { AlertingService } from './alerting.service';
 import { getEnv } from '../config/env';
 import { ensureDeviceId, setServerDeviceToken } from '../lib/device';
+import { OAuthProviderUnavailableError } from '../errors/auth-errors';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const GOOGLE_JWKS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
+
+/**
+ * Local, non-authoritative JWKS cache.
+ *
+ * SAFETY CONTRACT (serverless):
+ *  - This cache is a best-effort, per-instance optimization ONLY. Instances are
+ *    ephemeral and may be cold-started at any time, so the cache can always be
+ *    empty. It is NEVER a source of truth: every id_token's signature is still
+ *    verified against whatever keys are actually returned by Google.
+ *  - On a cache miss (expired, empty, or unknown `kid`/key rotation) we ALWAYS
+ *    fetch fresh keys before deciding. We never accept a token without a valid
+ *    signature against the current JWKS set.
+ *  - No shared/Redis cache exists; this stays safely in-process.
+ */
+interface JwksCacheEntry {
+  keys: Array<{ kid: string; n: string; e: string }>;
+  expiresAt: number;
+}
+
+let jwksCache: JwksCacheEntry | null = null;
+
+/** Default cache lifetime if Google omits `Cache-Control: max-age`. */
+const JWKS_DEFAULT_MAX_AGE_MS = 3600_000; // 1 hour
+
+interface GoogleJwks {
+  keys: Array<{ kid: string; n: string; e: string }>;
+}
+
+/**
+ * Fetches Google's JWKS, honoring `Cache-Control: max-age` for the local cache
+ * TTL. Never returns stale/partial data: on any network or HTTP failure it
+ * throws `OAuthProviderUnavailableError` so the caller fails safe (no
+ * accept-without-verification).
+ */
+async function fetchGoogleJwks(): Promise<JwksCacheEntry> {
+  let res: Response;
+  try {
+    res = await fetch(GOOGLE_JWKS_URL, { method: 'GET' });
+  } catch (networkErr) {
+    throw new OAuthProviderUnavailableError(
+      `JWKS fetch network error: ${networkErr instanceof Error ? networkErr.message : String(networkErr)}`
+    );
+  }
+
+  if (!res.ok) {
+    throw new OAuthProviderUnavailableError(`JWKS fetch failed with HTTP ${res.status}`);
+  }
+
+  const maxAgeMs = parseCacheControlMaxAge(res.headers.get('cache-control'));
+  let json: GoogleJwks;
+  try {
+    json = (await res.json()) as GoogleJwks;
+  } catch (parseErr) {
+    throw new OAuthProviderUnavailableError(
+      `JWKS response parse error: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`
+    );
+  }
+
+  if (!json || !Array.isArray(json.keys) || json.keys.length === 0) {
+    throw new OAuthProviderUnavailableError('JWKS response contained no keys.');
+  }
+
+  const entry: JwksCacheEntry = {
+    keys: json.keys,
+    expiresAt: Date.now() + maxAgeMs,
+  };
+  // Best-effort local cache; safe to lose on cold start. Not authoritative.
+  jwksCache = entry;
+  return entry;
+}
+
+/** Extracts `max-age` (seconds) from a Cache-Control header; falls back to default. */
+function parseCacheControlMaxAge(header: string | null): number {
+  if (!header) return JWKS_DEFAULT_MAX_AGE_MS;
+  const match = /max-age\s*=\s*(\d+)/i.exec(header);
+  if (!match) return JWKS_DEFAULT_MAX_AGE_MS;
+  const seconds = Number.parseInt(match[1], 10);
+  if (!Number.isFinite(seconds) || seconds < 0) return JWKS_DEFAULT_MAX_AGE_MS;
+  return seconds * 1000;
+}
+
+/** Resolves the JWKS to use: cached if fresh, otherwise a fresh fetch. */
+async function getGoogleJwks(): Promise<JwksCacheEntry> {
+  if (jwksCache && jwksCache.expiresAt > Date.now()) {
+    return jwksCache;
+  }
+  return fetchGoogleJwks();
+}
 
 export interface GoogleProfile {
   sub: string;
@@ -274,6 +363,12 @@ export class OAuthService {
   /**
    * Verifies the Google-issued OIDC id_token (signature via JWKS, standard claims).
    * Returns the verified profile. Throws on any invalid claim or signature.
+   *
+   * Resilience/perf: the JWKS is served from a local, non-authoritative cache
+   * (see `getGoogleJwks`/`jwksCache`). If the cached set does not contain the
+   * token's `kid` (e.g. key rotation or cold start), we ALWAYS fetch a fresh
+   * JWKS before rejecting — we never accept a token without a valid signature
+   * against the current key set. A Google outage yields a clear, safe error.
    */
   private async verifyIdToken(
     idToken: string,
@@ -286,13 +381,27 @@ export class OAuthService {
     }
     const [headerB64, payloadB64, signatureB64] = parts;
 
-    const jwks = await (await fetch(GOOGLE_JWKS_URL)).json() as {
-      keys: Array<{ kid: string; n: string; e: string }>;
+    const header = JSON.parse(Buffer.from(headerB64, 'base64url').toString('utf8')) as {
+      alg?: string;
+      kid?: string;
     };
-    const header = JSON.parse(Buffer.from(headerB64, 'base64url').toString('utf8')) as { kid?: string };
+    if (header.alg !== 'RS256') {
+      throw new Error('Invalid id_token alg.');
+    }
+    if (typeof header.kid !== 'string' || header.kid.length === 0) {
+      throw new Error('Invalid id_token kid.');
+    }
+
+    // Resolve the JWKS. Use the cache if fresh; otherwise fetch. On a `kid`
+    // miss (key rotation) we force a fresh fetch before giving up.
+    let jwks = await getGoogleJwks();
+    if (header.kid && !jwks.keys.some((k) => k.kid === header.kid)) {
+      jwks = await fetchGoogleJwks();
+    }
+
     const jwk = jwks.keys.find((k) => k.kid === header.kid);
     if (!jwk) {
-      throw new Error('No matching JWK for id_token.');
+      throw new Error('No matching JWK for id_token (unknown kid).');
     }
 
     const key = crypto.createPublicKey({
@@ -310,23 +419,35 @@ export class OAuthService {
     const claims = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as Record<string, unknown>;
     const now = Math.floor(Date.now() / 1000);
 
-    if (typeof claims.iss !== 'string' || !claims.iss.includes('accounts.google.com')) {
+    if (claims.iss !== 'https://accounts.google.com' && claims.iss !== 'accounts.google.com') {
       throw new Error('Invalid id_token iss.');
     }
     if (claims.aud !== env.GOOGLE_CLIENT_ID) {
       throw new Error('Invalid id_token aud.');
     }
-    if (typeof claims.exp === 'number' && claims.exp < now) {
+    if (typeof claims.exp !== 'number' || claims.exp < now) {
       throw new Error('id_token expired.');
     }
     if (claims.nonce !== expectedNonce) {
       throw new Error('id_token nonce mismatch (replay protection).');
     }
+    if (typeof claims.sub !== 'string' || claims.sub.length === 0) {
+      throw new Error('Invalid id_token sub.');
+    }
 
     return {
-      sub: claims.sub as string,
+      sub: claims.sub,
       email: (claims.email as string | undefined) ?? null,
       email_verified: Boolean(claims.email_verified),
     };
   }
+}
+
+/**
+ * Test-only: resets the in-memory JWKS cache. The cache is non-authoritative,
+ * so clearing it here mirrors a cold start and lets unit tests assert fetch
+ * behaviour deterministically. Never call this outside tests.
+ */
+export function __resetJwksCacheForTest(): void {
+  jwksCache = null;
 }

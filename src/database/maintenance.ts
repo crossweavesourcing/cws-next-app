@@ -41,8 +41,8 @@ export interface ArchiveResult {
  * hot collection — safe to interrupt and resume.
  *
  * Audit log growth management strategy (apply in order):
- *   1. TTL index (90d, always active) — handles common case automatically
- *   2. archiveAuditLogs() nightly — preserves docs before TTL deletes them
+ *   1. TTL index (180d hot window, always active) — handles common case automatically
+ *   2. archiveAuditLogs() nightly — preserves docs in cold storage before TTL deletes them
  *   3. Reduce TTL via collMod — only after archival is confirmed
  *   4. audit_logs_archive — cold storage, minimal indexes (_id + createdAt)
  */
@@ -102,6 +102,59 @@ export type PruneResult = Partial<Record<CollectionName, number>>;
  *   login_attempts      → createdAt (24h TTL)
  *   audit_logs          → createdAt (90d TTL)
  */
+
+export interface SweepResult {
+  /** Expired (expiresAt < now) refresh tokens deleted. */
+  refreshTokensExpired:  number;
+  /** Revoked refresh tokens deleted (defense-in-depth beyond the TTL). */
+  refreshTokensRevoked:  number;
+  /** Sessions deleted: revoked, OR expired (expiresAt < now). */
+  sessionsRevoked:       number;
+  sessionsExpired:       number;
+  durationMs:            number;
+}
+
+/**
+ * Cleanup sweep for auth lifecycle collections.
+ *
+ * Removes documents that are logically dead but may not yet have been reaped by
+ * MongoDB's TTL monitor (which only runs every ~60s and never reclaims storage
+ * instantly):
+ *   - refresh_tokens: expired (expiresAt < now) and revoked
+ *   - sessions: revoked, OR expired (expiresAt < now)
+ *
+ * Idempotent and safe to run on a schedule (cron / platform scheduled function /
+ * instrumentation heartbeat). Uses the indexes added in indexes/sessions.indexes.ts
+ * and indexes/refresh-tokens.indexes.ts so it never does a collection scan.
+ *
+ * NOTE: The TTL index on refresh_tokens.expiresAt (expireAfterSeconds: 0) already
+ * deletes expired tokens automatically; this sweep provides immediate, auditable
+ * cleanup and also removes revoked-but-not-yet-expired tokens.
+ */
+export async function sweepExpiredAuthState(): Promise<SweepResult> {
+  const db  = await getDb();
+  const now = new Date();
+  const t0  = Date.now();
+
+  const refreshColl = db.collection(COLLECTION_NAMES.REFRESH_TOKENS);
+  const sessionColl = db.collection(COLLECTION_NAMES.SESSIONS);
+
+  const [expiredTokens, revokedTokens, revokedSessions, expiredSessions] = await Promise.all([
+    refreshColl.deleteMany({ expiresAt: { $lte: now } }),
+    refreshColl.deleteMany({ revoked: true, expiresAt: { $gt: now } }),
+    sessionColl.deleteMany({ revoked: true }),
+    sessionColl.deleteMany({ expiresAt: { $lte: now } }),
+  ]);
+
+  return {
+    refreshTokensExpired: expiredTokens.deletedCount,
+    refreshTokensRevoked: revokedTokens.deletedCount,
+    sessionsRevoked:      revokedSessions.deletedCount,
+    sessionsExpired:      expiredSessions.deletedCount,
+    durationMs:           Date.now() - t0,
+  };
+}
+
 export async function pruneExpiredDocuments(): Promise<PruneResult> {
   const db  = await getDb();
   const now = new Date();
@@ -117,7 +170,7 @@ export async function pruneExpiredDocuments(): Promise<PruneResult> {
     },
     {
       coll: COLLECTION_NAMES.AUDIT_LOGS,
-      filter: { createdAt: { $lte: new Date(now.getTime() - 7_776_000_000) } }, // 90d
+      filter: { createdAt: { $lte: new Date(now.getTime() - 15_552_000_000) } }, // 180d
     },
   ];
 

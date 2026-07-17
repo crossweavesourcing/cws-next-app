@@ -32,7 +32,8 @@ export type IdentifierType =
   | 'GOOGLE'
   | 'LINKEDIN'
   | 'WHATSAPP'
-  | 'PASSWORD_RESET_REQUEST'; // FIX-07: distinguish reset *requests* from failures
+  | 'PASSWORD_RESET_REQUEST' // FIX-07: distinguish reset *requests* from failures
+  | 'PASSWORD_RESET_SUBMIT'; // IP-15: distinguish reset *submit* (token-guessing) attempts
 
 export type VerificationTokenType =
   | 'email_verification'

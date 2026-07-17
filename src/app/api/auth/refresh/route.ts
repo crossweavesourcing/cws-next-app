@@ -7,7 +7,7 @@ import { hashToken } from '@/auth/crypto/token';
 import { getClientIp, assertSameOrigin } from '@/auth/lib/request';
 import { getEnv } from '@/auth/config/env';
 import { AuditLogRepository } from '@/auth/repositories';
-import { clearingCookieOpts } from '@/auth/lib/cookies';
+import { clearingCookieOpts, isSecureCookies } from '@/auth/lib/cookies';
 
 const SESSION_COOKIE = 'cws_session';
 const REFRESH_COOKIE = 'cws_refresh';
@@ -86,16 +86,17 @@ export async function POST(request: NextRequest) {
 
   // Success: issue rotated cookies. Session stays Lax (needed for top-level
   // navigation); refresh token is high-value → Strict.
+  const secure = isSecureCookies();
   cookieStore.set(SESSION_COOKIE, result.sessionCookie, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure,
     sameSite: 'lax',
     path: '/',
     maxAge: Math.floor(env.ACCESS_SESSION_TTL_MS / 1000),
   });
   cookieStore.set(REFRESH_COOKIE, result.refreshToken, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure,
     sameSite: 'strict',
     path: '/api/auth/refresh',
     maxAge: Math.floor(env.REFRESH_TOKEN_TTL_MS / 1000),

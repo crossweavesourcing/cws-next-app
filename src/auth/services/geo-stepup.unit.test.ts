@@ -156,7 +156,6 @@ function makeUser(): UserDocument {
     passwordChangedAt: null,
     passwordExpiresAt: null,
     role: 'admin',
-    roleId: null,
     status: 'active',
     loginMethods: ['password'],
     security: { failedLoginAttempts: 0, lockedUntil: null, mfaEnabled: false, lastPasswordResetRequestAt: null, forcePasswordChange: false, accountSecurityVersion: 1 },

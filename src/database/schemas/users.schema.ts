@@ -9,6 +9,11 @@ import type { Document } from 'mongodb';
  *   source tracking and lazy provider sync.
  * - password is nullable — OAuth-only / WhatsApp-only users have none.
  * - No email / phone fields — contact data lives in dedicated collections.
+ *
+ * Authorization model (consolidated RBAC, Option A):
+ * `role` is the single source of truth. There is NO `roleId` / `roles` /
+ * `permissions` collection — authorization is enforced by `requireRole` in
+ * src/auth/dal.ts purely on the `role` string.
  */
 export const usersSchema: Document = {
   bsonType: 'object',
@@ -58,11 +63,10 @@ export const usersSchema: Document = {
     passwordChangedAt: { bsonType: ['date', 'null'] },
     passwordExpiresAt: { bsonType: ['date', 'null'] },
 
-    role: { bsonType: 'string', enum: ['admin', 'member', 'viewer'] },
-    roleId: { bsonType: ['objectId', 'null'], description: 'References roles._id for RBAC' },
-    status: { 
-      bsonType: 'string', 
-      enum: ['active', 'inactive', 'suspended', 'locked', 'disabled', 'pending_password_reset', 'password_expired', 'force_password_change', 'deleted', 'pending_invite'] 
+    role: { bsonType: 'string', enum: ['admin', 'member', 'viewer'], description: 'Application-level role; single source of truth for authorization (no roles/permissions collection)' },
+    status: {
+      bsonType: 'string',
+      enum: ['active', 'inactive', 'disabled', 'suspended', 'deleted']
     },
 
     loginMethods: {

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { requireActiveSession } from '../dal';
 import { RecoveryCodeRepository } from '../repositories/recovery-code.repository';
 import { AuditLogRepository } from '../repositories/audit-log.repository';
+import { withCsrfGuard } from '../lib/csrf';
 
 export type RecoveryCodeState = {
   error?: string;
@@ -18,8 +19,10 @@ const auditRepo = new AuditLogRepository();
  * Generates a fresh set of recovery codes and returns the RAW codes for
  * one-time display. Only hashes are persisted; prior codes are invalidated.
  * Requires an active authenticated session.
+ *
+ * C1: wrapped with `withCsrfGuard` (recovery-code regeneration CSRF vector).
  */
-export async function generateRecoveryCodesAction(): Promise<RecoveryCodeState> {
+async function generateRecoveryCodesActionImpl(): Promise<RecoveryCodeState> {
   try {
     const session = await requireActiveSession();
     const userId = session.userId;
@@ -53,14 +56,18 @@ export async function generateRecoveryCodesAction(): Promise<RecoveryCodeState> 
 /**
  * Regenerates the recovery codes (alias for generate). Invalidates prior codes
  * and returns a new set for one-time display.
+ *
+ * C1: wrapped with `withCsrfGuard`.
  */
-export async function regenerateRecoveryCodesAction(): Promise<RecoveryCodeState> {
-  return generateRecoveryCodesAction();
+async function regenerateRecoveryCodesActionImpl(): Promise<RecoveryCodeState> {
+  return generateRecoveryCodesActionImpl();
 }
 
 /**
  * Returns non-sensitive status about the user's recovery codes: how many
  * remain unused. NEVER returns the codes themselves (hashes only are stored).
+ *
+ * Read-only — intentionally NOT wrapped with `withCsrfGuard`.
  */
 export async function getRecoveryCodesStatusAction(): Promise<{
   error?: string;
@@ -79,3 +86,6 @@ export async function getRecoveryCodesStatusAction(): Promise<{
     };
   }
 }
+
+export const generateRecoveryCodesAction = withCsrfGuard(generateRecoveryCodesActionImpl);
+export const regenerateRecoveryCodesAction = withCsrfGuard(regenerateRecoveryCodesActionImpl);

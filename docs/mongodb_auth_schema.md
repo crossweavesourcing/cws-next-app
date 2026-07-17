@@ -27,6 +27,24 @@
 
 ---
 
+## Authorization Model (Consolidated RBAC — Option A)
+
+This app uses a **simplified, role-string-based authorization model** (chosen for a fixed, small set of internal users — `admin` seed-provisioned). There is:
+
+- **NO `roleId` field** on `users`.
+- **NO `roles` collection** and **NO `permissions` collection**.
+
+`users.role` (enum `admin | member | viewer`) is the **single source of truth** for authorization. Enforcement is done entirely in `src/auth/dal.ts` via `requireRole(required)`:
+
+```ts
+const role: UserRole | undefined = user?.role;
+const allowed = required === 'admin' ? role === 'admin' : role === required;
+```
+
+Only `admin` is truly privileged; for any other required role, the user's `role` must match exactly. No capability/permission lookup is performed. This was a deliberate decision to avoid implying a capability model (roles → permissions) that was never enforced.
+
+---
+
 ## Architecture Overview
 
 ```
@@ -82,6 +100,7 @@ Stores the canonical user identity record. Deliberately thin — no contact data
 - **`avatar` object** (not flat `avatarUrl`): Tracks the source (`upload` / `google` / `linkedin` / `gravatar`), the original provider URL (which may expire), and an `updatedAt` timestamp — enabling lazy sync and staleness detection.
 - **`password` nullable**: OAuth-only and WhatsApp-only users have no password.
 - **`password.algorithm`**: Enables zero-downtime migration from bcrypt to argon2id on next successful login.
+- **`role` is the single source of truth for authorization** (see Authorization Model above). No `roleId` / `roles` / `permissions` collection exists.
 
 ### `$jsonSchema` Validator
 
@@ -198,16 +217,21 @@ db.createCollection("users", {
         },
 
         // ── Role ───────────────────────────────────────────────
+        // CONSOLIDATED RBAC (Option A): `role` is the single source of truth for
+        // authorization. There is NO `roleId` field and NO `roles` / `permissions`
+        // collection. Enforcement happens in src/auth/dal.ts `requireRole`, which
+        // checks the `role` string directly. `admin` is always sufficient; any
+        // other required role requires an exact match.
         role: {
           bsonType: "string",
           enum: ["admin", "member", "viewer"],
-          description: "Application-level role"
+          description: "Application-level role; single source of truth for authorization (no roles/permissions collection)"
         },
 
         // ── Status ─────────────────────────────────────────────
         status: {
           bsonType: "string",
-          enum: ["active", "suspended", "deactivated", "pending_invite"],
+          enum: ["active", "inactive", "disabled", "suspended", "deleted"],
           description: "Account lifecycle status"
         },
 
@@ -242,6 +266,15 @@ db.createCollection("users", {
             },
             lastPasswordResetRequestAt: {
               bsonType: ["date", "null"]
+            },
+            forcePasswordChange: {
+              bsonType: "bool",
+              description: "When true, the user is redirected to change their password on next authenticated request (see requireActiveSession in src/auth/dal.ts)"
+            },
+            accountSecurityVersion: {
+              bsonType: "int",
+              minimum: 1,
+              description: "Incremented to invalidate all sessions/tokens"
             }
           }
         },
@@ -265,7 +298,8 @@ db.createCollection("users", {
         },
 
         createdAt: { bsonType: "date" },
-        updatedAt: { bsonType: "date" }
+        updatedAt: { bsonType: "date" },
+        deletedAt: { bsonType: ["date", "null"] }
       }
     }
   },
@@ -1164,6 +1198,9 @@ Sessions are long-lived device records. Refresh tokens are short-lived credentia
 
 ### Why Is `userId` Denormalized on `refresh_tokens`?
 `refresh_tokens.userId` mirrors `sessions.userId`. It enables a single-collection query to revoke all tokens for a user across all sessions (account compromise response) without a join. The only intentional denormalization in the schema.
+
+### Why `role` Is the Sole Authorization Field (no `roles`/`permissions` collections)?
+For a fixed, small set of internal users, a full RBAC capability model (roles → permissions) adds complexity without benefit. `users.role` is the single source of truth, and `requireRole` enforces it directly by string comparison. There is intentionally no `roleId`, no `roles` collection, and no `permissions` collection — avoiding a capability model that would appear protected but is never enforced. See the Authorization Model section above.
 
 ### Audit Log Growth Management
 Managed in layers (apply in order):

@@ -107,3 +107,13 @@ export class InternalAuthError extends AuthError {
     );
   }
 }
+
+export class OAuthProviderUnavailableError extends AuthError {
+  constructor(internalMessage?: string) {
+    super(
+      'AUTH_OAUTH_PROVIDER_UNAVAILABLE',
+      'Google sign-in is temporarily unavailable, please try again.',
+      internalMessage || 'Google OAuth provider could not be reached'
+    );
+  }
+}

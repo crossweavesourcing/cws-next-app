@@ -39,19 +39,35 @@ const envSchema = z.object({
   ADMIN_SEED_EMPLOYEE_ID: z.string().min(1).optional(),
   ADMIN_SEED_DEPARTMENT: z.string().min(1).optional(),
 
-  // Step-up MFA (Item 9). OFF by default so the alert-only behavior is preserved
-  // until geo-IP monitoring is trusted. When true, a login from a new device OR a
-  // country change requires email 2FA before the session becomes usable.
+  // Step-up MFA (Item 9). ON by default (opt-out, not opt-in): an internal app
+  // with a small fixed set of seeded admin users tolerates a re-verify on a new
+  // device or a resolvable country change. When true, a login from a NEW device
+  // OR a COUNTRY CHANGE requires email 2FA before the session becomes usable.
+  // Override to 'false' (or '0') only to deliberately relax step-up in an
+  // emergency/debugging — `validateSecurityConfig` warns loudly when you do so
+  // in production (it is a relaxation, never a silent default).
   STEP_UP_ENABLED: z
-    .string()
+    .enum(['true', 'false', '1', '0'])
     .optional()
-    .transform((v) => v === 'true' || v === '1'),
+    .transform((v) => (v === undefined ? true : v === 'true' || v === '1')),
 
   // Optional geo-IP lookup endpoint. When set, `coarseLocation` queries this URL
   // (GET, with the IP as a `?ip=` query param or path segment — see geoip.ts) to
   // resolve country/region/city. If unset, an offline DB (geoip-lite) is tried,
   // and if that is unavailable too, the lookup fails open to null.
   GEOIP_LOOKUP_URL: z.string().url().optional(),
+
+  // Explicit, fail-closed cookie `secure` control (Item 14). When unset, the
+  // `secure` flag defaults to the existing `NODE_ENV === 'production'` behavior
+  // (so local dev over plain HTTP keeps working). In production this MUST be
+  // the literal string `'true'`; `validateSecurityConfig` refuses to boot if it
+  // is anything else. This prevents a misconfigured proxy / non-prod alias that
+  // reports `NODE_ENV=production` from serving a cleartext auth cookie, or a
+  // staging box from silently leaking cookies over HTTP.
+  SECURE_COOKIES: z
+    .enum(['true', 'false'])
+    .optional()
+    .transform((v) => v === 'true'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;
@@ -214,6 +230,69 @@ function validateSecurityConfig(env: EnvConfig): void {
       '⚠️  SECURITY: ARGON2_SECRET is not set. Password hashes will be stored ' +
         'WITHOUT the application pepper. This is acceptable for local dev only — ' +
         'always set a >=16-char ARGON2_SECRET in production via the secret manager.'
+    );
+  }
+
+  // FIX-14: fail-closed guard for the explicit cookie `secure` control. Mirrors
+  // the SESSION_SECRET / ARGON2_SECRET guards above. In production the auth
+  // cookies MUST be marked `secure` (HTTPS-only) — set SECURE_COOKIES='true'.
+  // Refuse to boot if it is unset or explicitly 'false', because:
+  //   - an unset value only defaults to `NODE_ENV === 'production'`, which a
+  //     misconfigured proxy or a non-prod alias reporting NODE_ENV=production
+  //     would make true-but-transported-over-cleartext;
+  //   - an explicit 'false' in prod means auth cookies would leak over plain
+  //     HTTP. Either way we fail closed rather than ship insecure cookies.
+  // Dev (and unset prod-that-truly-means-dev) keeps working: the helper
+  // `isSecureCookies()` falls back to `NODE_ENV === 'production'` when unset.
+  if (isProd && env.SECURE_COOKIES !== true) {
+    throw new Error(
+      'FATAL: SECURE_COOKIES is not set to "true" in production. Auth cookies ' +
+        'would be served without the Secure flag, leaking over plain HTTP. Set ' +
+        'SECURE_COOKIES=true in the production environment (and ensure APP_URL is ' +
+        'https:// with HSTS at the edge). Refusing to boot insecurely.'
+    );
+  }
+
+  // Dev-only: warn (do NOT fail) when SECURE_COOKIES is unset so local boot
+  // still works over HTTP. This must remain a warning — never throw outside
+  // production.
+  if (!isProd && env.SECURE_COOKIES === undefined) {
+    console.warn(
+      '⚠️  SECURITY: SECURE_COOKIES is not set. Cookies will use the ' +
+        '`NODE_ENV === "production"` fallback (false in dev, so they work over ' +
+        'HTTP). Always set SECURE_COOKIES=true in production via the secret manager.'
+    );
+  }
+
+  // STEP-UP (Item 9) production stance: ON by default. A deliberate relaxation
+  // (STEP_UP_ENABLED explicitly 'false') is permitted in production for
+  // emergencies/debugging, but it is NOT silent — we warn loudly so the
+  // relaxation is visible in logs (it is a relaxation, never a default). When
+  // the flag is left unset it defaults to true, so this branch only fires on an
+  // explicit opt-out.
+  if (isProd && env.STEP_UP_ENABLED === false) {
+    console.warn(
+      '⚠️  SECURITY: STEP_UP_ENABLED is explicitly false in production. Step-up ' +
+        'MFA (email 2FA on new device / resolvable country change) is DISABLED — ' +
+        'a new device or unknown location will NOT be challenged. This is a ' +
+        'deliberate relaxation; re-enable (unset or set to true) as soon as the ' +
+        'emergency passes. Normal logins continue.'
+    );
+  }
+
+  // Geo-IP / step-up interaction guard: step-up is ON, but no geo source is
+  // configured. Because geo lookup is fail-open (null on any miss), the
+  // country-change branch of step-up can never fire — only NEW-DEVICE step-up
+  // will. This is safe (no false positives) but the operator should know
+  // country-change protection is effectively inert until GEOIP_LOOKUP_URL is
+  // configured. Warn; do NOT throw (it is still a strict improvement over
+  // alert-only, and we must not block boot on a non-secret optional var).
+  if (isProd && env.STEP_UP_ENABLED === true && !env.GEOIP_LOOKUP_URL?.trim()) {
+    console.warn(
+      '⚠️  SECURITY: STEP_UP_ENABLED is on but GEOIP_LOOKUP_URL is not set. Geo ' +
+        'resolution is fail-open (null on miss), so the country-change branch of ' +
+        'step-up MFA will NOT trigger — only NEW-DEVICE logins will be challenged. ' +
+        'Configure GEOIP_LOOKUP_URL in production to enable country-change step-up.'
     );
   }
 }

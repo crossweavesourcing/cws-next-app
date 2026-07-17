@@ -9,6 +9,24 @@ const SESSION_PATH = '/';
 const REFRESH_PATH = '/api/auth/refresh';
 
 /**
+ * FIX-14: single source of truth for the cookie `Secure` flag.
+ *
+ * `SECURE_COOKIES` is the explicit, fail-closed control. When set it wins:
+ *   - `'true'`  → cookies are HTTPS-only (production).
+ *   - `'false'` → cookies may be sent over plain HTTP (dev / local).
+ *
+ * When unset, we preserve the PREVIOUS behavior by falling back to
+ * `NODE_ENV === 'production'`. That keeps local dev (no var) working over
+ * HTTP while still marking cookies secure in any environment that reports
+ * itself as production. Crucially, `validateSecurityConfig` in env.ts refuses
+ * to BOOT in production unless `SECURE_COOKIES` is explicitly `'true'`, so an
+ * unset/incorrect value can never silently ship insecure cookies to prod.
+ */
+export function isSecureCookies(): boolean {
+  return getEnv().SECURE_COOKIES ?? (process.env.NODE_ENV === 'production');
+}
+
+/**
  * Cookie `SameSite` policy (C1 hardening).
  *
  *  - `cws_session` stays **Lax** on purpose: it must ride top-level same-site
@@ -27,7 +45,7 @@ const REFRESH_PATH = '/api/auth/refresh';
 
 /** Options for the session cookie — Lax (kept for top-level nav UX). */
 export function sessionCookieOpts(env: { APP_URL: string }, extra?: { maxAge?: number; path?: string }) {
-  const secure = process.env.NODE_ENV === 'production';
+  const secure = isSecureCookies();
   return {
     httpOnly: true,
     secure,
@@ -39,7 +57,7 @@ export function sessionCookieOpts(env: { APP_URL: string }, extra?: { maxAge?: n
 
 /** Options for high-value tokens — Strict (blocks cross-site form POST sends). */
 export function strictCookieOpts(env: { APP_URL: string }, extra?: { maxAge?: number; path?: string }) {
-  const secure = process.env.NODE_ENV === 'production';
+  const secure = isSecureCookies();
   return {
     httpOnly: true,
     secure,
@@ -51,7 +69,7 @@ export function strictCookieOpts(env: { APP_URL: string }, extra?: { maxAge?: nu
 
 /** Options used when *clearing* a cookie (expired date). Mirrors sameSite of issue. */
 export function clearingCookieOpts(sameSite: 'lax' | 'strict', path: string) {
-  const secure = process.env.NODE_ENV === 'production';
+  const secure = isSecureCookies();
   return {
     httpOnly: true,
     secure,

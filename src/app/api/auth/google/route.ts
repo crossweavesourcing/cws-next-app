@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { OAuthService } from '@/auth/services';
+import { isSecureCookies } from '@/auth/lib/cookies';
 
 const OAUTH_STATE_COOKIE = 'cws_oauth_state';
 
@@ -26,7 +27,7 @@ export async function GET() {
   const cookieStore = await cookies();
   cookieStore.set(OAUTH_STATE_COOKIE, JSON.stringify(start), {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecureCookies(),
     sameSite: 'lax',
     path: '/',
     maxAge: 10 * 60, // 10 minutes — enough for the redirect round-trip

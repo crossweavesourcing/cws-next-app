@@ -13,8 +13,6 @@ import { otpCodesSchema }            from './otp-codes.schema';
 import { recoveryCodesSchema }       from './recovery-codes.schema';
 import { auditLogsSchema }           from './audit-logs.schema';
 import { loginAttemptsSchema }       from './login-attempts.schema';
-import { rolesSchema }               from './roles.schema';
-import { permissionsSchema }         from './permissions.schema';
 import { systemSettingsSchema }      from './system-settings.schema';
 import { passwordPoliciesSchema }    from './password-policies.schema';
 import { passwordHistorySchema }     from './password-history.schema';
@@ -42,8 +40,6 @@ export const ALL_SCHEMAS: Record<CollectionName, Document> = {
   [COLLECTION_NAMES.RECOVERY_CODES]:      recoveryCodesSchema,
   [COLLECTION_NAMES.AUDIT_LOGS]:          auditLogsSchema,
   [COLLECTION_NAMES.LOGIN_ATTEMPTS]:      loginAttemptsSchema,
-  [COLLECTION_NAMES.ROLES]:               rolesSchema,
-  [COLLECTION_NAMES.PERMISSIONS]:         permissionsSchema,
   [COLLECTION_NAMES.SYSTEM_SETTINGS]:     systemSettingsSchema,
   [COLLECTION_NAMES.PASSWORD_POLICIES]:   passwordPoliciesSchema,
   [COLLECTION_NAMES.PASSWORD_HISTORY]:    passwordHistorySchema,
@@ -65,8 +61,6 @@ export {
   recoveryCodesSchema,
   auditLogsSchema,
   loginAttemptsSchema,
-  rolesSchema,
-  permissionsSchema,
   systemSettingsSchema,
   passwordPoliciesSchema,
   passwordHistorySchema,

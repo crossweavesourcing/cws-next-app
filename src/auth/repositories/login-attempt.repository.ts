@@ -61,6 +61,41 @@ export class LoginAttemptRepository {
   }
 
   /**
+   * Generic windowed counter. Counts documents matching an arbitrary filter
+   * whose `createdAt` falls within `windowMs` of now. Reused by the 2FA
+   * resend throttle and OAuth per-IP limit rather than adding a bespoke method
+   * per flow. All state lives in MongoDB (no in-memory maps), so limits are
+   * coherent across serverless instances.
+   */
+  async countRecentByFilter(filter: Record<string, unknown>, windowMs: number): Promise<number> {
+    const attemptsColl = await getLoginAttemptsCollection();
+    const thresholdDate = new Date(Date.now() - windowMs);
+    return attemptsColl.countDocuments({
+      ...filter,
+      createdAt: { $gte: thresholdDate },
+    });
+  }
+
+  /**
+   * Counts recent documents matching an IP-only filter within a window. Used
+   * for per-IP limits (e.g. OAuth callback) where we do NOT want to constrain
+   * by identifier (the identifier is constant across all OAuth callers).
+   */
+  async countRecentByIpFilter(
+    ip: string,
+    filter: Record<string, unknown>,
+    windowMs: number
+  ): Promise<number> {
+    const attemptsColl = await getLoginAttemptsCollection();
+    const thresholdDate = new Date(Date.now() - windowMs);
+    return attemptsColl.countDocuments({
+      ipAddress: ip,
+      ...filter,
+      createdAt: { $gte: thresholdDate },
+    });
+  }
+
+  /**
    * Records a 2FA verification attempt (success or failure) for audit + throttling.
    */
   async record2FAAttempt(data: {

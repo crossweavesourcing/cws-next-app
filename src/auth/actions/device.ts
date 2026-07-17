@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { requireActiveSession } from '../dal';
 import { DeviceRepository } from '../repositories/device.repository';
 import { AuditLogRepository } from '../repositories/audit-log.repository';
+import { withCsrfGuard } from '../lib/csrf';
 
 export type DeviceActionState = { error?: string; success?: boolean };
 
@@ -21,7 +22,12 @@ async function resolveOwnedDevice(deviceId: string) {
   return { session, device };
 }
 
-export async function trustDeviceAction(
+/**
+ * Server Action: trust/untrust a device. Mutates device trust state + audit.
+ *
+ * C1: wrapped with `withCsrfGuard` (device trust CSRF vector).
+ */
+async function trustDeviceActionImpl(
   _prev: DeviceActionState | undefined,
   formData: FormData
 ): Promise<DeviceActionState> {
@@ -57,7 +63,12 @@ export async function trustDeviceAction(
   }
 }
 
-export async function blockDeviceAction(
+/**
+ * Server Action: block/unblock a device (and its sessions/refresh family).
+ *
+ * C1: wrapped with `withCsrfGuard` (device block CSRF vector).
+ */
+async function blockDeviceActionImpl(
   _prev: DeviceActionState | undefined,
   formData: FormData
 ): Promise<DeviceActionState> {
@@ -102,7 +113,12 @@ export async function blockDeviceAction(
   }
 }
 
-export async function renameDeviceAction(
+/**
+ * Server Action: rename a device.
+ *
+ * C1: wrapped with `withCsrfGuard` (device rename CSRF vector).
+ */
+async function renameDeviceActionImpl(
   _prev: DeviceActionState | undefined,
   formData: FormData
 ): Promise<DeviceActionState> {
@@ -137,3 +153,7 @@ export async function renameDeviceAction(
     return { error: err instanceof Error ? err.message : 'Unable to rename device.' };
   }
 }
+
+export const trustDeviceAction = withCsrfGuard(trustDeviceActionImpl);
+export const blockDeviceAction = withCsrfGuard(blockDeviceActionImpl);
+export const renameDeviceAction = withCsrfGuard(renameDeviceActionImpl);

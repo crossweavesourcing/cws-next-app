@@ -4,6 +4,7 @@ import { ObjectId } from 'mongodb';
 import { MfaService } from '@/auth/services/mfa.service';
 import { verifySessionSignature } from '@/auth/crypto/token';
 import { getEnv } from '@/auth/config/env';
+import { isSecureCookies } from '@/auth/lib/cookies';
 
 export async function POST(request: Request) {
   try {
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
     // Store challenge in cookie for verification step
     cookieStore.set('cws_webauthn_challenge', options.challenge, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: isSecureCookies(),
       sameSite: 'lax',
       path: '/',
       maxAge: 5 * 60, // 5 minutes
