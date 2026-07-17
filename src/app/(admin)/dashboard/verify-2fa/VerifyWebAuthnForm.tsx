@@ -23,8 +23,8 @@ export default function VerifyWebAuthnForm() {
       let asseResp;
       try {
         asseResp = await startAuthentication({ optionsJSON: options });
-      } catch (e: any) {
-        throw new Error(e.message || 'Authentication cancelled or failed');
+      } catch (e: unknown) {
+        throw new Error(e instanceof Error ? e.message : 'Authentication cancelled or failed');
       }
       
       const verificationResp = await fetch('/api/auth/webauthn/login-verify', {
@@ -42,8 +42,8 @@ export default function VerifyWebAuthnForm() {
         const errorData = await verificationResp.json();
         throw new Error(errorData.error || 'Verification failed');
       }
-    } catch (err: any) {
-      setError(err.message || 'An unexpected error occurred');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }

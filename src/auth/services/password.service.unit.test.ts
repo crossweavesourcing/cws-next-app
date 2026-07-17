@@ -1,33 +1,46 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import { ObjectId } from 'mongodb';
 
+type TestUser = {
+  _id: ObjectId;
+  password: { hash: string; algorithm: 'argon2id' };
+  passwordChangedAt: Date;
+  currentPassword: string;
+  security: {
+    forcePasswordChange: boolean;
+    accountSecurityVersion: number;
+    lockedUntil: Date | null;
+  };
+  updatedAt: Date;
+};
+
 // ─── Shared in-memory stores (accessible to the vi.mock factories below). ──────
 const stores = vi.hoisted(() => ({
   // users collection keyed by _id.toString()
-  users: new Map<string, any>(),
+  users: new Map<string, TestUser>(),
   // password_history entries
   history: [] as Array<{ _id: ObjectId; userId: ObjectId; hash: string; algorithm: string; createdAt: Date }>,
   // active password policy (null → repo returns the DEFAULT_PASSWORD_POLICY)
-  policy: null as any,
+  policy: null as Record<string, unknown> | null,
   // password_policies seed presence
   policySeeded: false as boolean,
   audit: [] as string[],
 }));
 
 // Apply a Mongo-style $set (supports dotted paths like 'security.forcePasswordChange').
-function applySet(target: any, set: Record<string, unknown>): void {
+function applySet(target: TestUser, set: Record<string, unknown>): void {
   for (const [key, value] of Object.entries(set)) {
     if (key.includes('.')) {
       const parts = key.split('.');
-      let node = target;
+      let node = target as unknown as Record<string, unknown>;
       for (let i = 0; i < parts.length - 1; i++) {
         const part = parts[i];
         if (typeof node[part] !== 'object' || node[part] === null) node[part] = {};
-        node = node[part];
+        node = node[part] as Record<string, unknown>;
       }
       node[parts[parts.length - 1]] = value;
     } else {
-      target[key] = value;
+      (target as unknown as Record<string, unknown>)[key] = value;
     }
   }
 }
@@ -46,7 +59,7 @@ vi.mock('@/database', () => ({
     },
   }),
   getPasswordHistoryCollection: async () => ({
-    async insertOne(doc: any) {
+    async insertOne(doc: Omit<(typeof stores.history)[number], '_id'>) {
       const d = { _id: new ObjectId(), ...doc };
       stores.history.push(d);
       return { insertedId: d._id };
@@ -205,7 +218,7 @@ describe('PasswordService — policy + history enforcement', () => {
     ).rejects.toThrow(/does not meet the account requirements/i);
 
     // No write happened: user hash is unchanged + no history recorded.
-    expect(stores.users.get(userId.toString()).password.hash).toBe(currentHash);
+    expect(stores.users.get(userId.toString())!.password.hash).toBe(currentHash);
     expect(stores.history.filter((h) => h.userId.equals(userId))).toHaveLength(0);
   });
 
@@ -241,7 +254,7 @@ describe('PasswordService — policy + history enforcement', () => {
 
     await service.changePassword(userId, 'OldPassw0rd!2024', fresh, userId.toString());
 
-    const user = stores.users.get(userId.toString());
+    const user = stores.users.get(userId.toString())!;
     // User password updated to the new hash.
     expect(user.password.hash).not.toBe(current);
     // forcePasswordChange cleared.

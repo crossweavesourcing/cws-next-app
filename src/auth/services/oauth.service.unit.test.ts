@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest';
 import * as crypto from 'crypto';
-import { OAuthService, __resetJwksCacheForTest } from './oauth.service';
+import { OAuthService, __resetJwksCacheForTest, type GoogleProfile } from './oauth.service';
 import { OAuthProviderUnavailableError } from '../errors/auth-errors';
 
 /**
@@ -90,8 +90,27 @@ function fakeEnv() {
   } as unknown as ReturnType<typeof import('../config/env').getEnv>;
 }
 
+type TestEnv = ReturnType<typeof fakeEnv>;
+type OAuthServiceHarness = {
+  verifyIdToken(idToken: string, env: TestEnv, expectedNonce: string): Promise<GoogleProfile>;
+  exchangeCode(code: string, codeVerifier: string, env: TestEnv): Promise<{ id_token: string }>;
+};
+
+function verifyIdToken(
+  service: OAuthService,
+  idToken: string,
+  env: TestEnv,
+  expectedNonce = 'expected-nonce'
+) {
+  return (service as unknown as OAuthServiceHarness).verifyIdToken(idToken, env, expectedNonce);
+}
+
+function exchangeCode(service: OAuthService, env: TestEnv) {
+  return (service as unknown as OAuthServiceHarness).exchangeCode('oauth-code', 'pkce-verifier', env);
+}
+
 describe('OAuthService.verifyIdToken — JWKS cache (Prompt 21)', () => {
-  let fetchSpy: any;
+  let fetchSpy: MockInstance<typeof globalThis.fetch>;
   let keyA: ReturnType<typeof makeRsaKey>;
   let keyB: ReturnType<typeof makeRsaKey>;
 
@@ -114,15 +133,15 @@ describe('OAuthService.verifyIdToken — JWKS cache (Prompt 21)', () => {
     const env = fakeEnv();
 
     const token1 = makeIdToken(keyA.kid, keyA.privateKey);
-    const profile1 = await (service as any).verifyIdToken(token1, env, 'expected-nonce');
+    const profile1 = await verifyIdToken(service, token1, env);
     expect(profile1.sub).toBe('google-sub-123');
 
     // Second verify (same kid, same cache window) — should reuse cache.
     const token2 = makeIdToken(keyA.kid, keyA.privateKey);
-    await (service as any).verifyIdToken(token2, env, 'expected-nonce');
+    await verifyIdToken(service, token2, env);
 
     // One fetch for the first verify; the second must hit the cache.
-    const jwksCalls = fetchSpy.mock.calls.filter((c: any) => String(c[0]).includes(GOOGLE_JWKS_URL));
+    const jwksCalls = fetchSpy.mock.calls.filter((call) => String(call[0]).includes(GOOGLE_JWKS_URL));
     expect(jwksCalls.length).toBe(1);
   });
 
@@ -131,10 +150,10 @@ describe('OAuthService.verifyIdToken — JWKS cache (Prompt 21)', () => {
     const env = fakeEnv();
 
     // First call seeds cache with only keyA.
-    await (service as any).verifyIdToken(
+    await verifyIdToken(
+      service,
       makeIdToken(keyA.kid, keyA.privateKey),
-      env,
-      'expected-nonce'
+      env
     );
 
     // Now Google rotates: the next JWKS response contains only keyB.
@@ -143,10 +162,10 @@ describe('OAuthService.verifyIdToken — JWKS cache (Prompt 21)', () => {
     // A token signed by keyB (not in cached set) must trigger a refetch and
     // verify successfully — NOT be rejected as an unknown kid.
     const rotatedToken = makeIdToken(keyB.kid, keyB.privateKey);
-    const profile = await (service as any).verifyIdToken(rotatedToken, env, 'expected-nonce');
+    const profile = await verifyIdToken(service, rotatedToken, env);
 
     expect(profile.sub).toBe('google-sub-123');
-    const jwksCalls = fetchSpy.mock.calls.filter((c: any) => String(c[0]).includes(GOOGLE_JWKS_URL));
+    const jwksCalls = fetchSpy.mock.calls.filter((call) => String(call[0]).includes(GOOGLE_JWKS_URL));
     expect(jwksCalls.length).toBe(2);
   });
 
@@ -157,7 +176,7 @@ describe('OAuthService.verifyIdToken — JWKS cache (Prompt 21)', () => {
     fetchSpy.mockRejectedValue(new Error('network down'));
 
     await expect(
-      (service as any).verifyIdToken(makeIdToken(keyA.kid, keyA.privateKey), env, 'expected-nonce')
+      verifyIdToken(service, makeIdToken(keyA.kid, keyA.privateKey), env)
     ).rejects.toBeInstanceOf(OAuthProviderUnavailableError);
   });
 
@@ -173,7 +192,7 @@ describe('OAuthService.verifyIdToken — JWKS cache (Prompt 21)', () => {
     } as unknown as Response);
 
     await expect(
-      (service as any).verifyIdToken(makeIdToken(keyA.kid, keyA.privateKey), env, 'expected-nonce')
+      verifyIdToken(service, makeIdToken(keyA.kid, keyA.privateKey), env)
     ).rejects.toBeInstanceOf(OAuthProviderUnavailableError);
   });
 
@@ -185,7 +204,7 @@ describe('OAuthService.verifyIdToken — JWKS cache (Prompt 21)', () => {
     const [h, p, s] = good.split('.');
     const tampered = `${h}.${p}.${s.slice(0, -2)}AA`; // corrupt signature
 
-    await expect((service as any).verifyIdToken(tampered, env, 'expected-nonce')).rejects.toThrow(
+    await expect(verifyIdToken(service, tampered, env)).rejects.toThrow(
       /signature verification failed/i
     );
   });
@@ -195,7 +214,7 @@ describe('OAuthService.verifyIdToken — JWKS cache (Prompt 21)', () => {
     const env = fakeEnv();
 
     const token = makeIdToken(keyA.kid, keyA.privateKey, { nonce: 'wrong-nonce' });
-    await expect((service as any).verifyIdToken(token, env, 'expected-nonce')).rejects.toThrow(
+    await expect(verifyIdToken(service, token, env)).rejects.toThrow(
       /nonce mismatch/i
     );
   });
@@ -205,7 +224,7 @@ describe('OAuthService.verifyIdToken — JWKS cache (Prompt 21)', () => {
     const env = fakeEnv();
 
     const token = makeIdToken(keyA.kid, keyA.privateKey, { aud: 'some-other-client' });
-    await expect((service as any).verifyIdToken(token, env, 'expected-nonce')).rejects.toThrow(
+    await expect(verifyIdToken(service, token, env)).rejects.toThrow(
       /aud/i
     );
   });
@@ -215,7 +234,48 @@ describe('OAuthService.verifyIdToken — JWKS cache (Prompt 21)', () => {
     const env = fakeEnv();
 
     const token = makeIdToken(keyA.kid, keyA.privateKey, { iss: 'https://evil.example.com' });
-    await expect((service as any).verifyIdToken(token, env, 'expected-nonce')).rejects.toThrow(/iss/i);
+    await expect(verifyIdToken(service, token, env)).rejects.toThrow(/iss/i);
+  });
+
+  it('C4: issuer must be an exact Google issuer, not a substring match', async () => {
+    const service = new OAuthService();
+    const env = fakeEnv();
+
+    const token = makeIdToken(keyA.kid, keyA.privateKey, {
+      iss: 'https://accounts.google.com.evil.example.com',
+    });
+    await expect(verifyIdToken(service, token, env)).rejects.toThrow(/iss/i);
+  });
+
+  it('C4: non-RS256 alg is rejected before verification', async () => {
+    const service = new OAuthService();
+    const env = fakeEnv();
+
+    const token = signJwt(
+      { alg: 'HS256', typ: 'JWT', kid: keyA.kid },
+      {
+        iss: 'https://accounts.google.com',
+        aud: CLIENT_ID,
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        nonce: 'expected-nonce',
+        sub: 'google-sub-123',
+        email: 'admin@example.com',
+        email_verified: true,
+      },
+      keyA.privateKey
+    );
+
+    await expect(verifyIdToken(service, token, env)).rejects.toThrow(/alg/i);
+  });
+
+  it('C4: missing exp is rejected', async () => {
+    const service = new OAuthService();
+    const env = fakeEnv();
+
+    const token = makeIdToken(keyA.kid, keyA.privateKey, { exp: undefined });
+    await expect(verifyIdToken(service, token, env)).rejects.toThrow(
+      /expired/i
+    );
   });
 
   it('C5: cache honors max-age — after expiry a fresh fetch occurs', async () => {
@@ -225,14 +285,74 @@ describe('OAuthService.verifyIdToken — JWKS cache (Prompt 21)', () => {
     // Short max-age (1s) so the cache expires quickly.
     fetchSpy.mockResolvedValue(jwksResponse([{ kid: keyA.kid, ...keyA.jwk }], 'max-age=1'));
 
-    await (service as any).verifyIdToken(makeIdToken(keyA.kid, keyA.privateKey), env, 'expected-nonce');
+    await verifyIdToken(service, makeIdToken(keyA.kid, keyA.privateKey), env);
 
     // Wait past the 1s max-age window.
     await new Promise((r) => setTimeout(r, 1100));
 
-    await (service as any).verifyIdToken(makeIdToken(keyA.kid, keyA.privateKey), env, 'expected-nonce');
+    await verifyIdToken(service, makeIdToken(keyA.kid, keyA.privateKey), env);
 
-    const jwksCalls = fetchSpy.mock.calls.filter((c: any) => String(c[0]).includes(GOOGLE_JWKS_URL));
+    const jwksCalls = fetchSpy.mock.calls.filter((call) => String(call[0]).includes(GOOGLE_JWKS_URL));
     expect(jwksCalls.length).toBe(2);
+  });
+});
+
+describe('OAuthService.exchangeCode — provider outage handling', () => {
+  let fetchSpy: MockInstance<typeof globalThis.fetch>;
+
+  beforeEach(() => {
+    __resetJwksCacheForTest();
+    fetchSpy = vi.spyOn(globalThis, 'fetch');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('wraps token endpoint network failures in OAuthProviderUnavailableError', async () => {
+    fetchSpy.mockRejectedValue(new Error('network down'));
+
+    await expect(exchangeCode(new OAuthService(), fakeEnv())).rejects.toBeInstanceOf(
+      OAuthProviderUnavailableError
+    );
+  });
+
+  it('wraps token endpoint 5xx responses in OAuthProviderUnavailableError', async () => {
+    fetchSpy.mockResolvedValue({
+      ok: false,
+      status: 503,
+      headers: { get: () => null },
+      json: async () => ({}),
+    } as unknown as Response);
+
+    await expect(exchangeCode(new OAuthService(), fakeEnv())).rejects.toBeInstanceOf(
+      OAuthProviderUnavailableError
+    );
+  });
+
+  it('wraps malformed token endpoint JSON in OAuthProviderUnavailableError', async () => {
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => {
+        throw new Error('bad json');
+      },
+    } as unknown as Response);
+
+    await expect(exchangeCode(new OAuthService(), fakeEnv())).rejects.toBeInstanceOf(
+      OAuthProviderUnavailableError
+    );
+  });
+
+  it('fails safe when token endpoint omits id_token', async () => {
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      json: async () => ({}),
+    } as unknown as Response);
+
+    await expect(exchangeCode(new OAuthService(), fakeEnv())).rejects.toThrow(/missing id_token/i);
   });
 });

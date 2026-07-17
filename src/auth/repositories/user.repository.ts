@@ -239,7 +239,7 @@ export class UserRepository {
    */
   async updateSecurity(userId: ObjectId, updates: Partial<UserDocument['security']>): Promise<void> {
     const usersColl = await getUsersCollection();
-    const setUpdates: Record<string, any> = { updatedAt: new Date() };
+    const setUpdates: Record<string, unknown> = { updatedAt: new Date() };
     for (const [key, value] of Object.entries(updates)) {
       setUpdates[`security.${key}`] = value;
     }

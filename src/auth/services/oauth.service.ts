@@ -345,15 +345,36 @@ export class OAuthService {
       grant_type: 'authorization_code',
     });
 
-    const res = await fetch(GOOGLE_TOKEN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body.toString(),
-    });
+    let res: Response;
+    try {
+      res = await fetch(GOOGLE_TOKEN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
+      });
+    } catch (networkErr) {
+      throw new OAuthProviderUnavailableError(
+        `Google token exchange network error: ${
+          networkErr instanceof Error ? networkErr.message : String(networkErr)
+        }`
+      );
+    }
     if (!res.ok) {
+      if (res.status >= 500) {
+        throw new OAuthProviderUnavailableError(`Google token exchange failed with HTTP ${res.status}`);
+      }
       throw new Error(`Google token exchange failed: ${res.status}`);
     }
-    const json = (await res.json()) as { id_token?: string };
+    let json: { id_token?: string };
+    try {
+      json = (await res.json()) as { id_token?: string };
+    } catch (parseErr) {
+      throw new OAuthProviderUnavailableError(
+        `Google token exchange response parse error: ${
+          parseErr instanceof Error ? parseErr.message : String(parseErr)
+        }`
+      );
+    }
     if (!json.id_token) {
       throw new Error('Google token response missing id_token.');
     }

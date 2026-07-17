@@ -10,7 +10,16 @@ const stores = vi.hoisted(() => ({
   // In-memory verification_tokens collection keyed by tokenHash.
   verificationTokens: new Map<
     string,
-    { _id: ObjectId; userId: ObjectId | null; type: string; tokenHash: string; used: boolean; expiresAt: Date }
+    {
+      _id: ObjectId;
+      userId: ObjectId | null;
+      type: string;
+      tokenHash: string;
+      payload: Record<string, unknown>;
+      used: boolean;
+      usedAt: Date | null;
+      expiresAt: Date;
+    }
   >(),
   // Audit trail of logged actions.
   audit: [] as string[],
@@ -75,9 +84,30 @@ vi.mock('@/database', () => {
     getRecoveryCodesCollection: async () => makeColl(stores.recoveryCodes),
     getVerificationTokensCollection: async () => ({
       async insertOne(doc: unknown) {
-        const d = doc as { tokenHash: string; userId: ObjectId | null; type: string; expiresAt: Date; used: boolean };
+        const d = doc as {
+          tokenHash: string;
+          userId: ObjectId | null;
+          type: string;
+          payload: Record<string, unknown>;
+          expiresAt: Date;
+          used: boolean;
+          usedAt: Date | null;
+        };
         stores.verificationTokens.set(d.tokenHash, { _id: new ObjectId(), ...d });
         return { insertedId: new ObjectId() };
+      },
+      async findOneAndUpdate(
+        filter: { tokenHash?: string; used?: boolean; expiresAt?: { $gt: Date } },
+        update: Record<string, unknown>
+      ) {
+        for (const v of stores.verificationTokens.values()) {
+          if (filter.tokenHash && v.tokenHash !== filter.tokenHash) continue;
+          if (typeof filter.used === 'boolean' && v.used !== filter.used) continue;
+          if (filter.expiresAt?.$gt && v.expiresAt <= filter.expiresAt.$gt) continue;
+          Object.assign(v, (update as { $set: Record<string, unknown> }).$set);
+          return v;
+        }
+        return null;
       },
       async findOne(filter: { tokenHash?: string; used?: boolean }) {
         for (const v of stores.verificationTokens.values()) {
@@ -260,7 +290,9 @@ describe('TwoFactorService.verify — accepts a recovery code as alt to email 2F
       userId,
       type: 'two_factor',
       tokenHash: hashToken(code),
+      payload: {},
       used: false,
+      usedAt: null,
       expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     });
 

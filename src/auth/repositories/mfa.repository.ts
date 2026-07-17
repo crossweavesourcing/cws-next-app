@@ -12,6 +12,8 @@ export class MfaRepository {
         $set: {
           secret,
           verifiedAt: now,
+          // A newly enrolled secret starts a new replay-prevention sequence.
+          lastAcceptedTimeStep: null,
           updatedAt: now,
         },
         $setOnInsert: {
@@ -27,6 +29,32 @@ export class MfaRepository {
     const coll = await getTotpCredentialsCollection();
     const doc = await coll.findOne({ userId });
     return doc?.secret ?? null;
+  }
+
+  async getTotpCredential(userId: ObjectId): Promise<TOTPCredentialDocument | null> {
+    const coll = await getTotpCredentialsCollection();
+    return coll.findOne({ userId });
+  }
+
+  async markTotpTimeStepAccepted(userId: ObjectId, timeStep: number): Promise<boolean> {
+    const coll = await getTotpCredentialsCollection();
+    const result = await coll.updateOne(
+      {
+        userId,
+        $or: [
+          { lastAcceptedTimeStep: null },
+          { lastAcceptedTimeStep: { $exists: false } },
+          { lastAcceptedTimeStep: { $lt: timeStep } },
+        ],
+      },
+      {
+        $set: {
+          lastAcceptedTimeStep: timeStep,
+          updatedAt: new Date(),
+        },
+      }
+    );
+    return result.modifiedCount === 1;
   }
 
   async removeTotpSecret(userId: ObjectId): Promise<void> {

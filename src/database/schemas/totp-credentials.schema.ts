@@ -10,6 +10,7 @@ export const totpCredentialsSchema: Document = {
     userId:     { bsonType: 'objectId' },
     secret:     { bsonType: 'string' },
     verifiedAt: { bsonType: 'date' },
+    lastAcceptedTimeStep: { bsonType: ['int', 'long', 'null'] },
     createdAt:  { bsonType: 'date' },
     updatedAt:  { bsonType: 'date' },
   },

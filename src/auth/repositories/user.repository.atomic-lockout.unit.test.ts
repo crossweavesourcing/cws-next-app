@@ -168,7 +168,7 @@ vi.mock('@/database', () => ({
           for (const stage of pipeline as Record<string, { [field: string]: Json }>[]) {
             if (stage.$set) {
               for (const [field, value] of Object.entries(stage.$set)) {
-                setPath(working as unknown as Doc, field, evalExpr(value, doc));
+                setPath(working as unknown as Doc, field, evalExpr(value, doc as unknown as Doc));
               }
             }
           }

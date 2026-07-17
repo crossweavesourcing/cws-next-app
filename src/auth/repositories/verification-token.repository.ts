@@ -48,9 +48,14 @@ export class VerificationTokenRepository {
    */
   async redeem(tokenHash: string): Promise<{ userId: ObjectId | null; payload: Record<string, unknown> } | null> {
     const coll = await getVerificationTokensCollection();
-    const doc = await coll.findOne({ tokenHash, used: false, expiresAt: { $gt: new Date() } });
+    const now = new Date();
+    const result = await coll.findOneAndUpdate(
+      { tokenHash, used: false, expiresAt: { $gt: now } },
+      { $set: { used: true, usedAt: now } },
+      { returnDocument: 'after' }
+    );
+    const doc = result;
     if (!doc) return null;
-    await coll.updateOne({ _id: doc._id }, { $set: { used: true, usedAt: new Date() } });
     return { userId: doc.userId, payload: doc.payload };
   }
 

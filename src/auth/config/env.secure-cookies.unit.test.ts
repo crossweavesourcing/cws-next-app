@@ -78,4 +78,44 @@ describe('SECURE_COOKIES fail-closed production boot guard (real env.ts)', () =>
     // over plain HTTP. (The production guard still throws because `false !== true`.)
     expect(getEnv().SECURE_COOKIES).toBe(false);
   });
+
+  it('derives WebAuthn RP config from APP_URL by default', async () => {
+    vi.stubEnv('SECURE_COOKIES', 'true');
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('APP_URL', 'https://admin.example.com');
+    const { getWebAuthnConfig } = await import('@/auth/config/env');
+
+    expect(getWebAuthnConfig()).toMatchObject({
+      rpID: 'admin.example.com',
+      origin: 'https://admin.example.com',
+    });
+  });
+
+  it('throws when production WebAuthn origin is not HTTPS', async () => {
+    vi.stubEnv('SECURE_COOKIES', 'true');
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('WEBAUTHN_ORIGIN', 'http://admin.example.com');
+    const { getEnv } = await import('@/auth/config/env');
+
+    expect(() => getEnv()).toThrow(/WebAuthn origin must use HTTPS/i);
+  });
+
+  it('throws when WebAuthn RP ID is not valid for the origin host', async () => {
+    vi.stubEnv('SECURE_COOKIES', 'true');
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('WEBAUTHN_ORIGIN', 'https://admin.example.com');
+    vi.stubEnv('WEBAUTHN_RP_ID', 'evil.example.net');
+    const { getEnv } = await import('@/auth/config/env');
+
+    expect(() => getEnv()).toThrow(/WebAuthn RP ID/i);
+  });
+
+  it('rejects a WebAuthn origin containing a path', async () => {
+    vi.stubEnv('SECURE_COOKIES', 'true');
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('WEBAUTHN_ORIGIN', 'https://admin.example.com/dashboard');
+    const { getEnv } = await import('@/auth/config/env');
+
+    expect(() => getEnv()).toThrow(/origin only/i);
+  });
 });

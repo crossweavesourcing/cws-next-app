@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { SessionService } from '@/auth/services';
 import { RefreshTokenRepository } from '@/auth/repositories';
 import { hashToken } from '@/auth/crypto/token';
-import { getClientIp, assertSameOrigin } from '@/auth/lib/request';
+import { getClientIp, assertSameOriginStrict } from '@/auth/lib/request';
 import { getEnv } from '@/auth/config/env';
 import { AuditLogRepository } from '@/auth/repositories';
 import { clearingCookieOpts, isSecureCookies } from '@/auth/lib/cookies';
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
 
   // Origin guard (CSRF protection for this state-changing route).
   try {
-    await assertSameOrigin();
+    await assertSameOriginStrict();
   } catch {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }

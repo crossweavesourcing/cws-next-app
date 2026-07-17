@@ -55,6 +55,7 @@ vi.mock('@/database', () => {
     getOtpCodesCollection: getter,
     getAuditLogsCollection: getter,
     getLoginAttemptsCollection: getter,
+    getActiveSecuritySink: () => ({ send: async () => {} }),
   };
 });
 
@@ -151,7 +152,7 @@ vi.mock('@/auth/repositories/refresh-token.repository', () => ({
         t.revokedAt = new Date();
       }
     }
-    async revokeBySession(_id: ObjectId, _reason: string) {}
+    async revokeBySession() {}
   },
 }));
 
@@ -164,6 +165,7 @@ vi.mock('@/auth/repositories/user.repository', () => ({
       return null;
     }
     async incrementFailedAndGet(userId: ObjectId, threshold: number) {
+      void userId;
       const u = stores.user;
       if (!u) return null;
       if ((u.security?.failedLoginAttempts ?? 0) >= threshold) return null;
@@ -191,7 +193,7 @@ vi.mock('@/auth/repositories/device.repository', () => ({
     async findByIdForUser() {
       return null;
     }
-    async findByServerDeviceId(recordId: { toString(): string }, userId: { toString(): string }) {
+    async findByServerDeviceId(recordId: { toString(): string }) {
       return stores.devices.get(recordId.toString()) ?? null;
     }
   },
@@ -560,6 +562,82 @@ describe('SessionService.rotateRefreshToken — rolling access session', () => {
     );
     const validated = await service.validateSession(cookie);
     expect(validated).toBeNull();
+  });
+
+  it('rejects refresh for a bound session when the device token is missing', async () => {
+    const service = new SessionService();
+    const baseTime = Date.now();
+    vi.setSystemTime(new Date(baseTime));
+    const deviceId = new ObjectId();
+    const { sessionId, tokenHash } = seedSessionAndRefresh(baseTime, { deviceId });
+
+    const result = await service.rotateRefreshToken(
+      tokenHash,
+      '203.0.113.7',
+      'test-agent',
+      null
+    );
+
+    expect(result).toBeNull();
+    expect(stores.sessions.get(sessionId.toString())!.revoked).toBe(true);
+    expect(stores.refreshes.get(tokenHash)!.reuseDetected).toBe(true);
+  });
+
+  it('rejects refresh for a bound session when the device token mismatches', async () => {
+    const service = new SessionService();
+    const baseTime = Date.now();
+    vi.setSystemTime(new Date(baseTime));
+    const deviceId = new ObjectId();
+    const otherDeviceId = new ObjectId();
+    const { sessionId, tokenHash } = seedSessionAndRefresh(baseTime, { deviceId });
+    const otherDeviceToken = signSessionId(otherDeviceId.toString(), process.env.SESSION_SECRET!);
+
+    const result = await service.rotateRefreshToken(
+      tokenHash,
+      '203.0.113.7',
+      'test-agent',
+      otherDeviceToken
+    );
+
+    expect(result).toBeNull();
+    expect(stores.sessions.get(sessionId.toString())!.revoked).toBe(true);
+    expect(stores.refreshes.get(tokenHash)!.reuseDetected).toBe(true);
+  });
+
+  it('allows refresh for a bound session when the matching device token is present', async () => {
+    const service = new SessionService();
+    const baseTime = Date.now();
+    vi.setSystemTime(new Date(baseTime));
+    const deviceId = new ObjectId();
+    const { tokenHash } = seedSessionAndRefresh(baseTime, { deviceId });
+    const deviceToken = signSessionId(deviceId.toString(), process.env.SESSION_SECRET!);
+
+    const result = await service.rotateRefreshToken(
+      tokenHash,
+      '203.0.113.7',
+      'test-agent',
+      deviceToken
+    );
+
+    expect(result).not.toBeNull();
+    expect('expired' in (result as object)).toBe(false);
+  });
+
+  it('keeps legacy unbound sessions refreshable without a device token', async () => {
+    const service = new SessionService();
+    const baseTime = Date.now();
+    vi.setSystemTime(new Date(baseTime));
+    const { tokenHash } = seedSessionAndRefresh(baseTime, { deviceId: null });
+
+    const result = await service.rotateRefreshToken(
+      tokenHash,
+      '203.0.113.7',
+      'test-agent',
+      null
+    );
+
+    expect(result).not.toBeNull();
+    expect('expired' in (result as object)).toBe(false);
   });
 });
 

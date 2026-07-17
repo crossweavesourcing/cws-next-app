@@ -383,15 +383,24 @@ export class SessionService {
       return null;
     }
 
-    // NEW: Device Binding Check
-    if (clientDeviceCookieValue) {
-      const resolvedServerDeviceId = verifyServerDeviceToken(clientDeviceCookieValue);
-      if (session.deviceId && resolvedServerDeviceId && !session.deviceId.equals(resolvedServerDeviceId)) {
+    // Device binding check: once a session is bound to a server-issued device
+    // record, a refresh must present the matching signed device token. Legacy
+    // sessions with `deviceId: null` remain refreshable during rollout.
+    if (session.deviceId) {
+      const resolvedServerDeviceId = clientDeviceCookieValue
+        ? verifyServerDeviceToken(clientDeviceCookieValue)
+        : null;
+      if (!resolvedServerDeviceId || !session.deviceId.equals(resolvedServerDeviceId)) {
         await this.refreshTokenRepo.markReuseDetected(presentedTokenHash);
-        await this.sessionRepo.revokeSession(existing.sessionId, 'system', 'Refresh token device mismatch (theft)');
+        await this.sessionRepo.revokeSession(
+          existing.sessionId,
+          'system',
+          resolvedServerDeviceId
+            ? 'Refresh token device mismatch (theft)'
+            : 'Refresh token missing bound device token (theft)'
+        );
         await this.refreshTokenRepo.revokeBySession(existing.sessionId, 'theft_detected');
-        
-        // Alert the user the first time a reuse is detected (possible token theft).
+
         this.alertingService.alertReuseDetected(existing.userId, ipAddress).catch((err) =>
           console.error('theft alert failed:', err)
         );

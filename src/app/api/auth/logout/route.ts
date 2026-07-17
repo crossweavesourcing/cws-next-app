@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
 import { ObjectId } from 'mongodb';
 import { LogoutService, SessionService } from '@/auth/services';
 import { verifySessionSignature } from '@/auth/crypto/token';
 import { getEnv } from '@/auth/config/env';
-import { assertSameOrigin } from '@/auth/lib/request';
+import { assertSameOriginStrict } from '@/auth/lib/request';
 import { clearingCookieOpts } from '@/auth/lib/cookies';
 
 const SESSION_COOKIE = 'cws_session';
@@ -19,10 +18,10 @@ const DEVICE_TOKEN_COOKIE = 'cws_device_token';
  * C1: protected by `assertSameOrigin` (CSRF guard), and all cleared auth
  * cookies are expired with Strict/Stay attributes matching issuance.
  */
-export async function POST(request: NextRequest) {
+export async function POST() {
   // CSRF / origin guard for this state-changing route.
   try {
-    await assertSameOrigin();
+    await assertSameOriginStrict();
   } catch {
     return new NextResponse(null, { status: 403 });
   }

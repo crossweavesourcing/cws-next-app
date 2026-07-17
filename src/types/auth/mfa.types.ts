@@ -17,6 +17,8 @@ export interface TOTPCredentialDocument {
 
   /** When the user successfully verified the first code. */
   verifiedAt: Date;
+  /** Last accepted TOTP time step. Used to reject replay within a valid window. */
+  lastAcceptedTimeStep: number | null;
   readonly createdAt: Date;
   updatedAt: Date;
 }

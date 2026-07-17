@@ -78,13 +78,14 @@ export class CsrfError extends Error {
 }
 
 /**
- * Host helper: returns the `host` (hostname:port) portion of a URL string, or
+ * Origin helper: returns the normalized `scheme://hostname:port` portion of a
+ * URL string, or
  * null if the value is not a valid absolute URL.
  */
-function hostOf(value: string | null): string | null {
+function originOf(value: string | null): string | null {
   if (!value) return null;
   try {
-    return new URL(value).host;
+    return new URL(value).origin;
   } catch {
     return null;
   }
@@ -97,7 +98,7 @@ function hostOf(value: string | null): string | null {
  * cross-site top-level form POSTs. For same-origin requests the `Origin` may
  * be absent or `null` (e.g. some Server Action POSTs, private-network, or
  * `file:`), so when `Origin` is missing we fall back to the `Referer` header
- * and compare its host to APP_URL's host. If neither header is present we
+ * and compare its origin to APP_URL's origin. If neither header is present we
  * allow the request — same-origin assumptions are backed by Next.js's built-in
  * Server Action protection (encrypted action IDs + POST-only enforcement).
  *
@@ -108,8 +109,8 @@ export async function assertSameOrigin(): Promise<void> {
   const env = getEnv();
   const headersList = await headers();
 
-  const appHost = hostOf(env.APP_URL);
-  if (!appHost) {
+  const appOrigin = originOf(env.APP_URL);
+  if (!appOrigin) {
     // Misconfigured APP_URL — fail closed rather than skip the check.
     throw new CsrfError();
   }
@@ -117,7 +118,7 @@ export async function assertSameOrigin(): Promise<void> {
   const origin = headersList.get('origin');
   if (origin) {
     // `null` Origin (private network / file://) is never a legit same-origin API.
-    if (origin === 'null' || hostOf(origin) !== appHost) {
+    if (origin === 'null' || originOf(origin) !== appOrigin) {
       throw new CsrfError();
     }
     return;
@@ -125,10 +126,41 @@ export async function assertSameOrigin(): Promise<void> {
 
   // No Origin: fall back to Referer host (common for same-origin form/Action POSTs).
   const referer = headersList.get('referer');
-  const refererHost = hostOf(referer);
-  if (refererHost && refererHost !== appHost) {
+  const refererOrigin = originOf(referer);
+  if (refererOrigin && refererOrigin !== appOrigin) {
     throw new CsrfError();
   }
   // No Origin and no Referer → allow (same-origin by Next.js Action protections).
 }
 
+/**
+ * Strict same-origin guard for direct state-changing Route Handlers.
+ *
+ * Unlike Server Actions, direct route handlers do not need to tolerate requests
+ * with both Origin and Referer missing. Require one explicit browser-provided
+ * same-origin signal for defense in depth.
+ */
+export async function assertSameOriginStrict(): Promise<void> {
+  const env = getEnv();
+  const headersList = await headers();
+
+  const appOrigin = originOf(env.APP_URL);
+  if (!appOrigin) {
+    throw new CsrfError();
+  }
+
+  const origin = headersList.get('origin');
+  if (origin) {
+    if (origin === 'null' || originOf(origin) !== appOrigin) {
+      throw new CsrfError();
+    }
+    return;
+  }
+
+  const refererOrigin = originOf(headersList.get('referer'));
+  if (refererOrigin === appOrigin) {
+    return;
+  }
+
+  throw new CsrfError();
+}

@@ -1,19 +1,27 @@
 import { TOTP, NobleCryptoPlugin, ScureBase32Plugin } from 'otplib';
 import { generateRegistrationOptions, verifyRegistrationResponse, generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
-import type { VerifiedRegistrationResponse, VerifiedAuthenticationResponse, GenerateRegistrationOptionsOpts, GenerateAuthenticationOptionsOpts } from '@simplewebauthn/server';
+import type {
+  AuthenticationResponseJSON,
+  AuthenticatorTransportFuture,
+  GenerateAuthenticationOptionsOpts,
+  GenerateRegistrationOptionsOpts,
+  RegistrationResponseJSON,
+  VerifiedAuthenticationResponse,
+  VerifiedRegistrationResponse,
+} from '@simplewebauthn/server';
 import { ObjectId } from 'mongodb';
 import { MfaRepository } from '../repositories/mfa.repository';
 import { UserRepository } from '../repositories/user.repository';
-import { getEnv } from '../config/env';
+import { getWebAuthnConfig } from '../config/env';
 
 const rpName = 'CWS Next App';
-const rpID = process.env.NODE_ENV === 'production' ? 'your-domain.com' : 'localhost';
-const origin = process.env.NODE_ENV === 'production' ? `https://${rpID}` : `http://${rpID}:3000`;
 
 const totp = new TOTP({
   crypto: new NobleCryptoPlugin(),
   base32: new ScureBase32Plugin()
 });
+
+const TOTP_PERIOD_SECONDS = 30;
 
 export class MfaService {
   private mfaRepo = new MfaRepository();
@@ -48,10 +56,18 @@ export class MfaService {
    * Verifies a TOTP code during login.
    */
   async verifyTotpLogin(userId: ObjectId, token: string): Promise<boolean> {
-    const secret = await this.mfaRepo.getTotpSecret(userId);
-    if (!secret) return false;
-    const result = await totp.verify(token, { secret });
-    return result.valid;
+    const credential = await this.mfaRepo.getTotpCredential(userId);
+    if (!credential?.secret) return false;
+    const result = await totp.verify(token, {
+      secret: credential.secret,
+      period: TOTP_PERIOD_SECONDS,
+      afterTimeStep: credential.lastAcceptedTimeStep ?? undefined,
+    });
+    if (!result.valid) return false;
+
+    // Persist the timestep the verifier actually accepted. This remains correct
+    // if a bounded clock-skew window is configured in the future.
+    return this.mfaRepo.markTotpTimeStepAccepted(userId, result.timeStep);
   }
 
   async disableTotp(userId: ObjectId): Promise<void> {
@@ -74,10 +90,11 @@ export class MfaService {
     if (!user) throw new Error('User not found');
 
     const userPasskeys = await this.mfaRepo.getWebAuthnCredentials(userId);
+    const webAuthn = getWebAuthnConfig();
 
     const options: GenerateRegistrationOptionsOpts = {
-      rpName,
-      rpID,
+      rpName: webAuthn.rpName,
+      rpID: webAuthn.rpID,
       userID: new TextEncoder().encode(userId.toString()),
       userName: userEmail,
       // Require users to use a discoverable credential (passkey)
@@ -98,14 +115,19 @@ export class MfaService {
   /**
    * Verifies a WebAuthn registration response and saves the credential.
    */
-  async verifyWebAuthnRegistration(userId: ObjectId, body: any, expectedChallenge: string): Promise<boolean> {
+  async verifyWebAuthnRegistration(
+    userId: ObjectId,
+    body: RegistrationResponseJSON,
+    expectedChallenge: string
+  ): Promise<boolean> {
+    const webAuthn = getWebAuthnConfig();
     let verification: VerifiedRegistrationResponse;
     try {
       verification = await verifyRegistrationResponse({
         response: body,
         expectedChallenge,
-        expectedOrigin: origin,
-        expectedRPID: rpID,
+        expectedOrigin: webAuthn.origin,
+        expectedRPID: webAuthn.rpID,
       });
     } catch (error) {
       console.error('WebAuthn registration verification failed:', error);
@@ -136,13 +158,14 @@ export class MfaService {
    */
   async generateWebAuthnAuthenticationOptions(userId: ObjectId) {
     const userPasskeys = await this.mfaRepo.getWebAuthnCredentials(userId);
+    const webAuthn = getWebAuthnConfig();
 
     const options: GenerateAuthenticationOptionsOpts = {
-      rpID,
+      rpID: webAuthn.rpID,
       allowCredentials: userPasskeys.map((passkey) => ({
         id: passkey.credentialID,
         type: 'public-key',
-        transports: passkey.transports as any,
+        transports: passkey.transports as AuthenticatorTransportFuture[],
       })),
     };
 
@@ -152,22 +175,27 @@ export class MfaService {
   /**
    * Verifies a WebAuthn authentication response.
    */
-  async verifyWebAuthnAuthentication(userId: ObjectId, body: any, expectedChallenge: string): Promise<boolean> {
+  async verifyWebAuthnAuthentication(
+    userId: ObjectId,
+    body: AuthenticationResponseJSON,
+    expectedChallenge: string
+  ): Promise<boolean> {
     const passkey = await this.mfaRepo.getWebAuthnCredentialById(body.id);
     if (!passkey || !passkey.userId.equals(userId)) return false;
+    const webAuthn = getWebAuthnConfig();
 
     let verification: VerifiedAuthenticationResponse;
     try {
       verification = await verifyAuthenticationResponse({
         response: body,
         expectedChallenge,
-        expectedOrigin: origin,
-        expectedRPID: rpID,
+        expectedOrigin: webAuthn.origin,
+        expectedRPID: webAuthn.rpID,
         credential: {
           id: passkey.credentialID,
           publicKey: Buffer.from(passkey.credentialPublicKey, 'base64url'),
           counter: passkey.counter,
-          transports: passkey.transports as any,
+          transports: passkey.transports as AuthenticatorTransportFuture[],
         },
       });
     } catch (error) {

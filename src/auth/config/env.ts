@@ -57,6 +57,12 @@ const envSchema = z.object({
   // and if that is unavailable too, the lookup fails open to null.
   GEOIP_LOOKUP_URL: z.string().url().optional(),
 
+  // WebAuthn / passkey relying-party config. When omitted, the runtime derives
+  // RP ID + origin from APP_URL. Explicit overrides are useful for subdomain
+  // deployments where the RP ID should be the parent domain.
+  WEBAUTHN_RP_ID: z.string().min(1).optional(),
+  WEBAUTHN_ORIGIN: z.string().url().optional(),
+
   // Explicit, fail-closed cookie `secure` control (Item 14). When unset, the
   // `secure` flag defaults to the existing `NODE_ENV === 'production'` behavior
   // (so local dev over plain HTTP keeps working). In production this MUST be
@@ -295,6 +301,67 @@ function validateSecurityConfig(env: EnvConfig): void {
         'Configure GEOIP_LOOKUP_URL in production to enable country-change step-up.'
     );
   }
+
+  const webAuthn = deriveWebAuthnConfig(env);
+  const webAuthnOriginUrl = new URL(webAuthn.origin);
+  const webAuthnHost = webAuthnOriginUrl.hostname;
+  const rpMatchesOrigin =
+    webAuthnHost === webAuthn.rpID || webAuthnHost.endsWith(`.${webAuthn.rpID}`);
+
+  if (isProd && webAuthnOriginUrl.protocol !== 'https:') {
+    throw new Error(
+      'FATAL: WebAuthn origin must use HTTPS in production. Set APP_URL or ' +
+        'WEBAUTHN_ORIGIN to the public https:// origin.'
+    );
+  }
+  if (!rpMatchesOrigin) {
+    throw new Error(
+      'FATAL: WebAuthn RP ID must match the WebAuthn origin host or a parent domain. ' +
+        `RP ID "${webAuthn.rpID}" is not valid for origin "${webAuthn.origin}".`
+    );
+  }
+}
+
+function deriveWebAuthnConfig(env: EnvConfig): { rpID: string; origin: string } {
+  const appUrl = new URL(env.APP_URL);
+  const configuredOrigin = env.WEBAUTHN_ORIGIN
+    ? new URL(env.WEBAUTHN_ORIGIN)
+    : appUrl;
+  const rpID = (env.WEBAUTHN_RP_ID ?? appUrl.hostname).trim().toLowerCase();
+
+  if (
+    configuredOrigin.username ||
+    configuredOrigin.password ||
+    configuredOrigin.pathname !== '/' ||
+    configuredOrigin.search ||
+    configuredOrigin.hash
+  ) {
+    throw new Error(
+      'FATAL: WEBAUTHN_ORIGIN must be an origin only (scheme, host, and optional port), without credentials, path, query, or fragment.'
+    );
+  }
+  if (
+    !rpID ||
+    rpID.includes('://') ||
+    rpID.includes('/') ||
+    rpID.includes(':') ||
+    rpID.startsWith('.') ||
+    rpID.endsWith('.') ||
+    rpID.includes('..')
+  ) {
+    throw new Error('FATAL: WEBAUTHN_RP_ID must be a hostname without a scheme, port, or path.');
+  }
+
+  return { rpID, origin: configuredOrigin.origin };
+}
+
+export function getWebAuthnConfig(): { rpName: string; rpID: string; origin: string } {
+  const env = getEnv();
+  const webAuthn = deriveWebAuthnConfig(env);
+  return {
+    rpName: 'CWS Next App',
+    ...webAuthn,
+  };
 }
 
 export function getEnv(): EnvConfig {
