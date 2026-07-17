@@ -39,6 +39,15 @@ export interface SessionDocument {
   refreshCount:   number;
   lastRefreshAt:  Date | null;
   lastActivityAt: Date;
+
+  /**
+   * FIX-C2: timestamp of the last REAL login for this session lineage. Refresh
+   * uses this to enforce an absolute "since last full auth" limit
+   * (`REFRESH_TOKEN_TTL_MS`) independent of the rolling access-session TTL.
+   * Set once at creation; NOT updated when the access token is merely refreshed.
+   */
+  lastFullAuthAt: Date | null;
+
   expiresAt:      Date;
 
   // ── Revocation ────────────────────────────────────────────────────────────
@@ -46,6 +55,14 @@ export interface SessionDocument {
   revokedBy:     RevokedBy | null;
   revokedReason: string | null;
   revokedAt:     Date | null;
+
+  /**
+   * FIX-14: snapshot of `user.security.accountSecurityVersion` at session
+   * creation. `validateSession` invalidates the session if this no longer
+   * matches the user's current version (e.g. after a password change / security
+   * bump that may have missed revoking this session).
+   */
+  accountSecurityVersion: number | null;
 
   readonly createdAt: Date;
 }

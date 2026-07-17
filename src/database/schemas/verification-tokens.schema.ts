@@ -10,7 +10,7 @@ export const verificationTokensSchema: Document = {
     userId: { bsonType: ['objectId', 'null'] },
     type: {
       bsonType: 'string',
-      enum: ['email_verification', 'password_reset', 'email_change', 'invite', 'magic_link'],
+      enum: ['email_verification', 'password_reset', 'email_change', 'invite', 'magic_link', 'two_factor'],
     },
     tokenHash: { bsonType: 'string', minLength: 64, maxLength: 64 },
     payload:   { bsonType: 'object', additionalProperties: true },

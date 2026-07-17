@@ -26,14 +26,21 @@ export type Platform = 'web' | 'mobile' | 'desktop';
 
 export type AuditStatus = 'SUCCESS' | 'FAILURE' | 'WARNING';
 
-export type IdentifierType = 'EMAIL' | 'PHONE' | 'GOOGLE' | 'LINKEDIN' | 'WHATSAPP';
+export type IdentifierType =
+  | 'EMAIL'
+  | 'PHONE'
+  | 'GOOGLE'
+  | 'LINKEDIN'
+  | 'WHATSAPP'
+  | 'PASSWORD_RESET_REQUEST'; // FIX-07: distinguish reset *requests* from failures
 
 export type VerificationTokenType =
   | 'email_verification'
   | 'password_reset'
   | 'email_change'
   | 'invite'
-  | 'magic_link';
+  | 'magic_link'
+  | 'two_factor';
 
 export type OtpType = 'whatsapp_login' | 'phone_verification';
 
@@ -44,7 +51,10 @@ export type RevokedReason =
   | 'logout'
   | 'session_revoked'
   | 'reuse_detected'
-  | 'admin';
+  | 'admin'
+  | 'device_blocked' // FIX-13: refresh tokens revoked because their device was blocked
+  | 'step_up_pending' // Item 9: session/token revoked pending email 2FA step-up
+  | 'theft_detected';
 
 export type HashAlgorithm = 'argon2id' | 'bcrypt';
 

@@ -1,5 +1,6 @@
 import { LoginAttemptRepository } from '../repositories/login-attempt.repository';
 import { RateLimitError } from '../errors/auth-errors';
+import { UNTRUSTED_IP_SENTINEL } from '../lib/ip';
 
 export class RateLimitService {
   private loginAttemptRepo = new LoginAttemptRepository();
@@ -25,13 +26,22 @@ export class RateLimitService {
       }
     }
 
-    // 2. IP rate limit check
-    const ipFailures = await this.loginAttemptRepo.countRecentByIp(ip, this.IP_WINDOW_MS);
-    if (ipFailures >= this.IP_MAX_ATTEMPTS) {
-      throw new RateLimitError(
-        this.IP_WINDOW_MS,
-        `IP address ${ip} rate limited. ${ipFailures} recent failures.`
-      );
+    // 2. IP rate limit check.
+    // Defense-in-depth: when the client IP could not be resolved to a trustworthy
+    // value it is the UNTRUSTED_IP_SENTINEL constant. Keying countRecentByIp on a
+    // constant collapses every request into ONE global bucket, so ~20 cross-user
+    // failures would lock out all logins platform-wide (availability DoS). Skip the
+    // IP dimension entirely for the sentinel and rely on the per-identifier +
+    // lockout checks below. (In production, env.ts fail-closes so the sentinel
+    // should never occur; this guard also protects dev/misconfigured deployments.)
+    if (ip !== UNTRUSTED_IP_SENTINEL) {
+      const ipFailures = await this.loginAttemptRepo.countRecentByIp(ip, this.IP_WINDOW_MS);
+      if (ipFailures >= this.IP_MAX_ATTEMPTS) {
+        throw new RateLimitError(
+          this.IP_WINDOW_MS,
+          `IP address ${ip} rate limited. ${ipFailures} recent failures.`
+        );
+      }
     }
 
     // 3. Identifier rate limit check

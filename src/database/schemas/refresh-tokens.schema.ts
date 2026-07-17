@@ -21,7 +21,7 @@ export const refreshTokensSchema: Document = {
     revokedAt:      { bsonType: ['date', 'null'] },
     revokedReason: {
       bsonType: ['string', 'null'],
-      enum: ['rotated', 'logout', 'session_revoked', 'reuse_detected', 'admin', null],
+      enum: ['rotated', 'logout', 'session_revoked', 'reuse_detected', 'admin', 'device_blocked', null],
     },
     lastUsedAt:        { bsonType: ['date', 'null'] },
     lastUsedIp:        { bsonType: ['string', 'null'], maxLength: 45 },

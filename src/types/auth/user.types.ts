@@ -49,6 +49,8 @@ export interface UserSecurity {
   /** null = not locked. */
   lockedUntil:               Date | null;
   mfaEnabled:                boolean;
+  totpEnabled?:              boolean;
+  webAuthnEnabled?:          boolean;
   lastPasswordResetRequestAt: Date | null;
   forcePasswordChange:       boolean;
   accountSecurityVersion:    number;

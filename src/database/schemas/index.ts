@@ -10,6 +10,7 @@ import { sessionsSchema }            from './sessions.schema';
 import { refreshTokensSchema }       from './refresh-tokens.schema';
 import { verificationTokensSchema }  from './verification-tokens.schema';
 import { otpCodesSchema }            from './otp-codes.schema';
+import { recoveryCodesSchema }       from './recovery-codes.schema';
 import { auditLogsSchema }           from './audit-logs.schema';
 import { loginAttemptsSchema }       from './login-attempts.schema';
 import { rolesSchema }               from './roles.schema';
@@ -17,6 +18,8 @@ import { permissionsSchema }         from './permissions.schema';
 import { systemSettingsSchema }      from './system-settings.schema';
 import { passwordPoliciesSchema }    from './password-policies.schema';
 import { passwordHistorySchema }     from './password-history.schema';
+import { totpCredentialsSchema }     from './totp-credentials.schema';
+import { webauthnCredentialsSchema } from './webauthn-credentials.schema';
 
 /**
  * Map of every collection name → its $jsonSchema body.
@@ -36,6 +39,7 @@ export const ALL_SCHEMAS: Record<CollectionName, Document> = {
   [COLLECTION_NAMES.REFRESH_TOKENS]:      refreshTokensSchema,
   [COLLECTION_NAMES.VERIFICATION_TOKENS]: verificationTokensSchema,
   [COLLECTION_NAMES.OTP_CODES]:           otpCodesSchema,
+  [COLLECTION_NAMES.RECOVERY_CODES]:      recoveryCodesSchema,
   [COLLECTION_NAMES.AUDIT_LOGS]:          auditLogsSchema,
   [COLLECTION_NAMES.LOGIN_ATTEMPTS]:      loginAttemptsSchema,
   [COLLECTION_NAMES.ROLES]:               rolesSchema,
@@ -43,6 +47,8 @@ export const ALL_SCHEMAS: Record<CollectionName, Document> = {
   [COLLECTION_NAMES.SYSTEM_SETTINGS]:     systemSettingsSchema,
   [COLLECTION_NAMES.PASSWORD_POLICIES]:   passwordPoliciesSchema,
   [COLLECTION_NAMES.PASSWORD_HISTORY]:    passwordHistorySchema,
+  [COLLECTION_NAMES.TOTP_CREDENTIALS]:    totpCredentialsSchema,
+  [COLLECTION_NAMES.WEBAUTHN_CREDENTIALS]: webauthnCredentialsSchema,
 };
 
 // Named re-exports for direct import
@@ -56,6 +62,7 @@ export {
   refreshTokensSchema,
   verificationTokensSchema,
   otpCodesSchema,
+  recoveryCodesSchema,
   auditLogsSchema,
   loginAttemptsSchema,
   rolesSchema,
@@ -63,4 +70,6 @@ export {
   systemSettingsSchema,
   passwordPoliciesSchema,
   passwordHistorySchema,
+  totpCredentialsSchema,
+  webauthnCredentialsSchema,
 };

@@ -38,11 +38,18 @@ export const sessionsSchema: Document = {
     refreshCount:   { bsonType: 'int', minimum: 0 },
     lastRefreshAt:  { bsonType: ['date', 'null'] },
     lastActivityAt: { bsonType: 'date' },
+    // FIX-C2: timestamp of the last REAL login for this session's lineage. Lets
+    // refresh enforce an absolute "since last full auth" limit independent of the
+    // rolling access-session TTL. Set at createSession; not updated on refresh.
+    lastFullAuthAt: { bsonType: ['date', 'null'] },
     expiresAt:      { bsonType: 'date' },
     revoked:        { bsonType: 'bool' },
     revokedBy:      { bsonType: ['string', 'null'], enum: ['user', 'admin', 'system', null] },
     revokedReason:  { bsonType: ['string', 'null'], maxLength: 500 },
     revokedAt:      { bsonType: ['date', 'null'] },
+    // FIX-14: snapshot of user.security.accountSecurityVersion at creation, used
+    // to invalidate the session if the user's security version is later bumped.
+    accountSecurityVersion: { bsonType: ['int', 'null'], minimum: 1 },
     createdAt:      { bsonType: 'date' },
   },
 };

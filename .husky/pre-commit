@@ -1,2 +1,17 @@
+# FIX-06: refuse to commit any .env files (live secrets must live in the secret
+# manager / CI secret store, never in repo-local .env — even though gitignored).
+if git diff --cached --name-only | grep -E '(^|/)\.env(\.[^/]+)?$' | grep -vE '\.(example|sample|template|tmpl)$' ; then
+  echo "⚠️  Refusing to commit .env files. Use the secret manager instead."
+  exit 1
+fi
+
+# FIX-06: basic secret-pattern scan on staged changes (add gitleaks/trufflehog
+# as a devDependency later for deeper coverage). Blocks obvious credential leaks.
+if git diff --cached --diff-filter=ACM -U0 -- . ':!.husky/*' ':!tests/*' ':!scripts/*' ':!*.md' ':!docs/*' \
+  | grep -Ei '(mongodb(\+srv)?://[^:]+:[^@]+@|aws_|(^|[^a-zA-Z0-9_])(secret|password)\s*[:=]\s*["'\''][^"'\'']{8,}|ghp_|app\.password)' ; then
+  echo "⚠️  Possible secret detected in staged changes. Remove it before committing."
+  exit 1
+fi
+
 node security-scan.js
 pnpm build

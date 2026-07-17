@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# Opt-in: the example (documentation only, no real secrets) is safe to commit,
+# but never the real .env (which holds live Atlas URI + admin seed password).
+!.env.example
 
 # vercel
 .vercel

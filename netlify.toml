@@ -5,5 +5,27 @@ command = "pnpm install --frozen-lockfile && pnpm build"
 NODE_VERSION = "22"
 PNPM_VERSION = "10"
 
+# -------------------------------------------------------------------------
+# SECRETS / ENVIRONMENT VARIABLES
+# Do NOT add real secret values here. Inject the following 6 SECRET variables
+# via the Netlify UI or CLI — REAL VALUES MUST NEVER BE PLACED IN netlify.toml:
+#   1. MONGODB_URI          (embeds Atlas DB username + password)
+#   2. SESSION_SECRET       (signs session cookies — forgery risk if leaked)
+#   3. ARGON2_SECRET        (password-hash pepper — DB-leak protection)
+#   4. GOOGLE_CLIENT_SECRET (OAuth client secret)
+#   5. EMAIL_PASSWORD       (Gmail app password)
+#   6. ADMIN_SEED_PASSWORD  (initial admin account password)
+# Inject them with the Netlify UI:
+#   Site settings → Environment variables
+#   OR via CLI (value comes from your secret manager / vault, never pasted here):
+#   netlify env:set MONGODB_URI "<from secret manager>"
+# They are exposed to BOTH the build step and the server functions, and the
+# app reads them from process.env via src/auth/config/env.ts. No real secret
+# is committed to this file. See README → "Deployment & Secrets Management".
+# Rotate the shipped MongoDB credential and SESSION_SECRET default before any
+# real deployment.
+# -------------------------------------------------------------------------
+
+
 [[plugins]]
 package = "@netlify/plugin-nextjs"

@@ -53,3 +53,13 @@ export function verifySessionSignature(cookieValue: string, secret: string): str
   const isValid = crypto.timingSafeEqual(sigBuffer, expectedBuffer);
   return isValid ? sessionId : null;
 }
+
+/**
+ * Generates a cryptographically secure opaque refresh token plus its SHA-256
+ * hash. ONLY the hash is persisted (in refresh_tokens.tokenHash); the raw
+ * token is returned to the client once and never stored.
+ */
+export function generateRefreshToken(): { token: string; tokenHash: string } {
+  const token = crypto.randomBytes(48).toString('hex');
+  return { token, tokenHash: hashToken(token) };
+}

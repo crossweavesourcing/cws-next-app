@@ -33,7 +33,8 @@ export interface RefreshTokenDocument {
 
   // ── Usage tracking ────────────────────────────────────────────────────────
   lastUsedAt:        Date | null;
-  lastUsedIp:        Date | null;
+  /** Client IP at last use — string, NOT a Date (latent bug fixed during rotation work). */
+  lastUsedIp:        string | null;
   lastUsedUserAgent: string | null;
 
   expiresAt:          Date;

@@ -1,6 +1,6 @@
 import { MongoClient, type Db } from 'mongodb';
 import { getDatabaseConfig } from '@/database/config';
-import { setupDatabaseObservability } from '@/database/observability';
+import { setupDatabaseObservability, setupSecurityAlerting } from '@/database/observability';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MongoClient singleton — globalThis pattern prevents connection pool
@@ -36,6 +36,10 @@ export function getMongoClient(): Promise<MongoClient> {
   const config = getDatabaseConfig();
 
   const client = new MongoClient(config.uri, {
+    // Explicit TLS enforcement
+    tls: true,
+    // Guarantee auth-critical writes are replicated
+    writeConcern: { w: 'majority', wtimeout: 5000 },
     // Enable command monitoring for observability
     monitorCommands: true,
     // Connection pool tuning — conservative defaults for a small user base
@@ -50,6 +54,9 @@ export function getMongoClient(): Promise<MongoClient> {
 
   // Wire up observability before connecting
   setupDatabaseObservability(client);
+  // Configure the security-alerting sink (console by default; webhook when
+  // SECURITY_WEBHOOK_URL is set). Consumed by AlertingService.
+  setupSecurityAlerting();
 
   clientPromise = client.connect();
 

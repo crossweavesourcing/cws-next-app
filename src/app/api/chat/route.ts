@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
+import { getAuthSession } from '@/auth/dal';
 
 let aiClient: GoogleGenAI | null = null;
 
@@ -43,6 +44,13 @@ Technical Details & Context:
 Provide response formatted in professional markdown. Be polite, direct, and elite in your service.`;
 
 export async function POST(request: Request) {
+  // FIX-04: require authentication. This endpoint forwards input to the LLM and
+  // exposes the internal system prompt, so it must not be world-readable.
+  const session = await getAuthSession();
+  if (!session) {
+    return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
+  }
+
   try {
     const { message, history } = await request.json();
 
@@ -94,11 +102,11 @@ Would you like us to generate a full digital sample (ZXY Apparel Labs) or match 
 
     return NextResponse.json({ text: response.text });
   } catch (error) {
-    const err = error as Error;
+    // FIX-04: never leak internal error detail to the client. Log server-side
+    // only and return a generic message.
     console.error('Gemini API Error:', error);
     return NextResponse.json({
-      error: 'Failed to communicate with ZXY Sourcing Co-Pilot. Please try again.',
-      details: err.message
+      error: 'Failed to communicate with ZXY Sourcing Co-Pilot. Please try again.'
     }, { status: 500 });
   }
 }

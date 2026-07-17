@@ -15,6 +15,20 @@ export type { HealthStatus, HealthCheckResult }     from './health';
 export { setupDatabaseObservability }               from './observability';
 export type { ObservabilityOptions, SlowQueryEvent, CommandErrorEvent } from './observability';
 
+export {
+  setupSecurityAlerting,
+  getActiveSecuritySink,
+  createConsoleSecuritySink,
+  createWebhookSecuritySink,
+  createDefaultSecuritySink,
+}                                                       from './observability';
+export type {
+  SecurityAlertSink,
+  SecurityEvent,
+  SecurityEventSeverity,
+  SecurityAlertingOptions,
+}                                                       from './observability';
+
 export { withRetry }                                from './retry';
 export type { RetryOptions }                        from './retry';
 
@@ -44,8 +58,13 @@ export {
   getRefreshTokensCollection,
   getVerificationTokensCollection,
   getOtpCodesCollection,
+  getRecoveryCodesCollection,
   getAuditLogsCollection,
   getLoginAttemptsCollection,
+  getPasswordPoliciesCollection,
+  getPasswordHistoryCollection,
+  getTotpCredentialsCollection,
+  getWebAuthnCredentialsCollection,
 }                                                   from './collections';
 
 export { ALL_SCHEMAS }                              from './schemas';

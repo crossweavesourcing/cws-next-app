@@ -50,6 +50,7 @@ export type {
 export * from './refresh-token.types';
 export * from './verification-token.types';
 export * from './otp-code.types';
+export * from './recovery-code.types';
 export * from './audit-log.types';
 export * from './login-attempt.types';
 export * from './role.types';
@@ -57,3 +58,4 @@ export * from './permission.types';
 export * from './system-setting.types';
 export * from './password-policy.types';
 export * from './password-history.types';
+export * from './mfa.types';

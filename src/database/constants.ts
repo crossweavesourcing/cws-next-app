@@ -16,6 +16,7 @@ export const COLLECTION_NAMES = {
   REFRESH_TOKENS:      'refresh_tokens',
   VERIFICATION_TOKENS: 'verification_tokens',
   OTP_CODES:           'otp_codes',
+  RECOVERY_CODES:      'recovery_codes',
   AUDIT_LOGS:          'audit_logs',
   LOGIN_ATTEMPTS:      'login_attempts',
   ROLES:               'roles',
@@ -23,6 +24,8 @@ export const COLLECTION_NAMES = {
   SYSTEM_SETTINGS:     'system_settings',
   PASSWORD_POLICIES:   'password_policies',
   PASSWORD_HISTORY:    'password_history',
+  TOTP_CREDENTIALS:    'totp_credentials',
+  WEBAUTHN_CREDENTIALS:'webauthn_credentials',
 } as const;
 
 /**
@@ -48,6 +51,7 @@ export const COLLECTION_ORDER: readonly CollectionName[] = [
   COLLECTION_NAMES.REFRESH_TOKENS,
   COLLECTION_NAMES.VERIFICATION_TOKENS,
   COLLECTION_NAMES.OTP_CODES,
+  COLLECTION_NAMES.RECOVERY_CODES,
   COLLECTION_NAMES.AUDIT_LOGS,
   COLLECTION_NAMES.LOGIN_ATTEMPTS,
   COLLECTION_NAMES.ROLES,
@@ -55,4 +59,6 @@ export const COLLECTION_ORDER: readonly CollectionName[] = [
   COLLECTION_NAMES.SYSTEM_SETTINGS,
   COLLECTION_NAMES.PASSWORD_POLICIES,
   COLLECTION_NAMES.PASSWORD_HISTORY,
+  COLLECTION_NAMES.TOTP_CREDENTIALS,
+  COLLECTION_NAMES.WEBAUTHN_CREDENTIALS,
 ] as const;

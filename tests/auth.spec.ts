@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Authentication and Authorization Flow', () => {
   const adminEmail = process.env.ADMIN_SEED_EMAIL || 'admin@crossweavesourcing.com';
-  const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'Password123!';
+  const adminPassword = process.env.ADMIN_SEED_PASSWORD || 'LocalDevSeedPass123!';
 
   test.beforeEach(async ({ context }) => {
     // Clear cookies before each test to ensure a clean session state

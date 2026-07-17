@@ -46,6 +46,8 @@ function ContactInformationFormInner() {
 
   return (
     <>
+      {/* Modal keyframes (cosmetic animations). Injected as a standard inline
+          <style>; the nonce-based CSP from proxy.ts governs real inline scripts. */}
       <style>{`
         @keyframes modalFadeIn {
           from { opacity: 0; }

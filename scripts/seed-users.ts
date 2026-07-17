@@ -11,9 +11,15 @@ export async function seedUsers(): Promise<void> {
   
   console.log('Seeding predefined users...');
 
-  // Clear any past rate limits & login attempt records to reset E2E state
-  await db.collection(COLLECTION_NAMES.LOGIN_ATTEMPTS).deleteMany({});
-  console.log('Cleared past login attempts and rate limits.');
+  // Clear any past rate limits & login attempt records to reset E2E state.
+  // FIX-14: only wipe in non-production — a prod run must never delete live
+  // login-attempt / rate-limit history (would erase security telemetry).
+  if (process.env.NODE_ENV !== 'production') {
+    await db.collection(COLLECTION_NAMES.LOGIN_ATTEMPTS).deleteMany({});
+    console.log('Cleared past login attempts and rate limits.');
+  } else {
+    console.log('Skipped clearing login attempts (production environment).');
+  }
 
   const email = env.ADMIN_SEED_EMAIL;
   const password = env.ADMIN_SEED_PASSWORD;
@@ -55,14 +61,20 @@ export async function seedUsers(): Promise<void> {
 
   // Seed default admin user
   const usersCollection = db.collection<UserDocument>(COLLECTION_NAMES.USERS);
-  
 
-  console.log(`Seeding password: "${password}" (length: ${password.length})`);
-  // Hash the seed password
+  // Hash the seed password (do NOT log the plaintext password or its hash).
+  //
+  // NOTE (FIX-C1): the seed admin password is intentionally weak
+  // (ADMIN_SEED_PASSWORD from env) and `forcePasswordChange: true` is set below so
+  // it is never long-lived — the admin MUST change it on first login.
+  //
+  // PEPPER WARNING: if ARGON2_SECRET is introduced AFTER users already exist,
+  // every previously-stored hash (computed without the pepper) will stop
+  // verifying. This seed script always re-hashes the seed admin, but existing
+  // runtime users would need a separate re-hash pass (or forced reset).
   const hash = await argon2.hash(password, {
     secret: env.ARGON2_SECRET ? Buffer.from(env.ARGON2_SECRET) : undefined,
   });
-  console.log(`Generated seed hash: "${hash}"`);
 
   const firstName = env.ADMIN_SEED_FIRST_NAME || 'System';
   const lastName = env.ADMIN_SEED_LAST_NAME || 'Admin';

@@ -51,6 +51,111 @@ function emitLog(level: 'info' | 'warn' | 'error', fields: Record<string, unknow
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Security Alerting Sink
+//
+// Forwards key security events (token reuse, suspicious logins, failure spikes)
+// to an external sink. Default = structured `console.warn` JSON (preserves the
+// existing behavior); when `SECURITY_WEBHOOK_URL` is set the default sink POSTs
+// a compact event instead. Callers may also inject a custom `SecurityAlertSink`.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type SecurityEventSeverity = 'info' | 'warning' | 'critical';
+
+export interface SecurityEvent {
+  /** Dot-namespaced event id, e.g. 'auth.refresh.reuse_detected'. */
+  action: string;
+  severity: SecurityEventSeverity;
+  /** ISO-8601 timestamp. */
+  timestamp: string;
+  userId: string | null;
+  ipAddress: string | null;
+  /** Compact, sink-specific context. */
+  metadata: Record<string, unknown>;
+  /** Optional human-readable summary. */
+  message?: string;
+}
+
+export interface SecurityAlertSink {
+  /**
+   * Forward a security event. Must be best-effort and must never throw to its
+   * caller — alerting must not be able to block a request path.
+   */
+  send(event: SecurityEvent): void | Promise<void>;
+}
+
+/** Default sink: structured JSON to `console.warn` — keeps current behavior. */
+export function createConsoleSecuritySink(): SecurityAlertSink {
+  return {
+    send(event) {
+      console.warn(JSON.stringify({ level: 'warn', event: 'security.alert', ...event }));
+    },
+  };
+}
+
+/**
+ * Webhook sink: POSTs a compact JSON event to `SECURITY_WEBHOOK_URL`.
+ * Fire-and-forget — failures are logged but never propagated to the caller.
+ */
+export function createWebhookSecuritySink(url: string): SecurityAlertSink {
+  const endpoint = url;
+  return {
+    send(event) {
+      void fetch(endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ event: 'security.alert', ...event }),
+        // Don't keep the process alive solely to flush this request.
+        keepalive: true,
+      }).catch((err) =>
+        console.error(
+          JSON.stringify({
+            level: 'error',
+            event: 'security.alert.sink_failed',
+            error: err instanceof Error ? err.message : String(err),
+            ts: new Date().toISOString(),
+          })
+        )
+      );
+    },
+  };
+}
+
+/**
+ * Resolve the configured sink: webhook when `SECURITY_WEBHOOK_URL` is set,
+ * otherwise the console sink.
+ */
+export function createDefaultSecuritySink(): SecurityAlertSink {
+  const url = process.env.SECURITY_WEBHOOK_URL;
+  return url ? createWebhookSecuritySink(url) : createConsoleSecuritySink();
+}
+
+/** Module-level active sink used by the `AlertingService` default path. */
+let activeSecuritySink: SecurityAlertSink | null = null;
+
+/** Returns the currently active security sink (set by `setupSecurityAlerting`). */
+export function getActiveSecuritySink(): SecurityAlertSink {
+  if (!activeSecuritySink) activeSecuritySink = createDefaultSecuritySink();
+  return activeSecuritySink;
+}
+
+export interface SecurityAlertingOptions {
+  /** Explicit sink to use. Defaults to `createDefaultSecuritySink()` (env-driven). */
+  sink?: SecurityAlertSink;
+}
+
+/**
+ * Wires up the security alerting sink. Call once, next to
+ * `setupDatabaseObservability`, immediately after instantiating the client.
+ */
+export function setupSecurityAlerting(options?: SecurityAlertingOptions): void {
+  activeSecuritySink = options?.sink ?? createDefaultSecuritySink();
+  emitLog('info', {
+    event: 'security.alerting.configured',
+    sink: process.env.SECURITY_WEBHOOK_URL ? 'webhook' : 'console',
+  });
+}
+
 /** Guard against calling setupDatabaseObservability more than once per client instance. */
 const observedClients = new WeakSet<MongoClient>();
 

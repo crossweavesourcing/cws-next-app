@@ -11,8 +11,13 @@ import type {
   RefreshTokenDocument,
   VerificationTokenDocument,
   OtpCodeDocument,
+  RecoveryCodeDocument,
   AuditLogDocument,
   LoginAttemptDocument,
+  PasswordPolicyDocument,
+  PasswordHistoryDocument,
+  TOTPCredentialDocument,
+  WebAuthnCredentialDocument,
 } from '@/types/auth';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -56,9 +61,21 @@ export const getVerificationTokensCollection =
   (): Promise<Collection<VerificationTokenDocument>> =>
     getDb().then(db => db.collection<VerificationTokenDocument>(COLLECTION_NAMES.VERIFICATION_TOKENS));
 
+export const getPasswordPoliciesCollection =
+  (): Promise<Collection<PasswordPolicyDocument>> =>
+    getDb().then(db => db.collection<PasswordPolicyDocument>(COLLECTION_NAMES.PASSWORD_POLICIES));
+
+export const getPasswordHistoryCollection =
+  (): Promise<Collection<PasswordHistoryDocument>> =>
+    getDb().then(db => db.collection<PasswordHistoryDocument>(COLLECTION_NAMES.PASSWORD_HISTORY));
+
 export const getOtpCodesCollection =
   (): Promise<Collection<OtpCodeDocument>> =>
     getDb().then(db => db.collection<OtpCodeDocument>(COLLECTION_NAMES.OTP_CODES));
+
+export const getRecoveryCodesCollection =
+  (): Promise<Collection<RecoveryCodeDocument>> =>
+    getDb().then(db => db.collection<RecoveryCodeDocument>(COLLECTION_NAMES.RECOVERY_CODES));
 
 export const getAuditLogsCollection =
   (): Promise<Collection<AuditLogDocument>> =>
@@ -67,3 +84,11 @@ export const getAuditLogsCollection =
 export const getLoginAttemptsCollection =
   (): Promise<Collection<LoginAttemptDocument>> =>
     getDb().then(db => db.collection<LoginAttemptDocument>(COLLECTION_NAMES.LOGIN_ATTEMPTS));
+
+export const getTotpCredentialsCollection =
+  (): Promise<Collection<TOTPCredentialDocument>> =>
+    getDb().then(db => db.collection<TOTPCredentialDocument>(COLLECTION_NAMES.TOTP_CREDENTIALS));
+
+export const getWebAuthnCredentialsCollection =
+  (): Promise<Collection<WebAuthnCredentialDocument>> =>
+    getDb().then(db => db.collection<WebAuthnCredentialDocument>(COLLECTION_NAMES.WEBAUTHN_CREDENTIALS));

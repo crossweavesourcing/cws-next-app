@@ -10,7 +10,7 @@ export const loginAttemptsSchema: Document = {
     userId: { bsonType: ['objectId', 'null'] },
     identifierType: {
       bsonType: 'string',
-      enum: ['EMAIL', 'PHONE', 'GOOGLE', 'LINKEDIN', 'WHATSAPP'],
+      enum: ['EMAIL', 'PHONE', 'GOOGLE', 'LINKEDIN', 'WHATSAPP', 'PASSWORD_RESET_REQUEST'],
     },
     identifier:    { bsonType: 'string', minLength: 1, maxLength: 254 },
     ipAddress:     { bsonType: 'string', maxLength: 45 },

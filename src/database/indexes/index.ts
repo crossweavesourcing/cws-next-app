@@ -17,6 +17,9 @@ import { permissionsIndexes }        from './permissions.indexes';
 import { systemSettingsIndexes }     from './system-settings.indexes';
 import { passwordPoliciesIndexes }   from './password-policies.indexes';
 import { passwordHistoryIndexes }    from './password-history.indexes';
+import { recoveryCodesIndexes }       from './recovery-codes.indexes';
+import { totpCredentialsIndexes }     from './totp-credentials.indexes';
+import { webauthnCredentialsIndexes } from './webauthn-credentials.indexes';
 
 /**
  * Map of every collection name → its IndexDescription array.
@@ -41,6 +44,9 @@ export const ALL_INDEXES: Record<CollectionName, IndexDescription[]> = {
   [COLLECTION_NAMES.SYSTEM_SETTINGS]:     systemSettingsIndexes,
   [COLLECTION_NAMES.PASSWORD_POLICIES]:   passwordPoliciesIndexes,
   [COLLECTION_NAMES.PASSWORD_HISTORY]:    passwordHistoryIndexes,
+  [COLLECTION_NAMES.RECOVERY_CODES]:      recoveryCodesIndexes,
+  [COLLECTION_NAMES.TOTP_CREDENTIALS]:    totpCredentialsIndexes,
+  [COLLECTION_NAMES.WEBAUTHN_CREDENTIALS]: webauthnCredentialsIndexes,
 };
 
 // Named re-exports
@@ -61,4 +67,7 @@ export {
   systemSettingsIndexes,
   passwordPoliciesIndexes,
   passwordHistoryIndexes,
+  recoveryCodesIndexes,
+  totpCredentialsIndexes,
+  webauthnCredentialsIndexes,
 };

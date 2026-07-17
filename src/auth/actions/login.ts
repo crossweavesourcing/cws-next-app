@@ -3,6 +3,11 @@
 import { cookies, headers } from 'next/headers';
 import { LoginService } from '../services/login.service';
 import { AuthError } from '../errors/auth-errors';
+import { signSessionId } from '../crypto/token';
+import { getEnv } from '../config/env';
+import { setAuthCookies, strictCookieOpts } from '../lib/cookies';
+import { getClientIp } from '../lib/request';
+import { withCsrfGuard } from '../lib/csrf';
 
 export type LoginActionState = {
   error?: string;
@@ -16,13 +21,19 @@ export type LoginActionState = {
 /**
  * Server Action executing login credentials check.
  * Bound to the login form using React 19's useActionState hook.
+ *
+ * C1: wrapped with `withCsrfGuard` so every call is origin-checked, and the
+ * short-lived pending cookies (2FA / step-up / force-password-change) are set
+ * with `SameSite=Strict` — they are only ever read on same-site Server Action
+ * POSTs, so Strict blocks a cross-site form POST from riding them.
  */
-export async function loginAction(
+async function loginActionImpl(
   prevState: LoginActionState,
   formData: FormData
 ): Promise<LoginActionState> {
   const email = formData.get('email');
   const password = formData.get('password');
+  const rememberMe = formData.get('rememberMe') === 'on' || formData.get('rememberMe') === 'true';
 
   if (typeof email !== 'string' || typeof password !== 'string') {
     return { error: 'Invalid submission fields.' };
@@ -31,29 +42,62 @@ export async function loginAction(
   // Get request metadata from headers
   const headersList = await headers();
   const userAgent = headersList.get('user-agent') || null;
-  
-  // Resolve client IP (fallback to localhost)
-  const forwardedFor = headersList.get('x-forwarded-for');
-  const ipAddress = forwardedFor ? forwardedFor.split(',')[0].trim() : '127.0.0.1';
+
+  // FIX-09: resolve client IP via the single source of truth (handles trusted
+  // proxy headers + x-forwarded-for consistently across all auth code paths).
+  const ipAddress = await getClientIp();
 
   const loginService = new LoginService();
 
   try {
-    const { cookie, user } = await loginService.loginWithPassword(
-      { email, password },
+    const result = await loginService.loginWithPassword(
+      { email, password, rememberMe },
       ipAddress,
       userAgent
     );
 
-    // Set HttpOnly Secure Session cookie
     const cookieStore = await cookies();
-    cookieStore.set('cws_session', cookie, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-    });
+    const env = getEnv();
+
+    // MFA path: do NOT issue a real session yet. Set a short-lived pending
+    // cookie (signed userId) so the verify-2fa step can complete the login.
+    if (result.status === 'mfa_required') {
+      const pending = signSessionId(result.userId.toString(), env.SESSION_SECRET);
+      cookieStore.set('cws_2fa_pending', pending, {
+        ...strictCookieOpts(env, { path: '/' }),
+        maxAge: 5 * 60, // 5 minutes to complete 2FA
+      });
+      return { redirect: '/dashboard/verify-2fa' };
+    }
+
+    if (result.status === 'force_change') {
+      // FIX-02: the user's password is expired/forced-change, so no real session
+      // exists yet. Set a short-lived signed pending cookie (carrying the userId)
+      // so the change-password page + action can operate without a full session.
+      const pending = signSessionId(result.userId.toString(), env.SESSION_SECRET);
+      cookieStore.set('cws_pw_pending', pending, {
+        ...strictCookieOpts(env, { path: '/' }),
+        maxAge: 10 * 60, // 10 minutes to complete the change
+      });
+      return { redirect: '/dashboard/change-password' };
+    }
+
+    if (result.status === 'step_up') {
+      // Item 9: the login is from a new device / new country. No real session is
+      // issued yet — set the signed `cws_stepup_pending` cookie (same HMAC pattern
+      // as cws_2fa_pending) and redirect to /dashboard/verify-2fa. verify2faAction
+      // will complete the session creation after the user passes email 2FA.
+      const pending = signSessionId(result.userId.toString(), env.SESSION_SECRET);
+      cookieStore.set('cws_stepup_pending', pending, {
+        ...strictCookieOpts(env, { path: '/' }),
+        maxAge: 5 * 60, // 5 minutes to complete the step-up 2FA
+      });
+      return { redirect: '/dashboard/verify-2fa' };
+    }
+
+    const { sessionCookie, refreshToken, user, rememberMe: resultRememberMe } = result;
+
+    await setAuthCookies({ sessionCookie, refreshToken, rememberMe: resultRememberMe });
 
     // Check forced password change flag
     if (user.security?.forcePasswordChange) {
@@ -70,3 +114,6 @@ export async function loginAction(
     return { error: 'An unexpected system error occurred. Please try again later.' };
   }
 }
+
+/** CSRF-guarded public entry point used by the login form. */
+export const loginAction = withCsrfGuard(loginActionImpl);

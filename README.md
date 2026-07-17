@@ -39,6 +39,108 @@ See [`docs/db_implementation_plan.md`](docs/db_implementation_plan.md) for the f
 
 ---
 
+## Deployment & Secrets Management
+
+`.env` is **gitignored** and must never be committed. The committed
+`.env.example` contains only non-secret dev placeholders so the app boots
+locally with `pnpm dev`. **No real secret is required in a checked-in file to
+boot locally.**
+
+### Deployment runbook (rotate + inject secrets)
+
+The 6 secret variables — `MONGODB_URI`, `SESSION_SECRET`, `ARGON2_SECRET`,
+`GOOGLE_CLIENT_SECRET`, `EMAIL_PASSWORD`, `ADMIN_SEED_PASSWORD` — MUST be
+sourced from a secret manager in **every** non-local environment and **NEVER
+committed**. Follow these steps for each new/changed deployment:
+
+1. **Rotate the Atlas DB user password in MongoDB Atlas.**
+   Create/rotate the database user in Atlas → *Database Access*, then generate
+   a fresh `MONGODB_URI` connection string with the new username + password.
+   Never reuse the previously-shipped/example Atlas credential.
+2. **Generate unique secrets per environment.**
+   - `SESSION_SECRET`: a UNIQUE ≥32-char value per environment:
+     `openssl rand -hex 32`
+   - `ARGON2_SECRET`: a UNIQUE ≥16-char value per environment:
+     `openssl rand -hex 32` (or any ≥16 random chars)
+   Do **not** share these across environments.
+3. **Inject all 6 secret vars via the platform secret store.**
+   - **Vercel:** *Project → Settings → Environment Variables* → add each var
+     for the target environments (Production / Preview / Development), or via
+     CLI: `vercel env add MONGODB_URI production` (paste the value when
+     prompted — it is stored encrypted, never written to a file).
+   - **Netlify:** *Site settings → Environment variables* → add each var, or
+     via CLI: `netlify env:set MONGODB_URI "<from secret manager>"`. The 6
+     secret var names are enumerated in `netlify.toml`; **never put real
+     values in `netlify.toml` itself.**
+   - Vault / AWS Secrets Manager: mount the secret as platform env at
+     build/runtime via your existing integration.
+4. **Set `TRUSTED_PROXY_IP_HEADER` for production.** A fail-closed boot guard
+   already exists in `src/auth/config/env.ts` — the app **refuses to boot** in
+   production without it (client IP would resolve to the untrusted `0.0.0.0`
+   sentinel, collapsing the per-IP rate limit into a single global bucket).
+   Set it to your platform's trusted header (e.g. `x-vercel-proxied-for`) and
+   strip inbound `x-forwarded-for` at the edge.
+5. **Verify the build passes with manager-injected vars.**
+   `pnpm build` runs `security-scan.js` first; ensure it passes with the
+   injected secrets and no real value committed. A misconfigured deploy with a
+   missing secret now fails closed at boot (see the pre-flight check in
+   `src/auth/config/env.ts`) instead of booting insecurely.
+
+> **CI secret scanning (recommended):** the husky pre-commit hook only greps
+> *staged diffs*, so an already-on-disk secret is invisible to it. Keep a
+> CI-level secret scan (e.g. gitleaks / trufflehog on the full history) as a
+> second line of defense. The pre-commit hook is intentionally left unchanged.
+
+### Sensitive variables
+
+These MUST be sourced from a secret manager / platform environment in **every
+non-local environment (staging, preview, production)** — never committed,
+hard-coded, or pasted into a checked-in file:
+
+| Variable | Why it is sensitive |
+|---|---|
+| `MONGODB_URI` | Embeds the Atlas database username + password |
+| `SESSION_SECRET` | HMAC-signs the `cws_session` / `cws_2fa_pending` / `cws_pw_pending` cookies (forgery risk if leaked) |
+| `ARGON2_SECRET` | Application-side password-hash pepper; protects hashes in a DB leak |
+| `GOOGLE_CLIENT_SECRET` | OAuth client secret |
+| `EMAIL_PASSWORD` | Gmail SMTP "App Password" |
+| `ADMIN_SEED_PASSWORD` | Initial admin account password |
+
+Supported sources: your platform's project environment variables
+(**Vercel** / **Netlify**), **HashiCorp Vault**, or **AWS Secrets Manager**.
+`src/auth/config/env.ts` already reads everything from `process.env` via
+`getEnv()`, so no code change is needed — the deploy pipeline simply injects
+the values at build/runtime.
+
+### Platform env injection
+
+- **Netlify:** set the variables under **Site settings → Environment
+  variables**. `netlify.toml` runs `pnpm install --frozen-lockfile && pnpm
+  build`; the build exposes those env vars to both the build step and the
+  server functions. No real values are stored in `netlify.toml`.
+- **Vercel:** set the variables under **Project → Settings → Environment
+  Variables** for each environment (Production / Preview / Development). The
+  app reads them from `process.env` at runtime — no extra config required.
+
+### Generate secrets
+
+```bash
+# SESSION_SECRET / ARGON2_SECRET — a UNIQUE value per environment
+openssl rand -hex 32
+```
+
+### Rotate before any real deployment
+
+- **`SESSION_SECRET`:** the default in `.env.example` and the previously-shipped
+  static value are **blocklisted** in `src/auth/config/env.ts` — the app
+  refuses to boot in production with them. Always generate a fresh, unique
+  value per environment.
+- **MongoDB Atlas credential:** rotate the database user password; the
+  previously-used/example DB credential must not ship to a real environment.
+  Update `MONGODB_URI` in the secret store after rotation.
+
+---
+
 ## Documentation
 
 - [`docs/db_implementation_plan.md`](docs/db_implementation_plan.md) — full 15-phase implementation plan

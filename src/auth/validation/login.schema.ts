@@ -11,6 +11,7 @@ export const loginSchema = z.object({
     .string()
     .min(1, 'Password is required.')
     .max(128, 'Password must not exceed 128 characters.'),
+  rememberMe: z.boolean().optional().default(false),
 });
 
 export type LoginPayload = z.infer<typeof loginSchema>;
