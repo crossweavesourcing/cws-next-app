@@ -11,7 +11,7 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 const PROJECT_ROOT = resolve(import.meta.dirname ?? __dirname, '..');
-const OPENAPI_FILE = resolve(PROJECT_ROOT, 'public', 'openapi.json');
+const OPENAPI_FILE = resolve(PROJECT_ROOT, '.openapi', 'openapi.json');
 
 interface ContractError {
   type: string;
