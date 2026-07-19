@@ -1,0 +1,154 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '10'
+
+jobs:
+  documentation:
+    name: Documentation Integrity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies (locked)
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate OpenAPI specification
+        run: pnpm docs:generate
+
+      - name: Check for stale artifacts
+        run: npx tsx scripts/check-stale-openapi.ts
+
+      - name: Lint OpenAPI document
+        run: pnpm docs:lint
+
+      - name: Validate route coverage
+        run: pnpm docs:coverage
+
+      - name: Validate API contracts
+        run: pnpm test:api-contract
+
+      - name: Detect breaking changes
+        if: github.event_name == 'pull_request'
+        run: npx tsx scripts/check-breaking-changes.ts
+
+      - name: Upload breaking changes report
+        if: github.event_name == 'pull_request' && failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: breaking-changes-report
+          path: ci-reports/breaking-changes.json
+          retention-days: 30
+
+  typecheck:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies (locked)
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+  lint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies (locked)
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+  tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies (locked)
+        run: pnpm install --frozen-lockfile
+
+      - name: Run unit tests
+        run: pnpm test:unit
+
+  build:
+    name: Production Build
+    runs-on: ubuntu-latest
+    needs: [documentation, typecheck, lint, tests]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies (locked)
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate OpenAPI spec
+        run: pnpm docs:generate
+
+      - name: Production build
+        run: pnpm build

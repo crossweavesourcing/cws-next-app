@@ -3,6 +3,8 @@ export { SessionService } from './session.service';
 export { LoginService } from './login.service';
 export { LogoutService } from './logout.service';
 export { OAuthService } from './oauth.service';
+export { MobileAuthService } from './mobile-auth.service';
+export { issueMobileAccessToken, verifyMobileAccessToken, getMobileJwks } from './mobile-token.service';
 export { PasswordService } from './password.service';
 export { TwoFactorService } from './two-factor.service';
 export { DeviceService } from './device.service';

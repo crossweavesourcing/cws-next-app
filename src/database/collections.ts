@@ -18,6 +18,7 @@ import type {
   PasswordHistoryDocument,
   TOTPCredentialDocument,
   WebAuthnCredentialDocument,
+  MobileAuthChallengeDocument,
 } from '@/types/auth';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -92,3 +93,7 @@ export const getTotpCredentialsCollection =
 export const getWebAuthnCredentialsCollection =
   (): Promise<Collection<WebAuthnCredentialDocument>> =>
     getDb().then(db => db.collection<WebAuthnCredentialDocument>(COLLECTION_NAMES.WEBAUTHN_CREDENTIALS));
+
+export const getMobileAuthChallengesCollection =
+  (): Promise<Collection<MobileAuthChallengeDocument>> =>
+    getDb().then(db => db.collection<MobileAuthChallengeDocument>(COLLECTION_NAMES.MOBILE_AUTH_CHALLENGES));

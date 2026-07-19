@@ -13,3 +13,4 @@ export type { NewVerificationToken } from './verification-token.repository';
 export { PasswordPolicyRepository } from './password-policy.repository';
 export { PasswordHistoryRepository } from './password-history.repository';
 export { DeviceRepository } from './device.repository';
+export { MobileChallengeRepository } from './mobile-challenge.repository';

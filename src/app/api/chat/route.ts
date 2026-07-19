@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
-import { getAuthSession } from '@/auth/dal';
+import { authenticateCookieOrBearer } from '@/auth/lib/mobile';
 
 let aiClient: GoogleGenAI | null = null;
 
@@ -43,11 +44,11 @@ Technical Details & Context:
 
 Provide response formatted in professional markdown. Be polite, direct, and elite in your service.`;
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   // FIX-04: require authentication. This endpoint forwards input to the LLM and
   // exposes the internal system prompt, so it must not be world-readable.
-  const session = await getAuthSession();
-  if (!session) {
+  const auth = await authenticateCookieOrBearer(request);
+  if (!auth) {
     return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
   }
 

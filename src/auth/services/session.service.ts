@@ -44,7 +44,8 @@ export class SessionService {
     ipAddress: string,
     userAgent: string | null,
     loginMethod: LoginMethod,
-    device: DeviceIdentity | null
+    device: DeviceIdentity | null,
+    options: { platform?: Platform } = {}
   ): Promise<
     | { status: 'authenticated'; sessionId: string; sessionCookie: string; refreshToken: string; deviceObjectId: ObjectId | null }
     | { status: 'step_up'; userId: ObjectId; sessionCookie: undefined; refreshToken: undefined; deviceObjectId: ObjectId | null }
@@ -76,9 +77,13 @@ export class SessionService {
 
     // Enforce a concurrent-session cap: revoke oldest active sessions beyond it.
     await this.enforceConcurrentSessionLimit(userId, 5);
-    const { platform, browser, operatingSystem } = this.parseUserAgent(userAgent);
+    const parsedDevice = this.parseUserAgent(userAgent);
+    const platform = options.platform ?? parsedDevice.platform;
+    const { browser, operatingSystem } = parsedDevice;
     const now = Date.now();
-    const expiresAt = new Date(now + env.ACCESS_SESSION_TTL_MS);
+    const accessTtlMs = platform === 'mobile' ? env.MOBILE_ACCESS_TOKEN_TTL_MS : env.ACCESS_SESSION_TTL_MS;
+    const refreshTtlMs = platform === 'mobile' ? env.MOBILE_REFRESH_TOKEN_TTL_MS : env.REFRESH_TOKEN_TTL_MS;
+    const expiresAt = new Date(now + accessTtlMs);
 
     // Register/refresh the bound device FIRST so the session can reference the
     // device's Mongo _id (SessionDocument.deviceId is ObjectId | null). New-device
@@ -164,6 +169,7 @@ export class SessionService {
     const refreshDoc = await this.refreshTokenRepo.create({
       sessionId: sessionDoc._id,
       userId,
+      platform,
       tokenHash,
       rotationNumber: 0,
       rotatedFrom: null,
@@ -175,7 +181,7 @@ export class SessionService {
       lastUsedAt: null,
       lastUsedIp: null,
       lastUsedUserAgent: null,
-      expiresAt: new Date(now + env.REFRESH_TOKEN_TTL_MS),
+      expiresAt: new Date(now + refreshTtlMs),
     });
 
     // Point the session at the latest refresh token (O(1) current-token check).
@@ -336,9 +342,12 @@ export class SessionService {
       const nowMs = Date.now();
       const idleExpired =
         sessionForExpiry.lastActivityAt.getTime() + env.IDLE_TIMEOUT_MS <= nowMs;
+      const refreshTtlMs = sessionForExpiry.platform === 'mobile'
+        ? env.MOBILE_REFRESH_TOKEN_TTL_MS
+        : env.REFRESH_TOKEN_TTL_MS;
       const absoluteExpired =
         (sessionForExpiry.lastFullAuthAt?.getTime() ?? sessionForExpiry.createdAt.getTime()) +
-          env.REFRESH_TOKEN_TTL_MS <=
+          refreshTtlMs <=
         nowMs;
 
       if (idleExpired || absoluteExpired) {
@@ -449,9 +458,13 @@ export class SessionService {
       return null;
     }
 
+    const refreshTtlMs = session.platform === 'mobile'
+      ? env.MOBILE_REFRESH_TOKEN_TTL_MS
+      : env.REFRESH_TOKEN_TTL_MS;
     const newDoc: RefreshTokenDocument = await this.refreshTokenRepo.create({
       sessionId: session._id,
       userId: session.userId,
+      platform: session.platform ?? 'web',
       tokenHash,
       rotationNumber: existing.rotationNumber + 1,
       rotatedFrom: existing._id,
@@ -463,7 +476,7 @@ export class SessionService {
       lastUsedAt: null,
       lastUsedIp: ipAddress,
       lastUsedUserAgent: userAgent,
-      expiresAt: new Date(now + env.REFRESH_TOKEN_TTL_MS),
+      expiresAt: new Date(now + refreshTtlMs),
     }, newId);
 
     await this.sessionRepo.setLatestRefreshToken(session._id, newDoc._id);
@@ -474,7 +487,10 @@ export class SessionService {
     // is recomputed as now + TTL (always <= lastFullAuthAt + REFRESH_TOKEN_TTL_MS
     // since the FIX-C2 absolute cap above already rejected anything older), and
     // `lastActivityAt` is refreshed so idle-timeout reflects real activity.
-    const accessExpiresAt = new Date(now + env.ACCESS_SESSION_TTL_MS);
+    const accessTtlMs = session.platform === 'mobile'
+      ? env.MOBILE_ACCESS_TOKEN_TTL_MS
+      : env.ACCESS_SESSION_TTL_MS;
+    const accessExpiresAt = new Date(now + accessTtlMs);
     const lastActivityAt = new Date(now);
     await this.sessionRepo.renewAccessSession(
       session._id,

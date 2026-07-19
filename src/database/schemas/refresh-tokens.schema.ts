@@ -12,6 +12,7 @@ export const refreshTokensSchema: Document = {
     _id:       { bsonType: 'objectId' },
     sessionId: { bsonType: 'objectId' },
     userId:    { bsonType: 'objectId' },
+    platform:  { bsonType: 'string', enum: ['web', 'mobile', 'desktop'] },
     tokenHash:      { bsonType: 'string', minLength: 64, maxLength: 64 },
     rotationNumber: { bsonType: 'int', minimum: 0 },
     rotatedFrom:    { bsonType: ['objectId', 'null'] },

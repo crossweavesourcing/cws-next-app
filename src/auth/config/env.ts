@@ -15,6 +15,21 @@ const envSchema = z.object({
   IDLE_TIMEOUT_MS: z.coerce.number().int().positive().default(30 * 60 * 1000), // 30 min
   REFRESH_TOKEN_TTL_MS: z.coerce.number().int().positive().default(7 * 24 * 60 * 60 * 1000), // 7 days
 
+  // Mobile API token policy. Access tokens are short-lived EdDSA JWTs;
+  // refresh tokens remain opaque and server-backed.
+  MOBILE_ACCESS_TOKEN_TTL_MS: z.coerce.number().int().positive().default(15 * 60 * 1000),
+  MOBILE_REFRESH_TOKEN_TTL_MS: z.coerce.number().int().positive().default(7 * 24 * 60 * 60 * 1000),
+  MOBILE_JWT_KEY_ID: z.string().min(1).optional(),
+  MOBILE_JWT_PRIVATE_KEY_B64: z.string().min(1).optional(),
+  MOBILE_JWT_PUBLIC_KEYS_JSON: z.string().min(1).optional(),
+  MOBILE_JWT_ISSUER: z.string().url().optional(),
+  MOBILE_GOOGLE_CLIENT_IDS: z.string().optional().transform((value) =>
+    value ? value.split(',').map((item) => item.trim()).filter(Boolean) : []
+  ),
+  MOBILE_ALLOWED_ORIGINS: z.string().optional().transform((value) =>
+    value ? value.split(',').map((item) => item.trim()).filter(Boolean) : []
+  ),
+
   // Google OAuth (Authorization Code + PKCE)
   GOOGLE_CLIENT_ID: z.string().min(1).optional(),
   GOOGLE_CLIENT_SECRET: z.string().min(1).optional(),
@@ -361,6 +376,41 @@ export function getWebAuthnConfig(): { rpName: string; rpID: string; origin: str
   return {
     rpName: 'CWS Next App',
     ...webAuthn,
+  };
+}
+
+export function getMobileAuthConfig(): {
+  keyId: string;
+  privateKeyB64: string;
+  publicKeys: Record<string, string>;
+  issuer: string;
+  googleClientIds: string[];
+  allowedOrigins: string[];
+  accessTokenTtlMs: number;
+  refreshTokenTtlMs: number;
+} {
+  const env = getEnv();
+  if (!env.MOBILE_JWT_KEY_ID || !env.MOBILE_JWT_PRIVATE_KEY_B64 || !env.MOBILE_JWT_PUBLIC_KEYS_JSON) {
+    throw new Error('Mobile authentication is not configured.');
+  }
+  let publicKeys: Record<string, string>;
+  try {
+    publicKeys = JSON.parse(env.MOBILE_JWT_PUBLIC_KEYS_JSON) as Record<string, string>;
+  } catch {
+    throw new Error('Mobile JWT public key configuration is invalid.');
+  }
+  if (!publicKeys[env.MOBILE_JWT_KEY_ID]) {
+    throw new Error('Mobile JWT active key is not present in the public key set.');
+  }
+  return {
+    keyId: env.MOBILE_JWT_KEY_ID,
+    privateKeyB64: env.MOBILE_JWT_PRIVATE_KEY_B64,
+    publicKeys,
+    issuer: env.MOBILE_JWT_ISSUER ?? `${env.APP_URL}/api/mobile/v1`,
+    googleClientIds: env.MOBILE_GOOGLE_CLIENT_IDS,
+    allowedOrigins: env.MOBILE_ALLOWED_ORIGINS,
+    accessTokenTtlMs: env.MOBILE_ACCESS_TOKEN_TTL_MS,
+    refreshTokenTtlMs: env.MOBILE_REFRESH_TOKEN_TTL_MS,
   };
 }
 

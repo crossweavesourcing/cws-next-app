@@ -6,7 +6,7 @@ import { SessionService } from './session.service';
 import { PasswordService } from './password.service';
 import { AuditLogRepository } from '../repositories/audit-log.repository';
 import { AlertingService } from './alerting.service';
-import { getEnv } from '../config/env';
+import { getEnv, getMobileAuthConfig } from '../config/env';
 import { ensureDeviceId, setServerDeviceToken } from '../lib/device';
 import { OAuthProviderUnavailableError } from '../errors/auth-errors';
 
@@ -394,7 +394,8 @@ export class OAuthService {
   private async verifyIdToken(
     idToken: string,
     env: ReturnType<typeof getEnv>,
-    expectedNonce: string
+    expectedNonce: string | null,
+    allowedAudiences: string[] = env.GOOGLE_CLIENT_ID ? [env.GOOGLE_CLIENT_ID] : []
   ): Promise<GoogleProfile> {
     const parts = idToken.split('.');
     if (parts.length !== 3) {
@@ -443,13 +444,13 @@ export class OAuthService {
     if (claims.iss !== 'https://accounts.google.com' && claims.iss !== 'accounts.google.com') {
       throw new Error('Invalid id_token iss.');
     }
-    if (claims.aud !== env.GOOGLE_CLIENT_ID) {
+    if (typeof claims.aud !== 'string' || !allowedAudiences.includes(claims.aud)) {
       throw new Error('Invalid id_token aud.');
     }
     if (typeof claims.exp !== 'number' || claims.exp < now) {
       throw new Error('id_token expired.');
     }
-    if (claims.nonce !== expectedNonce) {
+    if (expectedNonce !== null && claims.nonce !== expectedNonce) {
       throw new Error('id_token nonce mismatch (replay protection).');
     }
     if (typeof claims.sub !== 'string' || claims.sub.length === 0) {
@@ -461,6 +462,65 @@ export class OAuthService {
       email: (claims.email as string | undefined) ?? null,
       email_verified: Boolean(claims.email_verified),
     };
+  }
+
+  async handleMobileIdToken(
+    idToken: string,
+    ipAddress: string,
+    userAgent: string | null
+  ): Promise<
+    | { status: 'authenticated'; sessionId: string; refreshToken: string }
+    | { status: 'mfa_required'; userId: ObjectId; availableMethods: string[] }
+    | { status: 'force_change'; userId: ObjectId }
+  > {
+    const env = getEnv();
+    const mobile = getMobileAuthConfig();
+    if (mobile.googleClientIds.length === 0) throw new Error('Mobile Google OAuth is not configured.');
+    const profile = await this.verifyIdToken(idToken, env, null, mobile.googleClientIds);
+    if (!profile.email_verified) throw new Error('Google email is not verified.');
+
+    const account = await this.oauthRepo.findByProvider('google', profile.sub);
+    if (!account) throw new Error('Google sign-in is not enabled for this account.');
+    const user = await this.userRepo.findById(account.userId);
+    if (!user || user.status !== 'active') throw new Error('This account is not active.');
+
+    await this.oauthRepo.touchLastUsed(profile.sub, 'google');
+    if (user.security?.mfaEnabled) {
+      const methods: string[] = [];
+      if (user.security.webAuthnEnabled) methods.push('webauthn');
+      if (user.security.totpEnabled) methods.push('totp');
+      methods.push('email');
+      return { status: 'mfa_required', userId: user._id, availableMethods: methods };
+    }
+    if (user.security?.forcePasswordChange || (await this.passwordService.isExpired(user._id))) {
+      await this.userRepo.forcePasswordChange(user._id);
+      return { status: 'force_change', userId: user._id };
+    }
+    const result = await this.sessionService.createSession(
+      user._id,
+      ipAddress,
+      userAgent,
+      'google',
+      null,
+      { platform: 'mobile' }
+    );
+    if (result.status !== 'authenticated') return { status: 'mfa_required', userId: user._id, availableMethods: ['email'] };
+    await this.auditRepo.log({
+      userId: user._id,
+      sessionId: new ObjectId(result.sessionId),
+      action: 'auth.login.success',
+      status: 'SUCCESS',
+      errorCode: null,
+      actor: { type: 'user', id: user._id },
+      source: { platform: 'mobile', appVersion: '0.1.0' },
+      correlationId: null,
+      requestId: null,
+      resource: { type: 'session', id: result.sessionId },
+      metadata: { loginMethod: 'google', client: 'mobile' },
+      ipAddress,
+      userAgent,
+    });
+    return { status: 'authenticated', sessionId: result.sessionId, refreshToken: result.refreshToken };
   }
 }
 

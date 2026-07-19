@@ -18,7 +18,7 @@ import {
   AccountDeletedError,
   AccountDisabledError,
 } from '../errors/auth-errors';
-import type { UserDocument } from '@/types/auth';
+import type { Platform, UserDocument } from '@/types/auth';
 
 function randomDelayMs(max = 50): number {
   return Math.floor(Math.random() * (max + 1));
@@ -45,7 +45,8 @@ export class LoginService {
   async loginWithPassword(
     payload: unknown,
     ipAddress: string,
-    userAgent: string | null
+    userAgent: string | null,
+    options: { platform?: Platform } = {}
   ): Promise<
     | { status: 'authenticated'; sessionId: string; sessionCookie: string; refreshToken: string; user: UserDocument; rememberMe: boolean }
     | { status: 'mfa_required'; userId: ObjectId; availableMethods: string[] }
@@ -162,7 +163,7 @@ export class LoginService {
       return { status: 'force_change', userId };
     }
 
-    return this.issueSession(userId, email, ipAddress, userAgent, 'password', rememberMe);
+    return this.issueSession(userId, email, ipAddress, userAgent, 'password', rememberMe, options.platform);
   }
 
   /**
@@ -175,19 +176,21 @@ export class LoginService {
     ipAddress: string,
     userAgent: string | null,
     loginMethod: 'password' | 'google',
-    rememberMe: boolean = false
+    rememberMe: boolean = false,
+    platform: Platform = 'web'
   ): Promise<
     | { status: 'authenticated'; sessionId: string; sessionCookie: string; refreshToken: string; user: UserDocument; rememberMe: boolean }
     | { status: 'step_up'; userId: ObjectId }
   > {
     // 9. Generate active user session (+ first refresh token)
-    const device = await ensureDeviceId();
+    const device = platform === 'mobile' ? null : await ensureDeviceId();
     const result = await this.sessionService.createSession(
       userId,
       ipAddress,
       userAgent,
       loginMethod,
-      device
+      device,
+      { platform }
     );
 
     // Step-up path (Item 9): the session was created but immediately revoked
@@ -203,7 +206,7 @@ export class LoginService {
     // is bound to a server token (not the client-chosen UUID). On a brand-new
     // device the record id was minted in ensureDeviceId; on a returning device
     // it was verified from the existing signed token.
-    if (deviceObjectId) {
+    if (deviceObjectId && platform !== 'mobile') {
       await setServerDeviceToken(deviceObjectId);
     }
 
@@ -231,7 +234,7 @@ export class LoginService {
       status: 'SUCCESS',
       errorCode: null,
       actor: { type: 'user', id: userId },
-      source: { platform: 'web', appVersion: '0.1.0' },
+      source: { platform, appVersion: '0.1.0' },
       correlationId: null,
       requestId: null,
       resource: { type: 'session', id: sessionId },

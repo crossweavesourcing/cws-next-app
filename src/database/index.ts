@@ -65,6 +65,7 @@ export {
   getPasswordHistoryCollection,
   getTotpCredentialsCollection,
   getWebAuthnCredentialsCollection,
+  getMobileAuthChallengesCollection,
 }                                                   from './collections';
 
 export { ALL_SCHEMAS }                              from './schemas';

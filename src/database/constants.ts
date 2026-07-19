@@ -24,6 +24,7 @@ export const COLLECTION_NAMES = {
   PASSWORD_HISTORY:    'password_history',
   TOTP_CREDENTIALS:    'totp_credentials',
   WEBAUTHN_CREDENTIALS:'webauthn_credentials',
+  MOBILE_AUTH_CHALLENGES: 'mobile_auth_challenges',
 } as const;
 
 /**
@@ -57,4 +58,5 @@ export const COLLECTION_ORDER: readonly CollectionName[] = [
   COLLECTION_NAMES.PASSWORD_HISTORY,
   COLLECTION_NAMES.TOTP_CREDENTIALS,
   COLLECTION_NAMES.WEBAUTHN_CREDENTIALS,
+  COLLECTION_NAMES.MOBILE_AUTH_CHALLENGES,
 ] as const;

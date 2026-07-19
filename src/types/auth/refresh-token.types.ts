@@ -1,5 +1,5 @@
 import type { ObjectId } from 'mongodb';
-import type { RevokedReason } from './shared.types';
+import type { Platform, RevokedReason } from './shared.types';
 
 export interface RefreshTokenDocument {
   readonly _id:       ObjectId;
@@ -10,6 +10,8 @@ export interface RefreshTokenDocument {
    * across all sessions (account compromise response).
    */
   readonly userId: ObjectId;
+  /** Client surface that owns this token family; legacy records default to web. */
+  readonly platform?: Platform;
 
   // ── Immutable fields — set at creation, never changed ────────────────────
   /** SHA-256 hex digest — NEVER store the plaintext token value. */

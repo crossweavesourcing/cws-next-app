@@ -57,3 +57,4 @@ export * from './system-setting.types';
 export * from './password-policy.types';
 export * from './password-history.types';
 export * from './mfa.types';
+export * from './mobile-challenge.types';

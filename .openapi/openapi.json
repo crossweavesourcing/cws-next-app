@@ -1,0 +1,2192 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "CWS Next App API",
+    "version": "0.1.0",
+    "description": "Automated API documentation for the CWS Next App. This document is generated from Zod schemas and route handler metadata.",
+    "contact": {
+      "name": "API Support",
+      "email": "api@crossweavesourcing.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Development"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "Health check endpoints"
+    },
+    {
+      "name": "General",
+      "description": "Public general-purpose endpoints"
+    },
+    {
+      "name": "Authentication",
+      "description": "Web authentication endpoints (cookie-based)"
+    },
+    {
+      "name": "Mobile Authentication",
+      "description": "Mobile authentication endpoints (JWT bearer)"
+    },
+    {
+      "name": "Users",
+      "description": "User management endpoints"
+    }
+  ],
+  "paths": {
+    "/api/health": {
+      "get": {
+        "operationId": "healthCheck",
+        "summary": "Database health check",
+        "description": "Returns the health status of the application and its database connection. Returns 200 when healthy, 503 when degraded.",
+        "tags": [
+          "Health"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Application is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "healthy",
+                        "unhealthy"
+                      ],
+                      "example": "healthy"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Application is unhealthy (database connection failure)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "healthy",
+                        "unhealthy"
+                      ],
+                      "example": "unhealthy"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contact": {
+      "post": {
+        "operationId": "submitContactForm",
+        "summary": "Submit contact form",
+        "description": "Sends a contact form submission to the configured Google Sheets script. Inputs are sanitized (HTML stripped) and validated before forwarding. Returns 502 if the upstream service is unreachable, 504 on timeout.",
+        "tags": [
+          "General"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "description": "Full name of the sender",
+                    "example": "Jane Doe"
+                  },
+                  "email": {
+                    "type": "string",
+                    "maxLength": 255,
+                    "format": "email",
+                    "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                    "description": "Email address",
+                    "example": "jane@example.com"
+                  },
+                  "subject": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                    "description": "Message subject line",
+                    "example": "Partnership Inquiry"
+                  },
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5000,
+                    "description": "Message body",
+                    "example": "I would like to discuss a potential partnership opportunity."
+                  }
+                },
+                "required": [
+                  "name",
+                  "email",
+                  "subject",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Message sent successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": true,
+                      "example": true
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failed (missing fields, invalid email, length exceeded)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false,
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "All fields are required."
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server configuration error (GOOGLE_SCRIPT_URL not set)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false,
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "All fields are required."
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Upstream Google Sheets service returned an error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false,
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "All fields are required."
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Request timed out connecting to Google Sheets (8s timeout)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "const": false,
+                      "example": false
+                    },
+                    "error": {
+                      "type": "string",
+                      "example": "All fields are required."
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chat": {
+      "post": {
+        "operationId": "sendChatMessage",
+        "summary": "Send message to ZXY Co-Pilot",
+        "description": "Sends a message to the ZXY Intelligent Sourcing Co-Pilot (Google Gemini). Requires authentication (cookie or bearer). Returns a simulated response when the Gemini API key is not configured.",
+        "tags": [
+          "General"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 10000,
+                    "description": "User message to send to the ZXY Co-Pilot",
+                    "example": "What sustainable fabrics do you recommend for a summer polo shirt?"
+                  },
+                  "history": {
+                    "description": "Previous conversation history for context",
+                    "maxItems": 50,
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "sender": {
+                          "type": "string",
+                          "enum": [
+                            "user",
+                            "assistant"
+                          ],
+                          "example": "user"
+                        },
+                        "text": {
+                          "type": "string",
+                          "example": "Hello, I need sourcing advice."
+                        }
+                      },
+                      "required": [
+                        "sender",
+                        "text"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AI response generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string",
+                      "description": "AI-generated response in markdown format",
+                      "example": "*Based on ZXY sustainable sourcing parameters:*\n\nFor a summer polo, we recommend GOTS-certified 100% Organic Cotton at 180 GSM."
+                    }
+                  },
+                  "required": [
+                    "text"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing message payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Gemini API error (message not disclosed to client)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/webauthn/login-options": {
+      "post": {
+        "operationId": "webauthnLoginOptions",
+        "summary": "Get WebAuthn login options",
+        "description": "Generates WebAuthn authentication options for the pending MFA challenge. Requires a valid cws_2fa_pending or cws_stepup_pending cookie.",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "pendingSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "WebAuthn options generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "challenge": {
+                      "type": "string",
+                      "description": "WebAuthn challenge string",
+                      "example": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+                    },
+                    "rpId": {
+                      "type": "string",
+                      "description": "Relying Party ID",
+                      "example": "localhost"
+                    },
+                    "timeout": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Challenge timeout in ms",
+                      "example": 60000
+                    },
+                    "allowCredentials": {
+                      "description": "Allowed authenticator credentials",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Credential ID (base64url)"
+                          },
+                          "type": {
+                            "type": "string",
+                            "const": "public-key",
+                            "example": "public-key"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "userVerification": {
+                      "type": "string",
+                      "enum": [
+                        "preferred",
+                        "required",
+                        "discouraged"
+                      ],
+                      "description": "User verification requirement",
+                      "example": "preferred"
+                    }
+                  },
+                  "required": [
+                    "challenge",
+                    "rpId",
+                    "timeout",
+                    "userVerification"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session expired or invalid pending cookie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/webauthn/login-verify": {
+      "post": {
+        "operationId": "webauthnLoginVerify",
+        "summary": "Verify WebAuthn login response",
+        "description": "Verifies the WebAuthn authentication response against the pending challenge. On success, issues session and refresh cookies and clears pending cookies. Requires cws_2fa_pending/cws_stepup_pending and cws_webauthn_challenge cookies.",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "pendingSession": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Authenticator credential ID",
+                    "example": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+                  },
+                  "rawId": {
+                    "type": "string",
+                    "description": "Raw credential ID (base64url)"
+                  },
+                  "response": {
+                    "type": "object",
+                    "properties": {
+                      "authenticatorData": {
+                        "type": "string",
+                        "description": "Authenticator data (base64url)"
+                      },
+                      "clientDataJSON": {
+                        "type": "string",
+                        "description": "Client data JSON (base64url)"
+                      },
+                      "signature": {
+                        "type": "string",
+                        "description": "Signature (base64url)"
+                      },
+                      "userHandle": {
+                        "description": "User handle (base64url)",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "authenticatorData",
+                      "clientDataJSON",
+                      "signature"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "public-key",
+                    "example": "public-key"
+                  },
+                  "clientExtensionResults": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  }
+                },
+                "required": [
+                  "id",
+                  "rawId",
+                  "response",
+                  "type"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful — session cookies set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid WebAuthn response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Session expired or missing challenge cookie",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "summary": "Terminate session and clear cookies",
+        "description": "Revokes the current session and all refresh tokens in the family, then clears session, refresh, and device token cookies. Protected by CSRF (Origin/Referer check).",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Session terminated successfully (no content)"
+          },
+          "403": {
+            "description": "CSRF validation failed (missing or mismatched Origin/Referer)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "operationId": "refreshSession",
+        "summary": "Rotate refresh token",
+        "description": "Rotates the refresh token, issuing a new session cookie and refresh cookie. On reuse detection, revokes the entire session family and clears cookies. Protected by CSRF (Origin/Referer check). The refresh token is read from the cws_refresh cookie.",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Token rotated successfully — new cookies set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true,
+                      "example": true
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No refresh token, token expired, or token revoked/reused",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "CSRF validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/google": {
+      "get": {
+        "operationId": "googleOAuthStart",
+        "summary": "Start Google OAuth flow",
+        "description": "Initiates the Google Authorization Code + PKCE flow. Sets a short-lived httpOnly state cookie containing the PKCE verifier and nonce, then redirects to Google consent screen. Returns 503 if Google OAuth is not configured.",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [],
+        "responses": {
+          "302": {
+            "description": "Redirect to Google OAuth consent screen",
+            "headers": {
+              "Location": {
+                "description": "Google OAuth authorization URL",
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Google OAuth not configured (GOOGLE_CLIENT_SECRET missing)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Google sign-in is not available. Contact an administrator."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/google/callback": {
+      "get": {
+        "operationId": "googleOAuthCallback",
+        "summary": "Google OAuth callback",
+        "description": "Completes the Google OAuth flow. Verifies state (CSRF), exchanges the authorization code, verifies the id_token, links/looks up the user, and issues session + refresh cookies. Handles MFA-required, force-password-change, and step-up statuses by setting pending cookies and redirecting to the appropriate verification page. Rate-limited to 20 attempts per IP per 15 minutes.",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "description": "Authorization code from Google",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": true,
+            "description": "State parameter for CSRF verification",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "required": false,
+            "description": "Error from Google (user cancelled, etc.)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect based on auth result",
+            "headers": {
+              "Location": {
+                "description": "Redirect URL. Possible destinations: /dashboard/ (success), /dashboard/verify-2fa (MFA required or step-up), /dashboard/change-password (force password change), /dashboard/login/?error=... (failure)",
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/password": {
+      "post": {
+        "operationId": "mobilePasswordLogin",
+        "summary": "Mobile password login",
+        "description": "Authenticates a user with email and password for the mobile API. Returns JWT tokens on success, or MFA challenge if 2FA is enabled. Returns 403 if the user must change their password.",
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "maxLength": 254,
+                    "format": "email",
+                    "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                    "description": "User email address",
+                    "example": "admin@crossweavesourcing.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128,
+                    "description": "User password",
+                    "example": "••••••••••••"
+                  },
+                  "rememberMe": {
+                    "description": "Extend session lifetime (default: false)",
+                    "example": false,
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "const": "authenticated",
+                      "example": "authenticated"
+                    },
+                    "accessToken": {
+                      "type": "string",
+                      "description": "Ed25519-signed JWT access token"
+                    },
+                    "refreshToken": {
+                      "type": "string",
+                      "description": "Opaque refresh token"
+                    },
+                    "expiresIn": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Access token TTL in seconds",
+                      "example": 900
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "accessToken",
+                    "refreshToken",
+                    "expiresIn"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "MFA required — use challengeToken to complete login",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "const": "mfa_required",
+                      "example": "mfa_required"
+                    },
+                    "challengeToken": {
+                      "type": "string",
+                      "description": "Token for completing MFA challenge"
+                    },
+                    "methods": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Available MFA methods",
+                      "example": [
+                        "email",
+                        "totp",
+                        "webauthn"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "challengeToken",
+                    "methods"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Password change required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must be application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/mfa/email": {
+      "post": {
+        "operationId": "mobileMfaEmailVerify",
+        "summary": "Verify email MFA code",
+        "description": "Completes email-based MFA verification using the challenge token and 6-digit code. Returns JWT tokens on success.",
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "challengeToken": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Challenge token from login response",
+                    "example": "eyJhbGciOiJIUzI1NiJ9..."
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 6,
+                    "description": "6-digit verification code sent via email",
+                    "example": "482916"
+                  }
+                },
+                "required": [
+                  "challengeToken",
+                  "code"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "MFA verification successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "authenticated"
+                    },
+                    "accessToken": {
+                      "type": "string",
+                      "description": "JWT access token"
+                    },
+                    "refreshToken": {
+                      "type": "string",
+                      "description": "Refresh token"
+                    },
+                    "expiresIn": {
+                      "type": "integer",
+                      "example": 900
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "accessToken",
+                    "refreshToken",
+                    "expiresIn"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired verification challenge",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must be application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/mfa/totp": {
+      "post": {
+        "operationId": "mobileMfaTotpVerify",
+        "summary": "Verify TOTP MFA code",
+        "description": "Completes TOTP-based MFA verification using the challenge token and 6-digit code. Returns JWT tokens on success.",
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "challengeToken": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Challenge token from login response",
+                    "example": "eyJhbGciOiJIUzI1NiJ9..."
+                  },
+                  "code": {
+                    "type": "string",
+                    "minLength": 6,
+                    "maxLength": 6,
+                    "pattern": "^\\d{6}$",
+                    "description": "6-digit TOTP code from authenticator app",
+                    "example": "482916"
+                  }
+                },
+                "required": [
+                  "challengeToken",
+                  "code"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "MFA verification successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "authenticated"
+                    },
+                    "accessToken": {
+                      "type": "string",
+                      "description": "JWT access token"
+                    },
+                    "refreshToken": {
+                      "type": "string",
+                      "description": "Refresh token"
+                    },
+                    "expiresIn": {
+                      "type": "integer",
+                      "example": 900
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "accessToken",
+                    "refreshToken",
+                    "expiresIn"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired verification challenge",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must be application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/mfa/webauthn/options": {
+      "post": {
+        "operationId": "mobileMfaWebauthnOptions",
+        "summary": "Get WebAuthn MFA options",
+        "description": "Generates WebAuthn authentication options for the pending MFA challenge. Returns PublicKeyCredentialRequestOptions for the client to use with navigator.credentials.get().",
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "challengeToken": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Challenge token from login response",
+                    "example": "eyJhbGciOiJIUzI1NiJ9..."
+                  }
+                },
+                "required": [
+                  "challengeToken"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "WebAuthn options generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "PublicKeyCredentialRequestOptions",
+                  "properties": {
+                    "challenge": {
+                      "type": "string"
+                    },
+                    "rpId": {
+                      "type": "string"
+                    },
+                    "timeout": {
+                      "type": "integer",
+                      "example": 60000
+                    },
+                    "allowCredentials": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "example": "public-key"
+                          }
+                        }
+                      }
+                    },
+                    "userVerification": {
+                      "type": "string",
+                      "example": "preferred"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired verification challenge",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must be application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/mfa/webauthn/verify": {
+      "post": {
+        "operationId": "mobileMfaWebauthnVerify",
+        "summary": "Verify WebAuthn MFA response",
+        "description": "Verifies the WebAuthn authentication response against the pending challenge. Returns JWT tokens on success.",
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "challengeToken": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Challenge token from login response",
+                    "example": "eyJhbGciOiJIUzI1NiJ9..."
+                  },
+                  "response": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "description": "Authenticator credential ID"
+                      },
+                      "rawId": {
+                        "type": "string",
+                        "description": "Raw credential ID (base64url)"
+                      },
+                      "response": {
+                        "type": "object",
+                        "properties": {
+                          "authenticatorData": {
+                            "type": "string",
+                            "description": "Authenticator data (base64url)"
+                          },
+                          "clientDataJSON": {
+                            "type": "string",
+                            "description": "Client data JSON (base64url)"
+                          },
+                          "signature": {
+                            "type": "string",
+                            "description": "Signature (base64url)"
+                          },
+                          "userHandle": {
+                            "description": "User handle (base64url)",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "authenticatorData",
+                          "clientDataJSON",
+                          "signature"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "type": {
+                        "type": "string",
+                        "const": "public-key",
+                        "example": "public-key"
+                      },
+                      "clientExtensionResults": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "rawId",
+                      "response",
+                      "type"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "challengeToken",
+                  "response"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "MFA verification successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "authenticated"
+                    },
+                    "accessToken": {
+                      "type": "string",
+                      "description": "JWT access token"
+                    },
+                    "refreshToken": {
+                      "type": "string",
+                      "description": "Refresh token"
+                    },
+                    "expiresIn": {
+                      "type": "integer",
+                      "example": 900
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "accessToken",
+                    "refreshToken",
+                    "expiresIn"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired verification challenge",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must be application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/me": {
+      "get": {
+        "operationId": "mobileGetCurrentUser",
+        "summary": "Get current user profile",
+        "description": "Returns the authenticated user profile including role, status, and profile details. Requires a valid mobile bearer JWT.",
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User profile",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "MongoDB ObjectId",
+                      "example": "507f1f77bcf86cd799439011"
+                    },
+                    "role": {
+                      "type": "string",
+                      "enum": [
+                        "admin",
+                        "manager",
+                        "operator",
+                        "viewer"
+                      ],
+                      "example": "admin"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "active",
+                        "suspended",
+                        "disabled",
+                        "deleted"
+                      ],
+                      "example": "active"
+                    },
+                    "profile": {
+                      "type": "object",
+                      "properties": {
+                        "displayName": {
+                          "type": "string",
+                          "example": "John Doe"
+                        },
+                        "firstName": {
+                          "type": "string",
+                          "example": "John"
+                        },
+                        "lastName": {
+                          "type": "string",
+                          "example": "Doe"
+                        },
+                        "employeeId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "example": "EMP-0001"
+                        },
+                        "department": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "example": "Engineering"
+                        }
+                      }
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "role",
+                    "status",
+                    "profile"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized — missing or invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Unauthorized."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/refresh": {
+      "post": {
+        "operationId": "mobileRefreshToken",
+        "summary": "Refresh mobile access token",
+        "description": "Rotates the refresh token, issuing a new JWT access token and refresh token. The session must be a mobile platform session.",
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "type": "string",
+                    "minLength": 32,
+                    "description": "Opaque refresh token from previous authentication",
+                    "example": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"
+                  }
+                },
+                "required": [
+                  "refreshToken"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Token rotated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "const": "authenticated",
+                      "example": "authenticated"
+                    },
+                    "accessToken": {
+                      "type": "string",
+                      "description": "New JWT access token"
+                    },
+                    "refreshToken": {
+                      "type": "string",
+                      "description": "New refresh token (rotation)"
+                    },
+                    "expiresIn": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Access token TTL in seconds",
+                      "example": 900
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "accessToken",
+                    "refreshToken",
+                    "expiresIn"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid, expired, or revoked refresh token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must be application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/google": {
+      "post": {
+        "operationId": "mobileGoogleLogin",
+        "summary": "Mobile Google login",
+        "description": "Authenticates a user with a Google ID token for the mobile API. Returns JWT tokens on success, or MFA challenge if 2FA is enabled.",
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "idToken": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Google ID token from Google Sign-In SDK",
+                    "example": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  }
+                },
+                "required": [
+                  "idToken"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "authenticated"
+                    },
+                    "accessToken": {
+                      "type": "string",
+                      "description": "JWT access token"
+                    },
+                    "refreshToken": {
+                      "type": "string",
+                      "description": "Refresh token"
+                    },
+                    "expiresIn": {
+                      "type": "integer",
+                      "example": 900
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "accessToken",
+                    "refreshToken",
+                    "expiresIn"
+                  ]
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "MFA required — use challengeToken to complete login",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "mfa_required"
+                    },
+                    "challengeToken": {
+                      "type": "string",
+                      "description": "Token for completing MFA challenge"
+                    },
+                    "methods": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "email",
+                        "totp",
+                        "webauthn"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Google sign-in failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Password change required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must be application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/logout": {
+      "post": {
+        "operationId": "mobileLogout",
+        "summary": "Mobile logout",
+        "description": "Revokes the session associated with the provided refresh token. Always returns 200 with { ok: true } regardless of whether a valid token was provided.",
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refreshToken": {
+                    "description": "Refresh token to revoke. If omitted, returns success without revocation.",
+                    "example": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Logout processed (always succeeds)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true,
+                      "example": true
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "415": {
+            "description": "Content-Type must be application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/users/{id}": {
+      "get": {
+        "operationId": "getUserById",
+        "summary": "Get user by ID",
+        "description": "Retrieve a user profile by their MongoDB ObjectId. Requires a valid mobile bearer JWT. The requesting user must be an admin or be fetching their own profile.",
+        "tags": [
+          "Users"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The MongoDB ObjectId of the user",
+            "schema": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{24}$",
+              "description": "MongoDB ObjectId (24 hex characters)",
+              "example": "507f1f77bcf86cd799439011"
+            },
+            "example": "507f1f77bcf86cd799439011"
+          },
+          {
+            "name": "fields",
+            "in": "query",
+            "required": false,
+            "description": "Comma-separated list of fields to include",
+            "schema": {
+              "description": "Comma-separated list of fields to include in the response. If omitted, all fields are returned.",
+              "example": "displayName,email,role",
+              "type": "string"
+            },
+            "example": "displayName,role"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User profile retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfile"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid user ID format",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid bearer token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "User not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/.well-known/jwks.json": {
+      "get": {
+        "operationId": "getMobileJwks",
+        "summary": "Get mobile JWKS (JSON Web Key Set)",
+        "description": "Returns the public keys used to verify mobile JWT access tokens. Clients should cache the response for up to 5 minutes (Cache-Control: public, max-age=300). Returns 503 if mobile authentication is not configured.",
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "JWKS document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "keys": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "kty": {
+                            "type": "string",
+                            "example": "OKP"
+                          },
+                          "kid": {
+                            "type": "string",
+                            "example": "key-2026-01"
+                          },
+                          "alg": {
+                            "type": "string",
+                            "example": "EdDSA"
+                          },
+                          "use": {
+                            "type": "string",
+                            "example": "sig"
+                          },
+                          "x": {
+                            "type": "string",
+                            "description": "Base64url-encoded public key"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Mobile authentication is not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string",
+                      "example": "Mobile authentication is not configured."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "cookieAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "cws_session",
+        "description": "HMAC-signed session cookie issued by the web dashboard login flow. Obtained via POST /api/auth/login (Server Action) or Google OAuth callback."
+      },
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Ed25519-signed JWT issued by the mobile authentication endpoints. Obtained via POST /api/mobile/v1/auth/password or /api/mobile/v1/auth/google."
+      },
+      "pendingSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "cws_2fa_pending",
+        "description": "Short-lived HMAC-signed pending session cookie set during MFA challenge. Valid for 5 minutes. Used by WebAuthn and TOTP verification endpoints."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "A human-readable error message",
+            "example": "Resource not found"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "ValidationError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "const": "Validation failed",
+            "example": "Validation failed"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationErrorDetail"
+            },
+            "description": "List of validation failures"
+          }
+        },
+        "required": [
+          "error",
+          "details"
+        ],
+        "additionalProperties": false
+      },
+      "ValidationErrorDetail": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Dot-separated field path",
+            "example": "body.email"
+          },
+          "message": {
+            "type": "string",
+            "description": "Validation error message",
+            "example": "Invalid email format"
+          },
+          "code": {
+            "type": "string",
+            "description": "Zod error code",
+            "example": "invalid_format"
+          }
+        },
+        "required": [
+          "path",
+          "message",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "Unauthorized": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Authentication required",
+            "example": "Unauthorized"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "NotFound": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Resource not found",
+            "example": "Not found"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "UserProfile": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{24}$",
+            "description": "MongoDB ObjectId (24 hex characters)",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "manager",
+              "operator",
+              "viewer"
+            ],
+            "description": "User role for RBAC",
+            "example": "admin"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "suspended",
+              "disabled",
+              "deleted"
+            ],
+            "description": "Account status",
+            "example": "active"
+          },
+          "profile": {
+            "type": "object",
+            "properties": {
+              "displayName": {
+                "type": "string",
+                "example": "John Doe"
+              },
+              "firstName": {
+                "type": "string",
+                "example": "John"
+              },
+              "lastName": {
+                "type": "string",
+                "example": "Doe"
+              },
+              "employeeId": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "example": "EMP-0001"
+              },
+              "department": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "example": "Engineering"
+              }
+            },
+            "required": [
+              "displayName",
+              "firstName",
+              "lastName",
+              "employeeId",
+              "department"
+            ],
+            "additionalProperties": false
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+            "description": "ISO 8601 date-time string",
+            "example": "2026-01-15T10:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "status",
+          "profile",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}
