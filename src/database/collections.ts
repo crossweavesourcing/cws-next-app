@@ -20,6 +20,7 @@ import type {
   WebAuthnCredentialDocument,
   MobileAuthChallengeDocument,
 } from '@/types/auth';
+import type { CategoryDocument, ProductDocument } from '@/types/catalog';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Typed Collection Accessors — all 11 collections in one file.
@@ -97,3 +98,11 @@ export const getWebAuthnCredentialsCollection =
 export const getMobileAuthChallengesCollection =
   (): Promise<Collection<MobileAuthChallengeDocument>> =>
     getDb().then(db => db.collection<MobileAuthChallengeDocument>(COLLECTION_NAMES.MOBILE_AUTH_CHALLENGES));
+
+export const getCategoriesCollection =
+  (): Promise<Collection<CategoryDocument>> =>
+    getDb().then(db => db.collection<CategoryDocument>(COLLECTION_NAMES.CATEGORIES));
+
+export const getProductsCollection =
+  (): Promise<Collection<ProductDocument>> =>
+    getDb().then(db => db.collection<ProductDocument>(COLLECTION_NAMES.PRODUCTS));

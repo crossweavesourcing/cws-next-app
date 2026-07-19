@@ -27,7 +27,11 @@ export const getAuthSession = cache(async (): Promise<SessionDocument | null> =>
   try {
     const session = await sessionService.validateSession(sessionCookie.value);
     if (!session) {
-      cookieStore.delete(COOKIE_NAME);
+      try {
+        cookieStore.delete(COOKIE_NAME);
+      } catch {
+        // Ignore read-only cookie errors in Server Components
+      }
     }
     return session;
   } catch (err) {

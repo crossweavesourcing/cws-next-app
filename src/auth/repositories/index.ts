@@ -14,3 +14,5 @@ export { PasswordPolicyRepository } from './password-policy.repository';
 export { PasswordHistoryRepository } from './password-history.repository';
 export { DeviceRepository } from './device.repository';
 export { MobileChallengeRepository } from './mobile-challenge.repository';
+export { CategoryRepository } from './category.repository';
+export { ProductRepository } from './product.repository';

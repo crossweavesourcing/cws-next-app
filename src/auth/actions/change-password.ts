@@ -8,10 +8,10 @@ import { getEnv } from '../config/env';
 import { AuthError } from '../errors/auth-errors';
 import { clearingCookieOpts } from '../lib/cookies';
 import { withCsrfGuard } from '../lib/csrf';
+import { getAuthSession } from '../dal';
 
 export type ChangePasswordState = { error?: string; success?: boolean };
 
-const SESSION_COOKIE = 'cws_session';
 const PENDING_COOKIE = 'cws_pw_pending';
 
 /**
@@ -30,19 +30,27 @@ async function changePasswordActionImpl(
 ): Promise<ChangePasswordState> {
   const cookieStore = await cookies();
 
-  // Prefer a real session; fall back to the force-change pending cookie.
+  // Prefer the short-lived force-change identity. A stale authenticated
+  // session may belong to a different account (for example an OAuth-only
+  // account with no password) while a newly completed password login has just
+  // issued cws_pw_pending for the account that must change its password.
   let userIdStr: string | null = null;
+  let currentSessionId: string | undefined;
   let fromPending = false;
 
-  const sessionCookie = cookieStore.get(SESSION_COOKIE);
-  if (sessionCookie?.value) {
-    userIdStr = verifySessionSignature(sessionCookie.value, getEnv().SESSION_SECRET);
+  const pending = cookieStore.get(PENDING_COOKIE);
+  if (pending?.value) {
+    userIdStr = verifySessionSignature(pending.value, getEnv().SESSION_SECRET);
+    fromPending = userIdStr !== null;
   }
   if (!userIdStr) {
-    const pending = cookieStore.get(PENDING_COOKIE);
-    if (pending?.value) {
-      userIdStr = verifySessionSignature(pending.value, getEnv().SESSION_SECRET);
-      fromPending = true;
+    // A cws_session cookie signs a SESSION id, not a user id. Resolve it
+    // through the DAL so revocation/expiry is enforced and use the session's
+    // authoritative userId for the password write.
+    const session = await getAuthSession();
+    if (session) {
+      userIdStr = session.userId.toString();
+      currentSessionId = session._id.toString();
     }
   }
 
@@ -65,7 +73,7 @@ async function changePasswordActionImpl(
       new ObjectId(userIdStr),
       parsed.data.currentPassword,
       parsed.data.newPassword,
-      fromPending ? undefined : userIdStr
+      currentSessionId
     );
 
     // FIX-02: after a successful change, clear the force-change pending cookie

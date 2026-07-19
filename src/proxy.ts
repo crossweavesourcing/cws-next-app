@@ -17,13 +17,24 @@ export const CSP_NONCE_HEADER = 'x-csp-nonce';
  * Third-party script/connect sources (e.g. Google OAuth) should be added to the
  * relevant directives once finalized.
  */
-function buildCsp(nonce: string): string {
+export function buildCsp(
+  nonce: string,
+  isDevelopment = process.env.NODE_ENV === 'development'
+): string {
+  const scriptSources = [
+    "'self'",
+    `'nonce-${nonce}'`,
+    ...(isDevelopment ? ["'unsafe-eval'"] : []),
+  ].join(' ');
+
   return [
     "default-src 'self'",
-    "img-src 'self' data: https:",
-    `script-src 'self' 'nonce-${nonce}'`,
-    `style-src 'self' 'nonce-${nonce}'`,
-    "font-src 'self' data:",
+    // Category image previews use URL.createObjectURL(), which produces a
+    // browser-local blob: URL. Keep this permission scoped to images only.
+    "img-src 'self' blob: data: https:",
+    `script-src ${scriptSources}`,
+    `style-src 'self' 'unsafe-inline' 'nonce-${nonce}' https://fonts.googleapis.com`,
+    "font-src 'self' data: https://fonts.gstatic.com",
     "connect-src 'self'",
     "frame-ancestors 'none'",
     "base-uri 'self'",

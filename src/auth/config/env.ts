@@ -48,7 +48,13 @@ const envSchema = z.object({
   EMAIL_PASSWORD: z.string().min(1).optional(),
 
   ADMIN_SEED_EMAIL: z.string().email().optional(),
-  ADMIN_SEED_PASSWORD: z.string().min(12).optional(),
+  // dotenv represents `ADMIN_SEED_PASSWORD=` as an empty string. Treat that
+  // as unset so local runtime auth can start without enabling user seeding.
+  // Production still requires a non-empty value in validateSecurityConfig().
+  ADMIN_SEED_PASSWORD: z.preprocess(
+    (value) => value === '' ? undefined : value,
+    z.string().min(12).optional()
+  ),
   ADMIN_SEED_FIRST_NAME: z.string().min(1).optional(),
   ADMIN_SEED_LAST_NAME: z.string().min(1).optional(),
   ADMIN_SEED_EMPLOYEE_ID: z.string().min(1).optional(),
@@ -177,7 +183,6 @@ function validateSecurityConfig(env: EnvConfig): void {
     // never throw outside production.
     const devMissing: string[] = [];
     if (!env.MONGODB_URI?.trim()) devMissing.push('MONGODB_URI');
-    if (!env.ARGON2_SECRET?.trim()) devMissing.push('ARGON2_SECRET');
     if (env.GOOGLE_CLIENT_ID?.trim() && !env.GOOGLE_CLIENT_SECRET?.trim()) {
       devMissing.push('GOOGLE_CLIENT_SECRET');
     }

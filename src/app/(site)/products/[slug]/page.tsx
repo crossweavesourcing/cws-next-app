@@ -6,7 +6,8 @@ import { ArrowLeft, Mail } from 'lucide-react';
 import ProductFooter from '@/components/ProductFooter';
 import ProductHeader from '@/components/ProductHeader';
 import ProductImageGallery from '@/components/ProductImageGallery';
-import { getProductBySlug, getRelatedProducts, products } from '@/lib/products';
+import { ProductRepository } from '@/auth/repositories/product.repository';
+import { CategoryRepository } from '@/auth/repositories/category.repository';
 
 type ProductDetailsPageProps = {
   params: Promise<{
@@ -14,7 +15,9 @@ type ProductDetailsPageProps = {
   }>;
 };
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+  const repo = new ProductRepository();
+  const products = await repo.findAll();
   return products.map((product) => ({
     slug: product.slug,
   }));
@@ -22,7 +25,8 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: ProductDetailsPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const repo = new ProductRepository();
+  const product = await repo.findBySlug(slug);
 
   if (!product) {
     return {
@@ -38,14 +42,34 @@ export async function generateMetadata({ params }: ProductDetailsPageProps): Pro
 
 export default async function ProductDetailsPage({ params }: ProductDetailsPageProps) {
   const { slug } = await params;
-  const product = getProductBySlug(slug);
+  const productRepo = new ProductRepository();
+  const product = await productRepo.findBySlug(slug);
 
   if (!product) {
     notFound();
   }
 
-  const relatedProducts = getRelatedProducts(product);
-  const productImages = product.images.length > 0 ? product.images : [product.image];
+  const categoryRepo = new CategoryRepository();
+  const category = product.categoryId ? await categoryRepo.findById(product.categoryId.toString()) : null;
+  const categoryName = category?.name || 'Unknown Category';
+
+  const allCategories = await categoryRepo.findAll();
+  const categoryMap = new Map(allCategories.map(c => [c._id.toString(), c]));
+
+  let relatedProducts = [];
+  if (product.categoryId) {
+    relatedProducts = (await productRepo.findAll({
+      categoryId: product.categoryId,
+    }))
+      .filter((p) => p._id.toString() !== product._id.toString())
+      .slice(0, 3);
+  } else {
+    relatedProducts = (await productRepo.findAll())
+      .filter((p) => p._id.toString() !== product._id.toString())
+      .slice(0, 3);
+  }
+
+  const productImages = product.images?.length ? product.images : (product.image ? [product.image] : []);
 
   return (
     <main className="product-site-shell bg-white text-[#1E1E1E] min-h-screen font-sans antialiased selection:bg-[#E02424]/10 selection:text-[#E02424]">
@@ -67,7 +91,7 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
               </Link>
               <div className="space-y-4">
                 <span className="block text-xs sm:text-sm font-sans font-bold text-[#E02424] uppercase tracking-[0.35em]">
-                  {product.category}
+                  {categoryName}
                 </span>
                 <h1 className="text-4xl sm:text-5xl md:text-6xl font-sans font-black uppercase tracking-tight leading-none">
                   {product.name}
@@ -198,7 +222,7 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
               >
                 <div className="relative h-64 overflow-hidden bg-neutral-200">
                   <Image
-                    src={relatedProduct.images[0] ?? relatedProduct.image}
+                    src={relatedProduct.images?.[0] ?? relatedProduct.image}
                     alt={relatedProduct.name}
                     fill
                     sizes="(max-width: 768px) 100vw, 33vw"
@@ -207,7 +231,7 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
                 </div>
                 <article className="p-6 space-y-4">
                   <span className="block text-[10px] font-sans font-bold uppercase tracking-[0.24em] text-[#E02424]">
-                    {relatedProduct.category}
+                    {relatedProduct.categoryId ? categoryMap.get(relatedProduct.categoryId.toString())?.name || 'Category' : 'Uncategorized'}
                   </span>
                   <h3 className="text-base font-sans font-bold uppercase tracking-[0.12em] text-neutral-950 leading-snug">
                     {relatedProduct.name}
@@ -226,7 +250,7 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
               Contact CTA
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold uppercase tracking-tight leading-snug">
-              Discuss a {product.category} Program
+              Discuss a {categoryName} Program
             </h2>
             <p className="text-sm sm:text-base leading-relaxed text-neutral-300 font-light max-w-3xl">
               Share target product type, expected volume, sampling needs and delivery market. The CWS team can support development, costing, production follow-up and export coordination.

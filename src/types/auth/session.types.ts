@@ -65,4 +65,5 @@ export interface SessionDocument {
   accountSecurityVersion: number | null;
 
   readonly createdAt: Date;
+  updatedAt?: Date;
 }

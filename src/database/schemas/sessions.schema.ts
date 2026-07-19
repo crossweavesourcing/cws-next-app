@@ -51,5 +51,8 @@ export const sessionsSchema: Document = {
     // to invalidate the session if the user's security version is later bumped.
     accountSecurityVersion: { bsonType: ['int', 'null'], minimum: 1 },
     createdAt:      { bsonType: 'date' },
+    // Added by refresh/pointer maintenance writes. Optional for compatibility
+    // with sessions created before update timestamps were introduced.
+    updatedAt:      { bsonType: 'date' },
   },
 };

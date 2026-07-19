@@ -302,6 +302,11 @@ export class OAuthService {
     // Step-up path (Item 9): session created but revoked pending email 2FA.
     // Return `step_up` so the route sets `cws_stepup_pending` + redirects.
     if (result.status === 'step_up') {
+      // Registration may have rotated an account-scoped device identity. Store
+      // it before redirecting so the verification request sees the same row.
+      if (result.deviceObjectId) {
+        await setServerDeviceToken(result.deviceObjectId);
+      }
       return { status: 'step_up', userId };
     }
 

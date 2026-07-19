@@ -17,13 +17,15 @@
     "docs:coverage": "npx tsx scripts/check-route-coverage.ts",
     "docs:check": "npx tsx scripts/docs-check.ts",
     "test:api-contract": "npx tsx scripts/check-contract.ts",
-    "docs:dev": "pnpm docs:generate && next dev"
+    "docs:dev": "pnpm docs:generate && next dev",
+    "docs:watch": "nodemon --watch src --ext ts --exec \"pnpm docs:generate\""
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
     "@simplewebauthn/browser": "^13.3.0",
     "@simplewebauthn/server": "^13.3.2",
     "argon2": "^0.44.0",
+    "cloudinary": "^2.10.0",
     "jose": "^6.2.3",
     "lucide-react": "^0.546.0",
     "mongodb": "^6.16.0",
@@ -51,6 +53,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "husky": "^9.1.7",
+    "nodemon": "^3.1.14",
     "tailwindcss": "^4",
     "tsx": "^4.23.0",
     "typescript": "^5",

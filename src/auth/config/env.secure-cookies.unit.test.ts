@@ -79,6 +79,24 @@ describe('SECURE_COOKIES fail-closed production boot guard (real env.ts)', () =>
     expect(getEnv().SECURE_COOKIES).toBe(false);
   });
 
+  it('treats an empty optional admin seed password as unset in development', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('ADMIN_SEED_PASSWORD', '');
+    const { getEnv } = await import('@/auth/config/env');
+
+    expect(() => getEnv()).not.toThrow();
+    expect(getEnv().ADMIN_SEED_PASSWORD).toBeUndefined();
+  });
+
+  it('still rejects an empty admin seed password in production', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('SECURE_COOKIES', 'true');
+    vi.stubEnv('ADMIN_SEED_PASSWORD', '');
+    const { getEnv } = await import('@/auth/config/env');
+
+    expect(() => getEnv()).toThrow(/ADMIN_SEED_PASSWORD/);
+  });
+
   it('derives WebAuthn RP config from APP_URL by default', async () => {
     vi.stubEnv('SECURE_COOKIES', 'true');
     vi.stubEnv('NODE_ENV', 'production');

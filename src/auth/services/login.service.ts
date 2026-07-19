@@ -197,6 +197,12 @@ export class LoginService {
     // pending email 2FA. No cookies are issued yet — the caller sets a signed
     // `cws_stepup_pending` cookie and redirects to /dashboard/verify-2fa.
     if (result.status === 'step_up') {
+      // Device registration has already completed. Persist a rotated record id
+      // before the verification request so account switching does not present
+      // the previous user's device token and register another new device.
+      if (result.deviceObjectId && platform !== 'mobile') {
+        await setServerDeviceToken(result.deviceObjectId);
+      }
       return { status: 'step_up', userId };
     }
 

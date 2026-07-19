@@ -1,10 +1,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Facebook, Instagram, Linkedin } from 'lucide-react';
+import { CategoryRepository } from '@/auth/repositories/category.repository';
 
-const productCategories = ['Knit', 'Woven', 'Sweater', 'Bag', 'Wallet', 'Hat'];
-
-export default function ProductFooter() {
+export default async function ProductFooter() {
+  const categoryRepo = new CategoryRepository();
+  const categories = await categoryRepo.findAll();
   return (
     <footer className="landing-cws-footer bg-[#DDDBCF] text-neutral-900 pt-16 pb-12 border-t border-neutral-300">
       <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 md:grid-cols-12 gap-10 md:gap-8">
@@ -48,10 +49,10 @@ export default function ProductFooter() {
         <div className="col-span-1 md:col-span-2 space-y-4 md:border-l md:border-neutral-300/60 md:pl-8">
           <h5 className="font-sans font-bold uppercase tracking-[0.15em] text-xs text-black">Product Categories</h5>
           <ul className="space-y-2 text-[11px] font-sans tracking-wider text-neutral-700 uppercase">
-            {productCategories.map((category) => (
-              <li key={category}>
-                <Link href={`/products?category=${encodeURIComponent(category)}`} className="hover:text-black transition-colors">
-                  {category}
+            {categories.map((category) => (
+              <li key={category._id.toString()}>
+                <Link href={`/products?category=${encodeURIComponent(category.name)}`} className="hover:text-black transition-colors">
+                  {category.name}
                 </Link>
               </li>
             ))}

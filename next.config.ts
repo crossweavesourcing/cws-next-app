@@ -65,6 +65,11 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
   trailingSlash: true,
   turbopack: {
     root: __dirname,

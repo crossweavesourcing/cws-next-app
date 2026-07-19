@@ -19,6 +19,8 @@ import { passwordHistorySchema }     from './password-history.schema';
 import { totpCredentialsSchema }     from './totp-credentials.schema';
 import { webauthnCredentialsSchema } from './webauthn-credentials.schema';
 import { mobileAuthChallengesSchema } from './mobile-auth-challenges.schema';
+import { categoriesSchema } from './categories.schema';
+import { productsSchema } from './products.schema';
 
 /**
  * Map of every collection name → its $jsonSchema body.
@@ -47,7 +49,9 @@ export const ALL_SCHEMAS: Record<CollectionName, Document> = {
   [COLLECTION_NAMES.TOTP_CREDENTIALS]:    totpCredentialsSchema,
   [COLLECTION_NAMES.WEBAUTHN_CREDENTIALS]: webauthnCredentialsSchema,
   [COLLECTION_NAMES.MOBILE_AUTH_CHALLENGES]: mobileAuthChallengesSchema,
-};
+  [COLLECTION_NAMES.CATEGORIES]:          categoriesSchema,
+  [COLLECTION_NAMES.PRODUCTS]:            productsSchema,
+} as const;
 
 // Named re-exports for direct import
 export {

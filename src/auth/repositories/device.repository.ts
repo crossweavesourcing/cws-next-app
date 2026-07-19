@@ -19,6 +19,15 @@ function isDeviceId(value: string | null | undefined): value is string {
   return typeof value === 'string' && value.length === DEVICE_ID_LENGTH;
 }
 
+function isDuplicateKeyError(error: unknown): error is { code: 11000 } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 11000
+  );
+}
+
 /**
  * Data access for the `devices` collection (real device management).
  *
@@ -95,8 +104,10 @@ export class DeviceRepository {
    *
    * Identity resolution:
    * - `serverDeviceId` (the `devices._id` from the HMAC-signed `cws_device_token`
-   *   cookie) is the authoritative, unforgeable key. When present it IS the
-   *   record's `_id`, so a client cannot reuse or forge another device's id.
+   *   cookie) is the authoritative, unforgeable key. A record id is also bound
+   *   to one user. If the browser presents a valid token belonging to a
+   *   different user (for example, after switching accounts), a fresh record
+   *   id is minted instead of attempting to reuse the globally unique `_id`.
    * - `clientDeviceId` (legacy client UUID v4) is stored only as a correlation
    *   hint for the device-management UI. When no server id exists (pre-rollout
    *   clients) it is used as the lookup key and a fresh `_id` is minted.
@@ -118,16 +129,23 @@ export class DeviceRepository {
     const coll = await getDevicesCollection();
     const now = new Date();
 
-    // Resolve the lookup + the record id to use.
+    // Resolve the lookup + the record id to use. `_id` is globally unique, so
+    // do not include userId in this first lookup: doing so hides a record owned
+    // by another account and makes the subsequent insert fail with E11000.
     const serverDeviceId = params.serverDeviceId;
     const clientDeviceId = params.clientDeviceId ?? randomUUID();
     // The correlation `deviceId` stored on the row (always a 36-char UUID v4 so
     // the jsonSchema `minLength/maxLength: 36` constraint keeps holding).
-    const correlationId = clientDeviceId;
+    let correlationId = clientDeviceId;
 
-    const existing = serverDeviceId
-      ? await coll.findOne({ _id: serverDeviceId, userId: params.userId })
-      : await coll.findOne({ userId: params.userId, deviceId: correlationId });
+    const existingByServerId = serverDeviceId
+      ? await coll.findOne({ _id: serverDeviceId })
+      : null;
+    const existing = existingByServerId?.userId.equals(params.userId)
+      ? existingByServerId
+      : serverDeviceId
+        ? null
+        : await coll.findOne({ userId: params.userId, deviceId: correlationId });
     if (existing) {
       await coll.updateOne(
         { _id: existing._id },
@@ -150,8 +168,21 @@ export class DeviceRepository {
       };
     }
 
+    // A server token is scoped to the user that owns its row. Browsers can
+    // legitimately switch accounts while retaining cookies, so rotate both
+    // database identity fields when the presented row belongs to another user.
+    // Also avoid reusing a legacy correlation UUID that is already covered by
+    // the collection's global unique index (common after a device-token reset).
+    let recordId = serverDeviceId ?? new ObjectId();
+    if (existingByServerId) {
+      recordId = new ObjectId();
+      correlationId = randomUUID();
+    } else if (await coll.findOne({ deviceId: correlationId })) {
+      correlationId = randomUUID();
+    }
+
     const doc: DeviceDocument = {
-      _id: serverDeviceId ?? new ObjectId(),
+      _id: recordId,
       userId: params.userId,
       deviceId: correlationId,
       name: null,
@@ -179,8 +210,56 @@ export class DeviceRepository {
       updatedAt: now,
     };
 
-    await coll.insertOne(doc);
-    return { isNew: true, doc };
+    try {
+      await coll.insertOne(doc);
+      return { isNew: true, doc };
+    } catch (error) {
+      if (!isDuplicateKeyError(error)) throw error;
+
+      // Two login requests can resolve the same newly-issued token before
+      // either inserts it. If the other request won, treat this request as an
+      // activity update on that row rather than surfacing a duplicate-key
+      // error. An id owned by another user must never be adopted.
+      const raced = await coll.findOne({ _id: recordId });
+      if (raced?.userId.equals(params.userId)) {
+        await coll.updateOne(
+          { _id: raced._id },
+          {
+            $set: {
+              type: params.type,
+              platform: params.platform,
+              browser: params.browser,
+              operatingSystem: params.operatingSystem,
+              lastSeenAt: now,
+              lastSeenIp: params.ipAddress,
+              lastSeenLocation: params.location,
+              updatedAt: now,
+            },
+          }
+        );
+        return {
+          isNew: false,
+          doc: {
+            ...raced,
+            lastSeenAt: now,
+            lastSeenIp: params.ipAddress,
+            lastSeenLocation: params.location,
+          },
+        };
+      }
+
+      // The conflicting key was either claimed by another account or was the
+      // legacy globally-unique deviceId. Retry once with server-minted values;
+      // random ObjectId/UUID collisions are negligibly unlikely, and a second
+      // database error should surface normally instead of looping forever.
+      const retryDoc: DeviceDocument = {
+        ...doc,
+        _id: new ObjectId(),
+        deviceId: randomUUID(),
+      };
+      await coll.insertOne(retryDoc);
+      return { isNew: true, doc: retryDoc };
+    }
   }
 
   /** Lists a user's devices (newest first) for the device-management UI. */
@@ -277,4 +356,3 @@ export class DeviceRepository {
     );
   }
 }
-

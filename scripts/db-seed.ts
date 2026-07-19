@@ -1,8 +1,10 @@
 import { seedUsers } from './seed-users';
+import { seedCatalog } from './seed-catalog';
 import { getMongoClient } from '@/database/client';
 
 async function main() {
   await seedUsers();
+  await seedCatalog();
 }
 
 main()

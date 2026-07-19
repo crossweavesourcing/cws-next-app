@@ -1,15 +1,37 @@
 import type { Metadata } from 'next';
 import Image from 'next/image';
 import ProductFooter from '@/components/ProductFooter';
-import ProductHeader from '@/components/ProductHeader';
 import ProductsPortfolio from '@/components/ProductsPortfolio';
+import { ProductRepository } from '@/auth/repositories/product.repository';
+import { CategoryRepository } from '@/auth/repositories/category.repository';
 
 export const metadata: Metadata = {
   title: 'Products | Cross Weave Sourcing',
   description: 'Explore the Cross Weave Sourcing manufacturing portfolio across knit, woven, sweater, bag, wallet and hat categories.',
 };
 
-export default function ProductsPage() {
+export default async function ProductsPage() {
+  const productRepo = new ProductRepository();
+  const products = await productRepo.findAll();
+
+  const categoryRepo = new CategoryRepository();
+  const categories = await categoryRepo.findAll();
+
+  const serializedProducts = products.map(p => ({
+    ...p,
+    _id: p._id.toString(),
+    categoryId: p.categoryId ? p.categoryId.toString() : null,
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
+  })) as any[];
+
+  const serializedCategories = categories.map(cat => ({
+    ...cat,
+    _id: cat._id.toString(),
+    createdAt: cat.createdAt.toISOString(),
+    updatedAt: cat.updatedAt.toISOString(),
+  })) as any[];
+
   return (
     <main className="product-site-shell bg-white text-[#1E1E1E] min-h-screen font-sans antialiased selection:bg-[#E02424]/10 selection:text-[#E02424]">
       {/* <ProductHeader /> */}
@@ -41,7 +63,7 @@ export default function ProductsPage() {
         </div>
       </section>
 
-      <ProductsPortfolio />
+      <ProductsPortfolio products={serializedProducts} categories={serializedCategories} />
       <ProductFooter />
     </main>
   );

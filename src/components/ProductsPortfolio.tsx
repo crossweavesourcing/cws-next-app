@@ -4,20 +4,22 @@ import { useMemo, useState, useSyncExternalStore } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUpRight, Search } from 'lucide-react';
-import { productCategories, products, type ProductCategory } from '@/lib/products';
+import type { ProductDocument, CategoryDocument } from '@/types/catalog';
 
 type ProductsPortfolioProps = {
-  initialCategory?: ProductCategory | 'All';
+  initialCategory?: string;
+  products: ProductDocument[];
+  categories: CategoryDocument[];
 };
 
-function getCategoryFromLocation(): ProductCategory | 'All' | null {
+function getCategoryFromLocation(categories: CategoryDocument[]): string | null {
   if (typeof window === 'undefined') {
     return null;
   }
 
   const requestedCategory = new URLSearchParams(window.location.search).get('category');
-  return requestedCategory && productCategories.includes(requestedCategory as (typeof productCategories)[number])
-    ? (requestedCategory as ProductCategory | 'All')
+  return requestedCategory && categories.some(c => c.name === requestedCategory) || requestedCategory === 'All'
+    ? requestedCategory
     : null;
 }
 
@@ -31,25 +33,30 @@ function subscribeToCategoryChanges(callback: () => void) {
   };
 }
 
-export default function ProductsPortfolio({ initialCategory = 'All' }: ProductsPortfolioProps) {
+export default function ProductsPortfolio({ initialCategory = 'All', products, categories }: ProductsPortfolioProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const urlCategory = useSyncExternalStore(subscribeToCategoryChanges, getCategoryFromLocation, () => null);
-  const activeCategory = urlCategory ?? initialCategory;
+  
+  const getLoc = () => getCategoryFromLocation(categories);
+  const urlCategory = useSyncExternalStore(subscribeToCategoryChanges, getLoc, () => null);
+  const activeCategoryName = urlCategory ?? initialCategory;
 
   const filteredProducts = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
     return products.filter((product) => {
-      const categoryMatches = activeCategory === 'All' || product.category === activeCategory;
+      const category = categories.find(c => c._id?.toString() === product.categoryId?.toString());
+      const categoryName = category?.name || 'Unknown';
+      const categoryMatches = activeCategoryName === 'All' || categoryName === activeCategoryName;
+      
       const searchMatches =
         !normalizedSearch ||
-        [product.name, product.category, product.shortDescription].some((value) =>
-          value.toLowerCase().includes(normalizedSearch),
+        [product.name, categoryName, product.shortDescription].some((value) =>
+          value?.toLowerCase().includes(normalizedSearch),
         );
 
       return categoryMatches && searchMatches;
     });
-  }, [activeCategory, searchTerm]);
+  }, [activeCategoryName, searchTerm, products, categories]);
 
   return (
     <section className="py-16 md:py-24 bg-white border-t border-gray-100">
@@ -81,61 +88,83 @@ export default function ProductsPortfolio({ initialCategory = 'All' }: ProductsP
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {productCategories.map((category) => (
+          <button
+            type="button"
+            onClick={() => {
+              window.history.replaceState(null, '', '/products');
+              window.dispatchEvent(new Event('cws-products-category-change'));
+            }}
+            className={`h-10 border px-4 text-[11px] font-bold uppercase tracking-[0.18em] transition-colors ${
+              activeCategoryName === 'All'
+                ? 'border-[#E02424] bg-[#E02424] text-white'
+                : 'border-neutral-200 bg-white text-neutral-700 hover:border-[#E02424]/50 hover:text-[#E02424]'
+            }`}
+          >
+            All
+          </button>
+          {categories.map((category) => (
             <button
-              key={category}
+              key={category._id?.toString()}
               type="button"
               onClick={() => {
-                const nextUrl = category === 'All' ? '/products' : `/products?category=${encodeURIComponent(category)}`;
+                const nextUrl = `/products?category=${encodeURIComponent(category.name)}`;
                 window.history.replaceState(null, '', nextUrl);
                 window.dispatchEvent(new Event('cws-products-category-change'));
               }}
               className={`h-10 border px-4 text-[11px] font-bold uppercase tracking-[0.18em] transition-colors ${
-                activeCategory === category
+                activeCategoryName === category.name
                   ? 'border-[#E02424] bg-[#E02424] text-white'
                   : 'border-neutral-200 bg-white text-neutral-700 hover:border-[#E02424]/50 hover:text-[#E02424]'
               }`}
             >
-              {category}
+              {category.name}
             </button>
           ))}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6">
-          {filteredProducts.map((product) => (
-            <Link
-              key={product.slug}
-              href={`/products/${product.slug}`}
-              className="group bg-[#F9F9F9] border border-neutral-100 transition-colors hover:border-[#E02424]/30 hover:bg-white"
-            >
-              <div className="relative h-72 overflow-hidden bg-neutral-200">
-                <Image
-                  src={product.images[0] ?? product.image}
-                  alt={product.name}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-black/5 transition-colors group-hover:bg-black/0" />
-              </div>
-              <article className="p-6 sm:p-8 space-y-5">
-                <div className="flex items-center justify-between gap-4 border-b border-neutral-200 pb-4">
-                  <span className="text-[10px] font-sans font-bold uppercase tracking-[0.24em] text-[#E02424]">
-                    {product.category}
-                  </span>
-                  <ArrowUpRight className="h-4 w-4 text-neutral-400 transition-colors group-hover:text-[#E02424]" />
+          {filteredProducts.map((product) => {
+            const category = categories.find(c => c._id?.toString() === product.categoryId?.toString());
+            const categoryName = category?.name || 'Unknown';
+            const images = product.images?.length ? product.images : (product.image ? [product.image] : []);
+            
+            return (
+              <Link
+                key={product.slug}
+                href={`/products/${product.slug}`}
+                className="group bg-[#F9F9F9] border border-neutral-100 transition-colors hover:border-[#E02424]/30 hover:bg-white"
+              >
+                <div className="relative h-72 overflow-hidden bg-neutral-200">
+                  {images[0] && (
+                    <Image
+                      src={images[0]}
+                      alt={product.name}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-black/5 transition-colors group-hover:bg-black/0" />
                 </div>
-                <div className="space-y-3">
-                  <h3 className="text-base sm:text-lg font-sans font-bold uppercase tracking-[0.12em] text-neutral-950 leading-snug">
-                    {product.name}
-                  </h3>
-                  <p className="text-sm sm:text-base leading-relaxed text-neutral-600 font-sans font-light">
-                    {product.shortDescription}
-                  </p>
-                </div>
-              </article>
-            </Link>
-          ))}
+                <article className="p-6 sm:p-8 space-y-5">
+                  <div className="flex items-center justify-between gap-4 border-b border-neutral-200 pb-4">
+                    <span className="text-[10px] font-sans font-bold uppercase tracking-[0.24em] text-[#E02424]">
+                      {categoryName}
+                    </span>
+                    <ArrowUpRight className="h-4 w-4 text-neutral-400 transition-colors group-hover:text-[#E02424]" />
+                  </div>
+                  <div className="space-y-3">
+                    <h3 className="text-base sm:text-lg font-sans font-bold uppercase tracking-[0.12em] text-neutral-950 leading-snug">
+                      {product.name}
+                    </h3>
+                    <p className="text-sm sm:text-base leading-relaxed text-neutral-600 font-sans font-light">
+                      {product.shortDescription}
+                    </p>
+                  </div>
+                </article>
+              </Link>
+            );
+          })}
         </div>
 
         {filteredProducts.length === 0 && (
