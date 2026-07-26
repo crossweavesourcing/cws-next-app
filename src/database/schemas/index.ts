@@ -21,6 +21,8 @@ import { webauthnCredentialsSchema } from './webauthn-credentials.schema';
 import { mobileAuthChallengesSchema } from './mobile-auth-challenges.schema';
 import { categoriesSchema } from './categories.schema';
 import { productsSchema } from './products.schema';
+import { sectionsSchema } from './sections.schema';
+import { pendingAuthenticationsSchema } from './pending-authentications.schema';
 
 /**
  * Map of every collection name → its $jsonSchema body.
@@ -51,6 +53,8 @@ export const ALL_SCHEMAS: Record<CollectionName, Document> = {
   [COLLECTION_NAMES.MOBILE_AUTH_CHALLENGES]: mobileAuthChallengesSchema,
   [COLLECTION_NAMES.CATEGORIES]:          categoriesSchema,
   [COLLECTION_NAMES.PRODUCTS]:            productsSchema,
+  [COLLECTION_NAMES.SECTIONS]:            sectionsSchema,
+  [COLLECTION_NAMES.PENDING_AUTHENTICATIONS]: pendingAuthenticationsSchema,
 } as const;
 
 // Named re-exports for direct import
@@ -73,4 +77,8 @@ export {
   totpCredentialsSchema,
   webauthnCredentialsSchema,
   mobileAuthChallengesSchema,
+  categoriesSchema,
+  productsSchema,
+  sectionsSchema,
+  pendingAuthenticationsSchema,
 };

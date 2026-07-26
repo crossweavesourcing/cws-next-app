@@ -17,6 +17,7 @@ export default async function CategoriesRoute() {
     _id: cat._id.toString(),
     createdAt: cat.createdAt.toISOString(),
     updatedAt: cat.updatedAt.toISOString(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   })) as any[];
 
   return <CategoryManagerClient categories={serializedCategories} />;

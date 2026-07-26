@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Search, Pencil } from 'lucide-react';
+import { Search, Pencil, Trash2 } from 'lucide-react';
 import type { ProductDocument, CategoryDocument } from '@/types/catalog';
 import { Panel } from '../_components/DashboardComponents';
+import { deleteProduct } from '@/auth/actions/product.actions';
+import { ConfirmDeleteModal } from '../_components/ConfirmDeleteModal';
 
 export function ProductManagerClient({ 
   products, 
@@ -16,6 +18,31 @@ export function ProductManagerClient({
 }) {
   const [activeCategory, setActiveCategory] = useState<string>('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingName, setDeletingName] = useState<string>('');
+  const [isPending, setIsPending] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const handleDeleteClick = (id: string, name: string) => {
+    setDeletingId(id);
+    setDeletingName(name);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingId) return;
+    setIsPending(true);
+    setFeedback(null);
+
+    const res = await deleteProduct(deletingId);
+    setIsPending(false);
+    setDeletingId(null);
+
+    if (res.success) {
+      setFeedback({ type: 'success', message: `Product "${deletingName}" was deleted successfully.` });
+    } else {
+      setFeedback({ type: 'error', message: res.error || 'Failed to delete product.' });
+    }
+  };
 
   // Filter products
   const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -28,12 +55,24 @@ export function ProductManagerClient({
 
   return (
     <Panel eyebrow="Product Manager" title="Products, Descriptions And Media">
+      {feedback && (
+        <div
+          className={`mb-4 border p-3 text-sm font-semibold ${
+            feedback.type === 'success'
+              ? 'border-green-500/30 bg-green-500/10 text-green-400'
+              : 'border-red-500/30 bg-red-500/10 text-red-400'
+          }`}
+        >
+          {feedback.message}
+        </div>
+      )}
+
       <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <Link
           href="/dashboard/products/new"
           scroll={false}
           prefetch={true}
-          className="inline-block bg-[#E02424] text-white px-4 py-2 text-xs font-bold uppercase tracking-wider"
+          className="inline-block bg-[#E02424] text-white px-4 py-2 text-xs font-bold uppercase tracking-wider hover:bg-[#c91f1f] transition-colors"
         >
           + Add New Product
         </Link>
@@ -79,10 +118,11 @@ export function ProductManagerClient({
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {filteredProducts.map((product) => {
           const category = categories.find(c => c._id?.toString() === product.categoryId?.toString());
+          const productId = product._id?.toString() || '';
           
           return (
             <article
-              key={product._id?.toString()}
+              key={productId}
               className="flex flex-col border bg-white transition-colors border-neutral-200 hover:border-neutral-300"
             >
               <div className="relative h-48 w-full overflow-hidden bg-neutral-200">
@@ -95,15 +135,24 @@ export function ProductManagerClient({
                     className="object-cover"
                   />
                 )}
-                <div className="absolute top-2 right-2 flex gap-2">
+                <div className="absolute top-2 right-2 flex gap-1.5 z-10">
                   <Link
-                    href={`/dashboard/products/${product._id}/edit`}
+                    href={`/dashboard/products/${productId}/edit`}
                     scroll={false}
                     prefetch={true}
-                    className="bg-white/90 p-2 shadow hover:bg-[#E02424] hover:text-white transition-colors"
+                    className="bg-white/90 p-2 shadow hover:bg-[#E02424] hover:text-white transition-colors text-neutral-600"
+                    aria-label={`Edit ${product.name}`}
                   >
                     <Pencil className="w-4 h-4" />
                   </Link>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteClick(productId, product.name)}
+                    className="bg-white/90 p-2 shadow hover:bg-[#E02424] hover:text-white transition-colors text-neutral-600"
+                    aria-label={`Delete ${product.name}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
                 {!product.visible && (
                   <div className="absolute top-2 left-2 bg-neutral-900/80 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white">
@@ -126,6 +175,15 @@ export function ProductManagerClient({
           );
         })}
       </div>
+
+      <ConfirmDeleteModal
+        isOpen={Boolean(deletingId)}
+        title="Delete Product"
+        itemName={deletingName}
+        isPending={isPending}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeletingId(null)}
+      />
     </Panel>
   );
 }

@@ -5,11 +5,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUpRight, Search } from 'lucide-react';
 import type { ProductDocument, CategoryDocument } from '@/types/catalog';
+import type { SectionContent } from '@/lib/section-definitions';
 
 type ProductsPortfolioProps = {
   initialCategory?: string;
   products: ProductDocument[];
   categories: CategoryDocument[];
+  section?: { paused: boolean; content?: SectionContent };
 };
 
 function getCategoryFromLocation(categories: CategoryDocument[]): string | null {
@@ -33,7 +35,8 @@ function subscribeToCategoryChanges(callback: () => void) {
   };
 }
 
-export default function ProductsPortfolio({ initialCategory = 'All', products, categories }: ProductsPortfolioProps) {
+export default function ProductsPortfolio({ initialCategory = 'All', products, categories, section }: ProductsPortfolioProps) {
+  const copy = (key: string, fallback: string) => typeof section?.content?.[key] === 'string' ? section.content[key] as string : fallback;
   const [searchTerm, setSearchTerm] = useState('');
   
   const getLoc = () => getCategoryFromLocation(categories);
@@ -58,16 +61,18 @@ export default function ProductsPortfolio({ initialCategory = 'All', products, c
     });
   }, [activeCategoryName, searchTerm, products, categories]);
 
+  if (section?.paused) return null;
+
   return (
     <section className="py-16 md:py-24 bg-white border-t border-gray-100">
       <div className="max-w-7xl mx-auto px-6 md:px-12 space-y-10">
         <div id='products' className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-end">
           <div className="lg:col-span-5 space-y-3">
             <span className="block text-xs sm:text-sm font-sans font-bold text-[#E02424] uppercase tracking-[0.3em]">
-              Manufacturing Portfolio
+              {copy('eyebrow', 'Manufacturing Portfolio')}
             </span>
             <h2  className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-neutral-900 tracking-tight uppercase leading-snug">
-              All Products
+              {copy('heading', 'All Products')}
             </h2>
           </div>
           <div className="lg:col-span-7 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
@@ -77,12 +82,12 @@ export default function ProductsPortfolio({ initialCategory = 'All', products, c
               <input
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
-                placeholder="Search products"
+                placeholder={copy('searchPlaceholder', 'Search products')}
                 className="h-12 w-full border border-neutral-200 bg-[#F9F9F9] pl-11 pr-4 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424] focus:bg-white"
               />
             </label>
             <span className="h-12 px-5 inline-flex items-center justify-center border border-neutral-200 bg-[#F9F9F9] text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-500">
-              {filteredProducts.length} Items
+              {filteredProducts.length} {copy('itemLabel', 'Items')}
             </span>
           </div>
         </div>
@@ -170,7 +175,7 @@ export default function ProductsPortfolio({ initialCategory = 'All', products, c
         {filteredProducts.length === 0 && (
           <div className="border border-neutral-200 bg-[#F9F9F9] p-8 text-center">
             <p className="text-sm text-neutral-600 font-light">
-              No products match the current search. Try another category or keyword.
+              {copy('emptyMessage', 'No products match the current search. Try another category or keyword.')}
             </p>
           </div>
         )}

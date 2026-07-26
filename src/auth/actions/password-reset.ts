@@ -1,13 +1,13 @@
 'use server';
 
-import { PasswordService } from '../services/password.service';
+import { PasswordService, WeakPasswordConfirmationRequiredError } from '../services/password.service';
 import { LoginAttemptRepository } from '../repositories/login-attempt.repository';
 import { loginSchema } from '../validation/login.schema';
 import { withCsrfGuard } from '../lib/csrf';
 import { getClientIp } from '../lib/request';
 
 export type RequestResetState = { error?: string; success?: boolean };
-export type ResetPasswordState = { error?: string; success?: boolean };
+export type ResetPasswordState = { error?: string; success?: boolean; requiresWeakConfirmation?: boolean };
 
 // ─── Password-reset rate limits (MongoDB-backed, shared across instances). ────
 // Request: ≤ 5 requests / 15min per email AND ≤ 20 / 15min per IP.
@@ -22,10 +22,6 @@ const PWRESET_SUBMIT_WINDOW_MS = 15 * 60 * 1000;
 function pwresetRequestId(email: string): string {
   return `pwreset:request:${email.trim().toLowerCase()}`;
 }
-function pwresetSubmitId(email: string): string {
-  return `pwreset:submit:${email.trim().toLowerCase()}`;
-}
-
 /**
  * Server Action: request a password reset email. Never reveals whether the
  * email exists (always returns success).
@@ -126,9 +122,12 @@ async function resetPasswordActionImpl(
 
   const service = new PasswordService();
   try {
-    await service.resetPassword(token, newPassword);
+    await service.resetPassword(token, newPassword, formData.get('acceptWeakPassword') === 'true');
     return { success: true };
   } catch (err) {
+    if (err instanceof WeakPasswordConfirmationRequiredError) {
+      return { error: err.message, requiresWeakConfirmation: true };
+    }
     // Record the failed submit so the throttle counter above accrues.
     await attemptRepo.recordAttempt({
       userId: null,
@@ -150,4 +149,3 @@ async function resetPasswordActionImpl(
 
 export const requestResetAction = withCsrfGuard(requestResetActionImpl);
 export const resetPasswordAction = withCsrfGuard(resetPasswordActionImpl);
-

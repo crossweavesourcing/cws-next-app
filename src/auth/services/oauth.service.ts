@@ -8,7 +8,9 @@ import { AuditLogRepository } from '../repositories/audit-log.repository';
 import { AlertingService } from './alerting.service';
 import { getEnv, getMobileAuthConfig } from '../config/env';
 import { ensureDeviceId, setServerDeviceToken } from '../lib/device';
-import { OAuthProviderUnavailableError } from '../errors/auth-errors';
+import { OAuthProviderUnavailableError, AccountLockedError } from '../errors/auth-errors';
+import { evaluateLoginRisk } from '../risk/evaluate-login-risk';
+import { PendingAuthenticationRepository } from '../repositories/pending-authentication.repository';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
@@ -193,9 +195,8 @@ export class OAuthService {
     userAgent: string | null
   ): Promise<
     | { status: 'authenticated'; sessionCookie: string; refreshToken: string }
-    | { status: 'mfa_required'; userId: ObjectId }
+    | { status: 'mfa_required'; userId: ObjectId; pendingAuthToken?: string }
     | { status: 'force_change'; userId: ObjectId }
-    | { status: 'step_up'; userId: ObjectId }
   > {
     try {
       return await this.handleCallbackInternal(
@@ -234,9 +235,8 @@ export class OAuthService {
     userAgent: string | null
   ): Promise<
     | { status: 'authenticated'; sessionCookie: string; refreshToken: string }
-    | { status: 'mfa_required'; userId: ObjectId }
+    | { status: 'mfa_required'; userId: ObjectId; pendingAuthToken?: string }
     | { status: 'force_change'; userId: ObjectId }
-    | { status: 'step_up'; userId: ObjectId }
   > {
     const env = getEnv();
     if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET || !env.GOOGLE_REDIRECT_URI) {
@@ -278,19 +278,56 @@ export class OAuthService {
     // later workstream), not to login-time linking — and login-time auto-linking
     // was removed (FIX-C3) to prevent account takeover via verified-email match.
 
-    // FIX-03: OAuth must enforce the same post-auth steps as password login.
-    // MFA-enabled and force-password-change accounts are gated here instead of
-    // being silently fully authenticated via Google.
-    if (user.security?.mfaEnabled) {
-      return { status: 'mfa_required', userId };
+    // Risk Evaluation
+    const device = await ensureDeviceId();
+    const serverDeviceId = device?.serverDeviceId ?? null;
+    const clientDeviceId = device?.clientDeviceId ?? null;
+
+    const riskEval = await evaluateLoginRisk({
+      userId,
+      user: user,
+      ipAddress,
+      userAgent,
+      serverDeviceId,
+      clientDeviceId,
+      primaryAuthenticationMethod: 'google',
+    });
+
+    if (riskEval.policyDecision.action === 'block') {
+      throw new AccountLockedError(new Date(Date.now() + 15 * 60 * 1000), 'Authentication blocked by security policy');
     }
+
+    if (riskEval.policyDecision.action === 'require_2fa' || riskEval.policyDecision.action === 'require_strong_2fa') {
+      const pendingRepo = new PendingAuthenticationRepository();
+      const tokenBytes = crypto.randomBytes(32);
+      const token = tokenBytes.toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+      const deviceObjectId = device?.serverDeviceId ?? null;
+      await pendingRepo.create({
+        userId,
+        primaryAuthenticationMethod: 'google',
+        requiredAction: riskEval.policyDecision.action,
+        deviceObjectId,
+        riskLevel: riskEval.riskDecision.level,
+        riskScore: riskEval.riskDecision.score,
+        riskReasonCodes: riskEval.riskDecision.reasons.map(r => r.code),
+        tokenHash,
+        attemptsRemaining: 5,
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+        consumedAt: null,
+      });
+
+      return { status: 'mfa_required', userId, pendingAuthToken: token };
+    }
+
     if (user.security?.forcePasswordChange || (await this.passwordService.isExpired(userId))) {
       // Keep the flag set so the force-change flow behaves identically to login.
       await this.userRepo.forcePasswordChange(userId);
       return { status: 'force_change', userId };
     }
 
-    const device = await ensureDeviceId();
     const result = await this.sessionService.createSession(
       userId,
       ipAddress,
@@ -298,17 +335,6 @@ export class OAuthService {
       'google',
       device
     );
-
-    // Step-up path (Item 9): session created but revoked pending email 2FA.
-    // Return `step_up` so the route sets `cws_stepup_pending` + redirects.
-    if (result.status === 'step_up') {
-      // Registration may have rotated an account-scoped device identity. Store
-      // it before redirecting so the verification request sees the same row.
-      if (result.deviceObjectId) {
-        await setServerDeviceToken(result.deviceObjectId);
-      }
-      return { status: 'step_up', userId };
-    }
 
     const { sessionId, sessionCookie, refreshToken, deviceObjectId } = result;
 
@@ -475,7 +501,7 @@ export class OAuthService {
     userAgent: string | null
   ): Promise<
     | { status: 'authenticated'; sessionId: string; refreshToken: string }
-    | { status: 'mfa_required'; userId: ObjectId; availableMethods: string[] }
+    | { status: 'mfa_required'; userId: ObjectId; pendingAuthToken: string; availableMethods: string[] }
     | { status: 'force_change'; userId: ObjectId }
   > {
     const env = getEnv();
@@ -490,13 +516,48 @@ export class OAuthService {
     if (!user || user.status !== 'active') throw new Error('This account is not active.');
 
     await this.oauthRepo.touchLastUsed(profile.sub, 'google');
-    if (user.security?.mfaEnabled) {
+    const riskEval = await evaluateLoginRisk({
+      userId: user._id,
+      user: user,
+      ipAddress,
+      userAgent,
+      serverDeviceId: null,
+      clientDeviceId: null,
+      primaryAuthenticationMethod: 'google',
+    });
+
+    if (riskEval.policyDecision.action === 'block') {
+      throw new AccountLockedError(new Date(Date.now() + 15 * 60 * 1000), 'Authentication blocked by security policy');
+    }
+
+    if (riskEval.policyDecision.action === 'require_2fa' || riskEval.policyDecision.action === 'require_strong_2fa') {
+      const pendingRepo = new PendingAuthenticationRepository();
+      const tokenBytes = crypto.randomBytes(32);
+      const token = tokenBytes.toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+      await pendingRepo.create({
+        userId: user._id,
+        primaryAuthenticationMethod: 'google',
+        requiredAction: riskEval.policyDecision.action,
+        deviceObjectId: null, // Mobile flow has no device cookie
+        riskLevel: riskEval.riskDecision.level,
+        riskScore: riskEval.riskDecision.score,
+        riskReasonCodes: riskEval.riskDecision.reasons.map(r => r.code),
+        tokenHash,
+        attemptsRemaining: 5,
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+        consumedAt: null,
+      });
+
       const methods: string[] = [];
       if (user.security.webAuthnEnabled) methods.push('webauthn');
       if (user.security.totpEnabled) methods.push('totp');
       methods.push('email');
-      return { status: 'mfa_required', userId: user._id, availableMethods: methods };
+      return { status: 'mfa_required', userId: user._id, availableMethods: methods, pendingAuthToken: token };
     }
+
     if (user.security?.forcePasswordChange || (await this.passwordService.isExpired(user._id))) {
       await this.userRepo.forcePasswordChange(user._id);
       return { status: 'force_change', userId: user._id };
@@ -509,7 +570,7 @@ export class OAuthService {
       null,
       { platform: 'mobile' }
     );
-    if (result.status !== 'authenticated') return { status: 'mfa_required', userId: user._id, availableMethods: ['email'] };
+
     await this.auditRepo.log({
       userId: user._id,
       sessionId: new ObjectId(result.sessionId),

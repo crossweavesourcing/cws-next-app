@@ -19,8 +19,10 @@ import { recoveryCodesIndexes }       from './recovery-codes.indexes';
 import { totpCredentialsIndexes }     from './totp-credentials.indexes';
 import { webauthnCredentialsIndexes } from './webauthn-credentials.indexes';
 import { mobileAuthChallengesIndexes } from './mobile-auth-challenges.indexes';
+import { pendingAuthenticationsIndexes } from './pending-authentications.indexes';
 import { categoriesIndexes } from './categories.indexes';
 import { productsIndexes } from './products.indexes';
+import { sectionsIndexes } from './sections.indexes';
 
 /**
  * Map of every collection name → its IndexDescription array.
@@ -47,8 +49,10 @@ export const ALL_INDEXES: Record<CollectionName, IndexDescription[]> = {
   [COLLECTION_NAMES.TOTP_CREDENTIALS]:    totpCredentialsIndexes,
   [COLLECTION_NAMES.WEBAUTHN_CREDENTIALS]: webauthnCredentialsIndexes,
   [COLLECTION_NAMES.MOBILE_AUTH_CHALLENGES]: mobileAuthChallengesIndexes,
+  [COLLECTION_NAMES.PENDING_AUTHENTICATIONS]: pendingAuthenticationsIndexes,
   [COLLECTION_NAMES.CATEGORIES]: categoriesIndexes,
   [COLLECTION_NAMES.PRODUCTS]: productsIndexes,
+  [COLLECTION_NAMES.SECTIONS]: sectionsIndexes,
 };
 
 // Named re-exports
@@ -71,4 +75,8 @@ export {
   totpCredentialsIndexes,
   webauthnCredentialsIndexes,
   mobileAuthChallengesIndexes,
+  pendingAuthenticationsIndexes,
+  categoriesIndexes,
+  productsIndexes,
+  sectionsIndexes,
 };

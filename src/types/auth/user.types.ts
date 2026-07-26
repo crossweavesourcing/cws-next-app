@@ -1,5 +1,6 @@
 import type { ObjectId } from 'mongodb';
 import type { UserRole, UserStatus, LoginMethod, HashAlgorithm, AvatarSource } from './shared.types';
+import type { PasswordStrengthCategory } from '@/auth/validation/password-strength';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-interfaces
@@ -44,16 +45,23 @@ export interface UserPassword {
   algorithm: HashAlgorithm;
 }
 
+export type TwoFaPreference = 'always' | 'new_device_only';
+
 export interface UserSecurity {
   failedLoginAttempts:       number;
   /** null = not locked. */
   lockedUntil:               Date | null;
   mfaEnabled:                boolean;
+  twoFaPreference?:          TwoFaPreference;
   totpEnabled?:              boolean;
   webAuthnEnabled?:          boolean;
   lastPasswordResetRequestAt: Date | null;
   forcePasswordChange:       boolean;
   accountSecurityVersion:    number;
+  passwordStrengthCategory?: PasswordStrengthCategory | null;
+  passwordStrengthPercent?: number | null;
+  passwordStrengthEvaluatedAt?: Date | null;
+  passwordStrengthEvaluatorVersion?: string | null;
 }
 
 export interface UserMetadata {

@@ -48,7 +48,6 @@ export class SessionService {
     options: { platform?: Platform } = {}
   ): Promise<
     | { status: 'authenticated'; sessionId: string; sessionCookie: string; refreshToken: string; deviceObjectId: ObjectId | null }
-    | { status: 'step_up'; userId: ObjectId; sessionCookie: undefined; refreshToken: undefined; deviceObjectId: ObjectId | null }
   > {
     const env = getEnv();
 
@@ -93,7 +92,6 @@ export class SessionService {
     // — it cannot be client-chosen. The legacy client UUID (`clientDeviceId`) is
     // persisted only as a correlation hint (e.g. device management UI label).
     let deviceObjectId: ObjectId | null = null;
-    let stepUpRequired = false; // set when device/geo signals warrant step-up 2FA
     // Resolved geo snapshot for this login (or null if the lookup is unavailable).
     // Hoisted so the session doc can persist the same geo the device saw.
     let resolvedLocation: DeviceLocation = { country: null, region: null, city: null };
@@ -116,21 +114,6 @@ export class SessionService {
           return { isNew: false, deviceObjectId: null, countryChanged: false };
         });
       deviceObjectId = result.deviceObjectId;
-
-      // Evaluate step-up (flag-gated). This may set `stepUpRequired` and, when
-      // triggered, emit its own audit/alert — it MUST NOT block the request if
-      // the flag is off or if evaluation fails (fail open to no step-up).
-      stepUpRequired = await this.evaluateStepUp({
-        userId,
-        ipAddress,
-        deviceObjectId,
-        isNewDevice: result.isNew,
-        countryChanged: result.countryChanged,
-        newCountry: resolvedLocation.country,
-      }).catch((err) => {
-        console.error('step-up evaluation failed (fail open):', err);
-        return false;
-      });
     }
 
     // FIX-14: snapshot the user's current account security version so a later
@@ -186,28 +169,6 @@ export class SessionService {
 
     // Point the session at the latest refresh token (O(1) current-token check).
     await this.sessionRepo.setLatestRefreshToken(sessionDoc._id, refreshDoc._id);
-
-    // ── Step-up gate (Item 9) ────────────────────────────────────────────────
-    // The session + refresh token already exist (so we can re-bind the same
-    // device on the eventual 2FA success), but they are NOT usable until the user
-    // completes email 2FA. We immediately revoke the "created" tokens and return a
-    // `step_up` result carrying the userId. The caller sets a signed
-    // `cws_stepup_pending` cookie (verified in verify2faAction) and redirects to
-    // /dashboard/verify-2fa. This path is reached ONLY when STEP_UP_ENABLED is
-    // true (see evaluateStepUp) — otherwise stepUpRequired is always false and the
-    // normal authenticated result below is returned.
-    if (stepUpRequired) {
-      await this.sessionRepo.revokeSession(
-        sessionDoc._id,
-        'system',
-        'Step-up 2FA required (new device or country change)'
-      );
-      await this.refreshTokenRepo.revokeBySession(
-        sessionDoc._id,
-        'step_up_pending'
-      );
-      return { status: 'step_up', userId, sessionCookie: undefined, refreshToken: undefined, deviceObjectId };
-    }
 
     const sessionIdStr = sessionDoc._id.toString();
     const sessionCookie = signSessionId(sessionIdStr, env.SESSION_SECRET);
@@ -627,69 +588,5 @@ export class SessionService {
     // No concrete geo available: fail open to null rather than asserting a bogus
     // "unknown-remote" country that could trip the country-change heuristic.
     return { country: null, region: null, city: null };
-  }
-
-  /**
-   * Decides whether a freshly created session must be stepped-up (email 2FA)
-   * before it becomes usable. Driven by `STEP_UP_ENABLED` (OFF by default).
-   *
-   * Triggers (either one):
-   *   - `isNewDevice` — first sign-in from this device for the user, OR
-   *   - `countryChanged` — known device but the resolved country differs from the
-   *     last-seen country.
-   *
-   * When triggered we audit + alert and return true. When the flag is off (or the
-   * lookup was unavailable so we cannot confidently assert a change) we return
-   * false — NO step-up, normal login path. This keeps the feature strictly
-   * opt-in behind a flag and fail-open.
-   */
-  private async evaluateStepUp(params: {
-    userId: ObjectId;
-    ipAddress: string | null;
-    deviceObjectId: ObjectId | null;
-    isNewDevice: boolean;
-    countryChanged: boolean;
-    newCountry: string | null;
-  }): Promise<boolean> {
-    // Feature flag: step-up is opt-in. Disabled → never block, alert-only stays.
-    if (!getEnv().STEP_UP_ENABLED) return false;
-
-    // Only step up on a *positive* signal: a new device, or a resolvable country
-    // change. If the geo lookup was unavailable (newCountry === null) we cannot
-    // assert a *change*, so we do not step up (avoid false positives during the
-    // monitoring rollout).
-    const triggered =
-      params.isNewDevice || (params.countryChanged && Boolean(params.newCountry));
-    if (!triggered) return false;
-
-    const reason = params.isNewDevice ? 'new_device' : 'country_change';
-    await this.auditRepo
-      .log({
-        userId: params.userId,
-        sessionId: null,
-        action: 'auth.login.stepup_required',
-        status: 'WARNING',
-        errorCode: 'AUTH_STEP_UP_REQUIRED',
-        actor: { type: 'user', id: params.userId },
-        source: { platform: 'web', appVersion: '0.1.0' },
-        correlationId: null,
-        requestId: null,
-        resource: { type: 'device', id: params.deviceObjectId?.toString() ?? 'unknown' },
-        metadata: { reason, newCountry: params.newCountry },
-        ipAddress: params.ipAddress,
-        userAgent: null,
-      })
-      .catch((err) => console.error('step-up audit failed:', err));
-
-    await this.alertingService
-      .recordFailure({
-        identifier: params.userId.toString(),
-        userId: params.userId,
-        ipAddress: params.ipAddress,
-        reason: `AUTH_STEP_UP_REQUIRED:${reason}`,
-      })
-      .catch((err) => console.error('step-up alert failed:', err));
-
-    return true;
   }
 }

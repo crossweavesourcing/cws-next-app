@@ -4,15 +4,15 @@ import { Send, CheckCircle2, XCircle, Loader2, X } from 'lucide-react';
 import { Provider as ContactFormProvider } from '@/context/ContactForm/Provider';
 import useContactForm from '@/context/ContactForm/useData';
 
-export default function ContactInformationForm() {
+export default function ContactInformationForm({ submitLabel = 'Contact Us' }: { submitLabel?: string }) {
   return (
     <ContactFormProvider>
-      <ContactInformationFormInner />
+      <ContactInformationFormInner submitLabel={submitLabel} />
     </ContactFormProvider>
   );
 }
 
-function ContactInformationFormInner() {
+function ContactInformationFormInner({ submitLabel }: { submitLabel: string }) {
   const { state, setField, submitForm } = useContactForm();
   const { formData, isSubmitting } = state;
 
@@ -134,7 +134,7 @@ function ContactInformationFormInner() {
             disabled={isSubmitting}
             className="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 bg-[#E02424] px-7 text-xs font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:bg-neutral-400"
           >
-            Contact Us
+            {submitLabel}
             <Send className="h-4 w-4" />
           </button>
         </div>

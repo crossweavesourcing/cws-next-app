@@ -22,6 +22,7 @@ export default async function EditCategoryPage({ params }: { params: Promise<{ i
     _id: category._id.toString(),
     createdAt: category.createdAt.toISOString(),
     updatedAt: category.updatedAt.toISOString(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
 
   return (

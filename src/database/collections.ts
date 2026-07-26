@@ -21,6 +21,7 @@ import type {
   MobileAuthChallengeDocument,
 } from '@/types/auth';
 import type { CategoryDocument, ProductDocument } from '@/types/catalog';
+import type { SectionDocument } from '@/types/section';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Typed Collection Accessors — all 11 collections in one file.
@@ -106,3 +107,8 @@ export const getCategoriesCollection =
 export const getProductsCollection =
   (): Promise<Collection<ProductDocument>> =>
     getDb().then(db => db.collection<ProductDocument>(COLLECTION_NAMES.PRODUCTS));
+
+export const getSectionsCollection =
+  (): Promise<Collection<SectionDocument>> =>
+    getDb().then(db => db.collection<SectionDocument>(COLLECTION_NAMES.SECTIONS));
+

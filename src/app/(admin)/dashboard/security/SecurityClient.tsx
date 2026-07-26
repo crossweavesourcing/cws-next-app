@@ -5,6 +5,7 @@ import {
   trustDeviceAction,
   blockDeviceAction,
   renameDeviceAction,
+  updateTwoFaPreferenceAction,
 } from '@/auth/actions/device';
 
 export interface LoginRow {
@@ -37,12 +38,23 @@ function formatDate(iso: string | null): string {
 export default function SecurityClient({
   loginRows,
   deviceRows,
+  twoFaPreference,
 }: {
   loginRows: LoginRow[];
   deviceRows: DeviceRow[];
+  twoFaPreference: 'always' | 'new_device_only';
 }) {
   return (
     <div className="space-y-10">
+      <section>
+        <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-neutral-500">
+          Two-Factor Authentication Settings
+        </h2>
+        <div className="border border-neutral-200 p-4">
+          <TwoFaPreferenceToggle preference={twoFaPreference} />
+        </div>
+      </section>
+
       <section>
         <h2 className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-neutral-500">
           Recent Login Activity
@@ -165,6 +177,53 @@ function RenameForm({ deviceId, label }: { deviceId: string; label: string }) {
       <button type="submit" disabled={isPending} className={actionBtn}>
         {isPending ? 'Saving…' : 'Rename'}
       </button>
+    </form>
+  );
+}
+
+export function TwoFaPreferenceToggle({ preference }: { preference: 'always' | 'new_device_only' }) {
+  const [, formAction, isPending] = useActionState(updateTwoFaPreferenceAction, undefined);
+
+  return (
+    <form action={formAction} className="flex flex-col gap-3">
+      <div>
+        <p className="text-sm font-bold text-neutral-900">Require 2FA</p>
+        <p className="mt-1 text-xs text-neutral-500">
+          Choose when you want to be asked for a verification code.
+        </p>
+      </div>
+      
+      <div className="flex flex-col gap-2 sm:flex-row sm:gap-6">
+        <label className="flex cursor-pointer items-center gap-2">
+          <input
+            type="radio"
+            name="preference"
+            value="new_device_only"
+            defaultChecked={preference === 'new_device_only'}
+            onChange={(e) => {
+              if (e.target.form) e.target.form.requestSubmit();
+            }}
+            disabled={isPending}
+            className="accent-black"
+          />
+          <span className="text-sm text-neutral-800">Only on new, untrusted devices</span>
+        </label>
+
+        <label className="flex cursor-pointer items-center gap-2">
+          <input
+            type="radio"
+            name="preference"
+            value="always"
+            defaultChecked={preference === 'always'}
+            onChange={(e) => {
+              if (e.target.form) e.target.form.requestSubmit();
+            }}
+            disabled={isPending}
+            className="accent-black"
+          />
+          <span className="text-sm text-neutral-800">Always</span>
+        </label>
+      </div>
     </form>
   );
 }

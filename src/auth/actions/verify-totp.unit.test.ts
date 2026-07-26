@@ -1,55 +1,56 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ObjectId } from 'mongodb';
+import * as crypto from 'crypto';
 
 const stores = vi.hoisted(() => ({
-  attempts: [] as Array<{
-    userId: ObjectId | null;
-    identifierType: string;
-    identifier: string;
-    ipAddress: string;
-    userAgent: string | null;
-    success: boolean;
-    failureReason: string | null;
-    createdAt: Date;
-  }>,
+  pendingAuths: new Map<string, any>(),
   cookies: new Map<string, { value: string; opts: Record<string, unknown> }>(),
+  clientIp: '203.0.113.10',
 }));
 
-vi.mock('@/database', () => ({
-  withRetry: async <T>(fn: () => Promise<T>) => fn(),
-  getLoginAttemptsCollection: async () => ({
-    async insertOne(doc: Record<string, unknown>) {
-      stores.attempts.push({
-        userId: doc.userId as ObjectId | null,
-        identifierType: doc.identifierType as string,
-        identifier: doc.identifier as string,
-        ipAddress: doc.ipAddress as string,
-        userAgent: (doc.userAgent as string) ?? null,
-        success: doc.success as boolean,
-        failureReason: (doc.failureReason as string) ?? null,
-        createdAt: new Date(),
-      });
-      return { insertedId: new ObjectId() };
-    },
-    async countDocuments(filter: Record<string, unknown>) {
-      const createdAt = filter.createdAt as { $gte?: Date } | undefined;
-      return stores.attempts.filter((attempt) => {
-        if (filter.identifier && attempt.identifier !== filter.identifier) return false;
-        if (filter.success === false && attempt.success !== false) return false;
-        if (createdAt?.$gte && attempt.createdAt < createdAt.$gte) return false;
+const mockUserId = new ObjectId('665f1a2b3c4d5e6f70819293');
+const opaqueToken = 'test_opaque_totp_token_32_bytes_hex';
+const tokenHash = crypto.createHash('sha256').update(opaqueToken).digest('hex');
+
+vi.mock('@/auth/repositories/pending-authentication.repository', () => ({
+  PendingAuthenticationRepository: class {
+    async findByTokenHash(hash: string) {
+      if (hash !== tokenHash) return null;
+      return stores.pendingAuths.get(hash) ?? null;
+    }
+    async decrementAttempts(id: ObjectId) {
+      const doc = Array.from(stores.pendingAuths.values()).find(d => d._id.equals(id));
+      if (doc) {
+        doc.attemptsRemaining = Math.max(0, doc.attemptsRemaining - 1);
+        return doc.attemptsRemaining;
+      }
+      return 0;
+    }
+    async consume(id: ObjectId) {
+      const doc = Array.from(stores.pendingAuths.values()).find(d => d._id.equals(id));
+      if (doc) {
+        doc.consumedAt = new Date();
         return true;
-      }).length;
-    },
-  }),
-  getAuditLogsCollection: async () => ({
-    async insertOne() {
-      return { insertedId: new ObjectId() };
-    },
-  }),
+      }
+      return false;
+    }
+  },
+}));
+
+vi.mock('@/auth/repositories/login-attempt.repository', () => ({
+  LoginAttemptRepository: class {
+    async recordAttempt() {}
+  },
+}));
+
+vi.mock('@/auth/repositories/audit-log.repository', () => ({
+  AuditLogRepository: class {
+    async log() {}
+  },
 }));
 
 vi.mock('@/auth/lib/request', () => ({
-  getClientIp: async () => '203.0.113.10',
+  getClientIp: async () => stores.clientIp,
   assertSameOrigin: async () => {},
   CsrfError: class extends Error {},
 }));
@@ -65,7 +66,7 @@ vi.mock('@/auth/services/mfa.service', () => ({
 vi.mock('@/auth/repositories/user.repository', () => ({
   UserRepository: class {
     async findById() {
-      return { _id: new ObjectId(), status: 'active', security: {}, profile: {} };
+      return { _id: mockUserId, status: 'active', security: {}, profile: {} };
     }
   },
 }));
@@ -83,13 +84,9 @@ vi.mock('@/auth/lib/device', () => ({
   setServerDeviceToken: async () => {},
 }));
 
-const SESSION_SECRET = 'unit_test_secret_that_is_long_enough_32b';
 vi.mock('next/headers', async () => {
-  const { signSessionId } = await import('@/auth/crypto/token');
-  const userId = new ObjectId('665f1a2b3c4d5e6f70819293');
-  const pending = signSessionId(userId.toString(), SESSION_SECRET);
   const cookieMap = new Map<string, { value: string }>([
-    ['cws_2fa_pending', { value: pending }],
+    ['cws_2fa_pending', { value: opaqueToken }],
   ]);
   const cookieStore = {
     get: (k: string) => cookieMap.get(k) ?? null,
@@ -111,7 +108,7 @@ vi.mock('@/auth/lib/cookies', () => ({
 }));
 
 vi.mock('@/auth/config/env', () => ({
-  getEnv: () => ({ SESSION_SECRET, APP_URL: 'http://localhost:3000' }),
+  getEnv: () => ({ SESSION_SECRET: 'unit_test_secret', APP_URL: 'http://localhost:3000' }),
 }));
 
 const { verifyTotpAction } = await import('./verify-totp');
@@ -124,12 +121,24 @@ function formData(): FormData {
 
 describe('verifyTotpAction — rate limiting', () => {
   beforeEach(() => {
-    stores.attempts.length = 0;
+    stores.pendingAuths.clear();
     stores.cookies.clear();
+
+    stores.pendingAuths.set(tokenHash, {
+      _id: new ObjectId(),
+      userId: mockUserId,
+      primaryAuthenticationMethod: 'password',
+      requiredAction: 'require_2fa',
+      tokenHash,
+      attemptsRemaining: 5,
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      consumedAt: null,
+    });
   });
 
-  it('blocks the 6th failed TOTP attempt and clears the pending cookie', async () => {
-    for (let i = 0; i < 5; i++) {
+  it('blocks the 5th failed TOTP attempt and clears the pending cookie', async () => {
+    for (let i = 0; i < 4; i++) {
       const res = await verifyTotpAction({}, formData());
       expect(res.error).toBeDefined();
       expect(res.error).not.toContain('Too many attempts');

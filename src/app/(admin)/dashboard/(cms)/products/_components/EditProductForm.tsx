@@ -1,54 +1,39 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import Image from 'next/image';
-import { UploadCloud, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { updateProduct } from '@/auth/actions/product.actions';
 import type { ProductDocument, CategoryDocument } from '@/types/catalog';
+import { MediaUploader, type MediaItem } from './MediaUploader';
 
 export function EditProductForm({ product, categories, onSuccess, onCancel }: { product: ProductDocument, categories: CategoryDocument[], onSuccess?: () => void, onCancel?: () => void }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
-  
-  const [dragActive, setDragActive] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(product.image || null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
 
-  const handleDrag = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') setDragActive(true);
-    else if (e.type === 'dragleave') setDragActive(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleFile(e.dataTransfer.files[0]);
+  useEffect(() => {
+    const initialItems: MediaItem[] = [];
+    if (product.image) {
+      initialItems.push({
+        id: 'main-' + Math.random().toString(36).substring(7),
+        type: 'existing',
+        url: product.image,
+        isFeatured: true,
+      });
     }
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    if (e.target.files && e.target.files[0]) {
-      handleFile(e.target.files[0]);
+    if (product.images && product.images.length > 0) {
+      product.images.forEach((imgUrl) => {
+        initialItems.push({
+          id: 'gallery-' + Math.random().toString(36).substring(7),
+          type: 'existing',
+          url: imgUrl,
+          isFeatured: false,
+        });
+      });
     }
-  };
+    setMediaItems(initialItems);
+  }, [product]);
 
-  const handleFile = (selectedFile: File) => {
-    setFile(selectedFile);
-    const objectUrl = URL.createObjectURL(selectedFile);
-    setPreview(objectUrl);
-  };
 
-  const clearFile = () => {
-    setFile(null);
-    setPreview(null);
-    if (inputRef.current) inputRef.current.value = '';
-  };
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -56,9 +41,24 @@ export function EditProductForm({ product, categories, onSuccess, onCancel }: { 
     setPending(true);
     setError('');
     
-    if (file) {
-      formData.set('image', file);
+    const featured = mediaItems.find(m => m.isFeatured);
+    const existingGalleryUrls = mediaItems.filter(m => m.type === 'existing' && !m.isFeatured).map(m => m.url!);
+    const newGalleryFiles = mediaItems.filter(m => m.type === 'new' && !m.isFeatured).map(m => m.file!);
+
+    if (featured?.type === 'existing') {
+      formData.set('featuredMediaUrl', featured.url!);
+    } else if (featured?.type === 'new' && featured.file) {
+      formData.set('image', featured.file);
+    } else {
+      setError('Please select a featured media item (click the star icon)');
+      setPending(false);
+      return;
     }
+
+    formData.set('existingGalleryUrls', JSON.stringify(existingGalleryUrls));
+    
+    formData.delete('images');
+    newGalleryFiles.forEach(f => formData.append('images', f));
     
     const productId = product._id?.toString();
     if (!productId) {
@@ -130,51 +130,7 @@ export function EditProductForm({ product, categories, onSuccess, onCancel }: { 
         <textarea name="overview" defaultValue={product.overview} required className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors placeholder:text-neutral-600 focus:border-[#E02424] focus:bg-white/[0.09] focus-visible:ring-2 focus-visible:ring-[#E02424]/30" rows={3} />
       </div>
 
-      <div>
-        <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Main Image</label>
-        <div 
-          className={`relative border-2 border-dashed bg-black/15 p-6 text-center transition-colors ${dragActive ? 'border-[#E02424] bg-[#E02424]/10' : 'border-white/20 hover:border-white/40'} ${preview ? 'border-none p-0' : ''}`}
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-        >
-          {preview ? (
-            <div className="relative h-48 w-full overflow-hidden border border-white/20">
-              <Image src={preview} alt="Preview" fill className="object-cover" />
-              <button 
-                type="button" 
-                onClick={clearFile}
-                aria-label="Remove selected main image"
-                className="absolute right-2 top-2 rounded-full bg-black/70 p-2 text-white transition-colors hover:bg-[#E02424] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <button type="button" className="flex w-full flex-col items-center justify-center space-y-2 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E02424]" onClick={() => inputRef.current?.click()}>
-              <UploadCloud className="w-8 h-8 text-neutral-400" />
-              <p className="text-sm text-neutral-400">
-                <span className="text-white font-bold">Click to upload</span> or drag and drop
-              </p>
-              <p className="text-xs text-neutral-500">PNG, JPG, WEBP up to 5MB</p>
-            </button>
-          )}
-          <input 
-            ref={inputRef}
-            type="file" 
-            name="image" 
-            accept="image/*" 
-            className="hidden" 
-            onChange={handleChange}
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Gallery Images (Optional, selecting new files replaces existing)</label>
-        <input type="file" name="images" multiple accept="image/*" className="w-full border border-white/10 bg-white/[0.06] p-2 text-sm text-neutral-300 file:mr-3 file:border-0 file:bg-[#E02424] file:px-3 file:py-2 file:text-xs file:font-bold file:uppercase file:tracking-wider file:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E02424]/40" />
-      </div>
+      <MediaUploader mediaItems={mediaItems} setMediaItems={setMediaItems} />
 
       <div className="mt-4 grid grid-cols-1 gap-4 border-t border-white/10 pt-5 sm:grid-cols-2">
         <div>

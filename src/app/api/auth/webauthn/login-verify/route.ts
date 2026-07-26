@@ -1,10 +1,9 @@
 import { NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
-import { ObjectId } from 'mongodb';
 import { MfaService } from '@/auth/services/mfa.service';
 import { SessionService } from '@/auth/services/session.service';
-import { verifySessionSignature } from '@/auth/crypto/token';
-import { getEnv } from '@/auth/config/env';
+import { PendingAuthenticationRepository } from '@/auth/repositories/pending-authentication.repository';
+import * as crypto from 'crypto';
 import { getClientIp } from '@/auth/lib/request';
 import { ensureDeviceId, setServerDeviceToken } from '@/auth/lib/device';
 import { setAuthCookies } from '@/auth/lib/cookies';
@@ -12,19 +11,22 @@ import { setAuthCookies } from '@/auth/lib/cookies';
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
-    const pending = cookieStore.get('cws_2fa_pending') ?? cookieStore.get('cws_stepup_pending');
+    const pending = cookieStore.get('cws_2fa_pending');
     const challengeCookie = cookieStore.get('cws_webauthn_challenge');
     
     if (!pending?.value || !challengeCookie?.value) {
       return NextResponse.json({ error: 'Session expired' }, { status: 401 });
     }
 
-    const userIdStr = verifySessionSignature(pending.value, getEnv().SESSION_SECRET);
-    if (!userIdStr) {
+    const tokenHash = crypto.createHash('sha256').update(pending.value).digest('hex');
+    const pendingRepo = new PendingAuthenticationRepository();
+    const pendingAuth = await pendingRepo.findByTokenHash(tokenHash);
+
+    if (!pendingAuth || pendingAuth.consumedAt || pendingAuth.expiresAt.getTime() < Date.now()) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
-    const userId = new ObjectId(userIdStr);
+    const userId = pendingAuth.userId;
     const body = await request.json();
     const mfaService = new MfaService();
     
@@ -59,6 +61,7 @@ export async function POST(request: Request) {
     }
 
     await setAuthCookies({ sessionCookie, refreshToken });
+    await pendingRepo.consume(pendingAuth._id);
 
     // Clear pending cookies
     for (const name of ['cws_2fa_pending', 'cws_stepup_pending', 'cws_webauthn_challenge']) {

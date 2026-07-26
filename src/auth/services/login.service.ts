@@ -7,6 +7,9 @@ import { SessionService } from './session.service';
 import { TwoFactorService } from './two-factor.service';
 import { PasswordService } from './password.service';
 import { AlertingService } from './alerting.service';
+import { evaluateLoginRisk } from '../risk/evaluate-login-risk';
+import { PendingAuthenticationRepository } from '../repositories/pending-authentication.repository';
+import * as crypto from 'crypto';
 import { verifyPassword } from '../crypto/password';
 import { DUMMY_HASH } from '../crypto/constants';
 import { loginSchema } from '../validation/login.schema';
@@ -49,7 +52,7 @@ export class LoginService {
     options: { platform?: Platform } = {}
   ): Promise<
     | { status: 'authenticated'; sessionId: string; sessionCookie: string; refreshToken: string; user: UserDocument; rememberMe: boolean }
-    | { status: 'mfa_required'; userId: ObjectId; availableMethods: string[] }
+    | { status: 'mfa_required'; userId: ObjectId; availableMethods: string[]; pendingAuthToken: string }
     | { status: 'force_change'; userId: ObjectId }
     | { status: 'step_up'; userId: ObjectId }
   > {
@@ -141,19 +144,57 @@ export class LoginService {
     await this.userRepo.resetFailedAttempts(userId);
     await this.userRepo.recordLastLogin(userId);
 
-    // 8b. MFA step-up logic.
-    if (user.security?.mfaEnabled) {
+    // 8a. Risk Evaluation
+    const device = options.platform === 'mobile' ? null : await ensureDeviceId();
+    const serverDeviceId = device?.serverDeviceId ?? null;
+    const clientDeviceId = device?.clientDeviceId ?? null;
+
+    const riskEval = await evaluateLoginRisk({
+      userId,
+      user: user!,
+      ipAddress,
+      userAgent,
+      serverDeviceId,
+      clientDeviceId,
+      primaryAuthenticationMethod: 'password',
+    });
+
+    if (riskEval.policyDecision.action === 'block') {
+      await this.recordFailure(userId, email, ipAddress, userAgent, 'Authentication blocked by risk policy');
+      throw new AccountLockedError(new Date(Date.now() + this.LOCKOUT_DURATION_MS), 'Authentication blocked by security policy');
+    }
+
+    if (riskEval.policyDecision.action === 'require_2fa' || riskEval.policyDecision.action === 'require_strong_2fa') {
+      const pendingRepo = new PendingAuthenticationRepository();
+      const tokenBytes = crypto.randomBytes(32);
+      const token = tokenBytes.toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+      const deviceObjectId = device?.serverDeviceId ?? null;
+      await pendingRepo.create({
+        userId,
+        primaryAuthenticationMethod: 'password',
+        requiredAction: riskEval.policyDecision.action,
+        deviceObjectId,
+        riskLevel: riskEval.riskDecision.level,
+        riskScore: riskEval.riskDecision.score,
+        riskReasonCodes: riskEval.riskDecision.reasons.map(r => r.code),
+        tokenHash,
+        attemptsRemaining: 5,
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000), // 15 mins
+        consumedAt: null,
+      });
+
       const availableMethods: string[] = [];
       if (user.security?.webAuthnEnabled) availableMethods.push('webauthn');
       if (user.security?.totpEnabled) availableMethods.push('totp');
-      availableMethods.push('email'); // Email fallback is always available
+      availableMethods.push('email');
 
-      // Only send the email code proactively if it is the ONLY method available.
-      // If they have TOTP/WebAuthn, sending an email immediately creates noise.
       if (availableMethods.length === 1 && availableMethods[0] === 'email') {
         await this.twoFactorService.sendCode(userId);
       }
-      return { status: 'mfa_required', userId, availableMethods };
+      return { status: 'mfa_required', userId, availableMethods, pendingAuthToken: token };
     }
 
     // 8c. Enforce password expiry policy. If the password is older than the
@@ -179,8 +220,7 @@ export class LoginService {
     rememberMe: boolean = false,
     platform: Platform = 'web'
   ): Promise<
-    | { status: 'authenticated'; sessionId: string; sessionCookie: string; refreshToken: string; user: UserDocument; rememberMe: boolean }
-    | { status: 'step_up'; userId: ObjectId }
+    { status: 'authenticated'; sessionId: string; sessionCookie: string; refreshToken: string; user: UserDocument; rememberMe: boolean }
   > {
     // 9. Generate active user session (+ first refresh token)
     const device = platform === 'mobile' ? null : await ensureDeviceId();
@@ -192,19 +232,6 @@ export class LoginService {
       device,
       { platform }
     );
-
-    // Step-up path (Item 9): the session was created but immediately revoked
-    // pending email 2FA. No cookies are issued yet — the caller sets a signed
-    // `cws_stepup_pending` cookie and redirects to /dashboard/verify-2fa.
-    if (result.status === 'step_up') {
-      // Device registration has already completed. Persist a rotated record id
-      // before the verification request so account switching does not present
-      // the previous user's device token and register another new device.
-      if (result.deviceObjectId && platform !== 'mobile') {
-        await setServerDeviceToken(result.deviceObjectId);
-      }
-      return { status: 'step_up', userId };
-    }
 
     const { sessionId, sessionCookie, refreshToken, deviceObjectId } = result;
 

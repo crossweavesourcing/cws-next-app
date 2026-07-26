@@ -1,8 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { loginAction } from '@/auth/actions/login';
+import { useState } from 'react';
 import {
   ArrowRight,
   CheckCircle2,
@@ -12,26 +10,16 @@ import {
   Mail,
 } from 'lucide-react';
 
-export default function LoginForm() {
-  const router = useRouter();
+export default function LoginForm({ initialError }: { initialError?: string }) {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [rememberDevice, setRememberDevice] = useState(true);
   
-  const [state, formAction, isPending] = useActionState(loginAction, undefined);
-
-  useEffect(() => {
-    if (state?.redirect) {
-      router.push(state.redirect);
-      router.refresh();
-    }
-  }, [state, router]);
-
   return (
-    <form action={formAction} className="space-y-5 p-6 sm:p-8">
-      {state?.error && (
+    <form action="/api/auth/login/" method="post" className="space-y-5 p-6 sm:p-8">
+      {initialError && (
         <div className="border border-red-500/25 bg-red-500/5 px-4 py-3 text-xs font-bold uppercase tracking-[0.14em] text-red-500">
-          {state.error}
+          {initialError}
         </div>
       )}
 
@@ -109,10 +97,9 @@ export default function LoginForm() {
 
       <button
         type="submit"
-        disabled={isPending}
         className="inline-flex min-h-12 w-full items-center justify-center gap-3 bg-[#E02424] px-5 py-3 text-center text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors hover:bg-neutral-950 disabled:bg-neutral-800 disabled:cursor-not-allowed"
       >
-        {isPending ? 'Verifying...' : 'Enter CMS Dashboard'}
+        Enter CMS Dashboard
         <ArrowRight className="h-4 w-4" />
       </button>
 

@@ -1,8 +1,7 @@
 import { requireActiveSession } from '@/auth/dal';
 import { redirect } from 'next/navigation';
-import { ObjectId } from 'mongodb';
 import { SessionRepository } from '@/auth/repositories/session.repository';
-import { LogOut, Monitor, ShieldCheck, Smartphone } from 'lucide-react';
+import { Monitor, ShieldCheck } from 'lucide-react';
 import SessionsClient from './SessionsClient';
 
 export default async function SessionsPage() {

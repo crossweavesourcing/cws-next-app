@@ -32,8 +32,12 @@ export function buildCsp(
     // Category image previews use URL.createObjectURL(), which produces a
     // browser-local blob: URL. Keep this permission scoped to images only.
     "img-src 'self' blob: data: https:",
+    "media-src 'self' blob: https:",
     `script-src ${scriptSources}`,
-    `style-src 'self' 'unsafe-inline' 'nonce-${nonce}' https://fonts.googleapis.com`,
+    // React and next/image emit element style attributes. Do not combine a
+    // nonce with unsafe-inline here: CSP ignores unsafe-inline when a nonce is
+    // present, which blocks those framework-generated attributes.
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' data: https://fonts.gstatic.com",
     "connect-src 'self'",
     "frame-ancestors 'none'",

@@ -30,6 +30,12 @@ const EXPECTED_DOCUMENTED_OPERATIONS = [
   { method: 'POST', path: '/api/mobile/v1/auth/logout', operationId: 'mobileLogout' },
   { method: 'GET', path: '/api/mobile/v1/users/{id}', operationId: 'getUserById' },
   { method: 'GET', path: '/api/mobile/v1/.well-known/jwks.json', operationId: 'getMobileJwks' },
+  { method: 'POST', path: '/api/mobile/v1/admin/categories', operationId: 'createCategoryMobile' },
+  { method: 'PUT', path: '/api/mobile/v1/admin/categories/{id}', operationId: 'updateCategoryMobile' },
+  { method: 'POST', path: '/api/mobile/v1/admin/products', operationId: 'createProductMobile' },
+  { method: 'PUT', path: '/api/mobile/v1/admin/products/{id}', operationId: 'updateProductMobile' },
+  { method: 'DELETE', path: '/api/mobile/v1/admin/products/{id}', operationId: 'deleteProductMobile' },
+  { method: 'POST', path: '/api/mobile/v1/admin/sessions/revoke', operationId: 'revokeSessionsMobile' },
 ];
 
 describe('OpenAPI Document Assembly', () => {
@@ -81,7 +87,7 @@ describe('OpenAPI Document Assembly', () => {
     expect(unique.size).toBe(operationIds.length);
   });
 
-  it('documents all 19 expected API operations', () => {
+  it('documents all expected API operations', () => {
     for (const expected of EXPECTED_DOCUMENTED_OPERATIONS) {
       const pathItem = doc.paths?.[expected.path];
       expect(pathItem).toBeDefined();
@@ -91,14 +97,14 @@ describe('OpenAPI Document Assembly', () => {
     }
   });
 
-  it('has 20 documented operations matching the expected count', () => {
+  it('has 29 documented operations matching the expected count', () => {
     let count = 0;
     for (const pathItem of Object.values(doc.paths ?? {})) {
       for (const method of ['get', 'post', 'put', 'patch', 'delete']) {
         if ((pathItem as Record<string, unknown>)[method]) count++;
       }
     }
-    expect(count).toBe(20);
+    expect(count).toBe(29);
   });
 
   it('documents the representative user endpoint with all expected fields', () => {

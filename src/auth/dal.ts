@@ -35,13 +35,11 @@ export const getAuthSession = cache(async (): Promise<SessionDocument | null> =>
     }
     return session;
   } catch (err) {
-    console.error('Session validation error in DAL:', err);
-    try {
-      cookieStore.delete(COOKIE_NAME);
-    } catch {
-      // Ignore errors in edge environments
-    }
-    return null;
+    console.error('Session validation database/infrastructure error in DAL:', err);
+    // Do NOT delete the session cookie on transient DB errors.
+    // Rethrow so the page renders a 500 error boundary rather than
+    // falsely wiping the cookie and redirecting the user to login.
+    throw err;
   }
 });
 

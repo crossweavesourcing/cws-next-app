@@ -1,73 +1,97 @@
+import Link from 'next/link';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  ExternalLink,
+  MonitorSmartphone,
+  ShieldCheck,
+} from 'lucide-react';
+import { getFriendlySecurityView } from '@/auth/services/friendly-security.service';
+import { DevicesTabbedManager } from './DevicesTabbedManager';
+import { TwoFaPreferenceToggle } from './SecurityClient';
 import { requireActiveSession } from '@/auth/dal';
-import { redirect } from 'next/navigation';
-import { LoginAttemptRepository } from '@/auth/repositories/login-attempt.repository';
-import { getDevicesCollection } from '@/database';
-import { ShieldCheck } from 'lucide-react';
-import SecurityClient from './SecurityClient';
+import { UserRepository } from '@/auth/repositories/user.repository';
 
 export default async function SecurityPage() {
+  const data = await getFriendlySecurityView();
   const session = await requireActiveSession();
-  if (!session) {
-    redirect('/dashboard/login');
-  }
-
-  const attemptRepo = new LoginAttemptRepository();
-  const attempts = await attemptRepo.recentForUser(session.userId, 30);
-
-  const devicesColl = await getDevicesCollection();
-  const devices = await devicesColl
-    .find({ userId: session.userId })
-    .sort({ lastUsedAt: -1 })
-    .limit(20)
-    .toArray();
-
-  const loginRows = attempts.map((a) => ({
-    id: a._id.toString(),
-    success: a.success,
-    ipAddress: a.ipAddress,
-    failureReason: a.failureReason,
-    createdAt: a.createdAt.toISOString(),
-    userAgent: a.userAgent,
-  }));
-
-  const deviceRows = devices.map((d) => ({
-    id: d._id.toString(),
-    deviceId: d.deviceId,
-    label: d.name ?? d.deviceId ?? 'Device',
-    lastSeenAt: d.lastSeenAt ? d.lastSeenAt.toISOString() : null,
-    trusted: d.trusted ?? false,
-    blocked: d.blocked ?? false,
-  }));
+  const user = await new UserRepository().findById(session.userId);
+  const twoFaPreference = user?.security?.twoFaPreference ?? 'always';
 
   return (
-    <main className="min-h-screen bg-[#101010] text-white font-sans antialiased selection:bg-[#E02424]/20 selection:text-white">
-      <div className="mx-auto flex min-h-screen max-w-5xl flex-col px-5 py-10 sm:px-8 lg:px-12">
-        <div className="flex items-center justify-between">
-          <span className="inline-flex min-h-9 items-center gap-2 border border-white/15 bg-white/5 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#E02424]">
-            <ShieldCheck className="h-4 w-4" /> CWS Admin Portal
-          </span>
-          <a
-            href="/dashboard"
-            className="text-[11px] font-bold uppercase tracking-[0.14em] text-neutral-400 underline hover:text-white"
+    <main className="min-h-screen bg-[#F5F5F3] text-neutral-950">
+      <header className="border-b border-neutral-200 bg-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-5 sm:px-8">
+          <Link
+            href="/dashboard/account-security"
+            className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.14em] text-neutral-600 hover:text-[#E02424]"
           >
-            Back to dashboard
-          </a>
+            <ArrowLeft className="h-4 w-4" /> Account &amp; Security
+          </Link>
+          <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#E02424]">
+            <ShieldCheck className="h-4 w-4" /> CWS Secure
+          </span>
         </div>
+      </header>
 
-        <div className="mt-8 w-full border border-neutral-200 bg-white text-neutral-950">
-          <div className="border-b border-neutral-200 bg-[#101010] p-6 text-white sm:p-8">
-            <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-[#E02424]">
-              Account Security
-            </span>
-            <h1 className="mt-1 text-2xl font-black uppercase tracking-tight sm:text-3xl">
-              Login History &amp; Devices
-            </h1>
+      <div className="mx-auto max-w-5xl px-5 py-10 sm:px-8 sm:py-14">
+        {/* Banner Section */}
+        <section className="relative overflow-hidden border border-neutral-200 bg-white px-6 py-9 sm:px-10 sm:py-12 rounded-xl shadow-sm">
+          <div className="absolute right-0 top-0 h-full w-2 bg-[#E02424]" aria-hidden="true" />
+          <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_260px] md:items-center">
+            <div>
+              <span className="inline-flex h-14 w-14 items-center justify-center bg-neutral-950 text-white rounded-xl">
+                <MonitorSmartphone className="h-7 w-7" />
+              </span>
+              <h1 className="mt-6 text-3xl font-black uppercase tracking-tight sm:text-4xl">
+                Your devices
+              </h1>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-neutral-600 sm:text-base">
+                You’re signed in to your account on these devices. You can sign out of any section or device below.
+              </p>
+            </div>
+            <div className="border-l-2 border-[#E02424] bg-neutral-50 p-5 rounded-r-xl">
+              <p className="text-3xl font-black">{data.activeSessions.length}</p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-[0.14em] text-neutral-500">
+                Active {data.activeSessions.length === 1 ? 'device' : 'devices'}
+              </p>
+              <p className="mt-3 text-xs leading-5 text-neutral-500">
+                The device you are using right now is marked below.
+              </p>
+            </div>
           </div>
+        </section>
 
-          <div className="space-y-8 p-6 sm:p-8">
-            <SecurityClient loginRows={loginRows} deviceRows={deviceRows} />
+        {data.unavailable && (
+          <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> Some sign-in information is temporarily unavailable.
           </div>
-        </div>
+        )}
+
+        <section className="mt-8 rounded-xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-10">
+          <h2 className="mb-6 text-sm font-black uppercase tracking-tight text-neutral-900">
+            Security Preferences
+          </h2>
+          <TwoFaPreferenceToggle preference={twoFaPreference} />
+        </section>
+
+        {/* Tabbed Devices & Activity Manager */}
+        <DevicesTabbedManager
+          activeSessions={data.activeSessions}
+          inactiveSessions={data.inactiveSessions}
+          activity={data.activity}
+          currentSessionId={data.currentSessionId}
+        />
+
+        <footer className="flex flex-col gap-3 py-8 text-xs text-neutral-500 sm:flex-row sm:items-center sm:justify-between border-t border-neutral-200 mt-12">
+          <p>Only approximate location and masked network information are shown.</p>
+          <Link
+            href="/dashboard/sessions"
+            className="inline-flex items-center gap-2 font-bold text-neutral-700 hover:text-[#E02424]"
+          >
+            Advanced session management <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+        </footer>
       </div>
     </main>
   );

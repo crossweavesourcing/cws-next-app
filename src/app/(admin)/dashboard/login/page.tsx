@@ -16,12 +16,20 @@ const accessNotes = [
   'Media library',
 ];
 
-export default async function DashboardLoginPage() {
+export default async function DashboardLoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   // If user already has an active, valid session, bypass login page
   const session = await getAuthSession();
   if (session) {
     redirect('/dashboard');
   }
+  const { error } = await searchParams;
+  const initialError = error === 'invalid'
+    ? 'Invalid email address or password.'
+    : error === 'blocked'
+      ? 'Request blocked. Refresh the page and try again.'
+      : error === 'system'
+        ? 'An unexpected system error occurred. Please try again later.'
+        : undefined;
 
   return (
     <main className="min-h-screen bg-[#101010] text-white font-sans antialiased selection:bg-[#E02424]/20 selection:text-white">
@@ -100,7 +108,7 @@ export default async function DashboardLoginPage() {
               </div>
 
               {/* Render dynamic, client-side login form component */}
-              <LoginForm />
+              <LoginForm initialError={initialError} />
             </div>
           </aside>
         </div>

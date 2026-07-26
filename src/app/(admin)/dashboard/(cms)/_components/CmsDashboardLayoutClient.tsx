@@ -15,8 +15,8 @@ import {
   Navigation,
   Pause,
   ImageIcon,
-  ShieldCheck,
   Palette,
+  ShieldCheck,
 } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
 import { useDashboardContext } from './DashboardContext';
@@ -36,10 +36,12 @@ const workspaceItems: Array<{
   { href: '/dashboard/visibility', label: 'Visibility', helper: 'Pause section controls', icon: Pause },
   { href: '/dashboard/media', label: 'Media Library', helper: 'Images and video slots', icon: ImageIcon },
   { href: '/dashboard/design', label: 'Design System', helper: 'Tokens and UI rules', icon: Palette },
+  { href: '/dashboard/account-security', label: 'Account & Security', helper: 'Profile, password and 2FA', icon: ShieldCheck },
 ];
 
 export function CmsDashboardLayoutClient({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const isWideWorkspace = pathname?.startsWith('/dashboard/page-content') || pathname?.startsWith('/dashboard/account-security');
   const {
     activeWorkspace,
     selectedPage,
@@ -160,12 +162,12 @@ export function CmsDashboardLayoutClient({ children }: { children: ReactNode }) 
             </div>
           </header>
 
-          <div className="grid grid-cols-1 gap-5 p-4 md:p-8 2xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div className={`grid grid-cols-1 gap-5 p-4 md:p-8 ${isWideWorkspace ? '' : '2xl:grid-cols-[minmax(0,1fr)_340px]'}`}>
             <div className="min-w-0 space-y-5">
               {children}
             </div>
 
-            <PreviewPanel
+            {!isWideWorkspace && <PreviewPanel
               activeWorkspace={activeWorkspace}
               selectedPage={selectedPage}
               selectedProduct={selectedProduct}
@@ -173,7 +175,7 @@ export function CmsDashboardLayoutClient({ children }: { children: ReactNode }) 
               pausedSections={pausedSections.length}
               visibleSections={visibleSections.length}
               enabledNavItems={enabledNavIds.size}
-            />
+            />}
           </div>
         </section>
       </div>

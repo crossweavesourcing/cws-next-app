@@ -13,12 +13,12 @@ import {
   buildPasswordSchema,
   passwordChangeSchema,
   DEFAULT_PASSWORD_POLICY,
-  type PasswordPolicy,
 } from '../validation/password-policy';
 import { sendMail } from './mailer';
 import { getEnv } from '../config/env';
 import { hashToken } from '../crypto/token';
 import { SessionRepository } from '../repositories/session.repository';
+import { evaluatePasswordStrength, type PasswordStrengthResult } from '../validation/password-strength';
 
 const RESET_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -30,6 +30,13 @@ const RESET_TTL_MS = 30 * 60 * 1000; // 30 minutes
  */
 const GENERIC_PASSWORD_REJECTION =
   'The new password does not meet the account requirements.';
+
+export class WeakPasswordConfirmationRequiredError extends Error {
+  constructor() {
+    super('This password is weak. Review the recommendations, then confirm if you still want to use it.');
+    this.name = 'WeakPasswordConfirmationRequiredError';
+  }
+}
 
 /**
  * Password lifecycle: change (authenticated), reset (email link), history +
@@ -55,7 +62,11 @@ export class PasswordService {
    *
    * Throws on violation; resolves otherwise. No writes happen here.
    */
-  async evaluateNewPassword(userId: ObjectId, newPassword: string): Promise<void> {
+  async evaluateNewPassword(
+    userId: ObjectId,
+    newPassword: string,
+    acceptWeakPassword = false
+  ): Promise<PasswordStrengthResult> {
     const policy = await this.policyRepo.getActivePolicy();
 
     const parsed = buildPasswordSchema(policy).safeParse(newPassword);
@@ -63,18 +74,30 @@ export class PasswordService {
       throw new Error(GENERIC_PASSWORD_REJECTION);
     }
 
+    const user = await this.userRepo.findById(userId);
+    const email = await this.userRepo.findPrimaryEmail(userId);
+    const context = user?.profile
+      ? [user.profile.displayName, user.profile.firstName ?? '', user.profile.lastName ?? '', email ?? '', 'CWS', 'Cross Weave Sourcing']
+      : [email ?? '', 'CWS', 'Cross Weave Sourcing'];
+    const strength = evaluatePasswordStrength(newPassword, context);
+    if (strength.requiresExplicitConfirmation && !acceptWeakPassword) {
+      throw new WeakPasswordConfirmationRequiredError();
+    }
+
     await this.rejectIfReused(userId, newPassword, policy.historyCount);
+    return strength;
   }
 
   async changePassword(
     userId: ObjectId,
     currentPassword: string,
     newPassword: string,
-    currentSessionId?: string
+    currentSessionId?: string,
+    acceptWeakPassword = false
   ): Promise<void> {
     // (1) Validate new password against the active policy and (2) reject reuse
     // of any of the last N stored hashes — BEFORE any write happens.
-    await this.evaluateNewPassword(userId, newPassword);
+    const strength = await this.evaluateNewPassword(userId, newPassword, acceptWeakPassword);
 
     const policy = await this.policyRepo.getActivePolicy();
 
@@ -107,6 +130,10 @@ export class PasswordService {
           passwordChangedAt: new Date(),
           'security.forcePasswordChange': false,
           'security.accountSecurityVersion': (user.security.accountSecurityVersion ?? 1) + 1,
+          'security.passwordStrengthCategory': strength.category,
+          'security.passwordStrengthPercent': strength.percent,
+          'security.passwordStrengthEvaluatedAt': new Date(),
+          'security.passwordStrengthEvaluatorVersion': strength.evaluatorVersion,
           updatedAt: new Date(),
         },
       }
@@ -132,17 +159,25 @@ export class PasswordService {
     });
   }
 
-  async resetPassword(token: string, newPassword: string): Promise<void> {
-    // Redeem first so we know the userId before evaluating against history.
-    const redeemed = await this.tokenRepo.redeem(hashToken(token));
-    if (!redeemed || redeemed.userId === null) {
+  async resetPassword(token: string, newPassword: string, acceptWeakPassword = false): Promise<void> {
+    const tokenHash = hashToken(token);
+    // Read ownership without consuming the single-use token. A weak-password
+    // confirmation round-trip must not invalidate an otherwise valid reset link.
+    const pending = await this.tokenRepo.findValid(tokenHash, 'password_reset');
+    if (!pending || pending.userId === null) {
       throw new Error('This password reset link is invalid or has expired.');
     }
 
-    const userId = redeemed.userId;
+    const userId = pending.userId;
 
     // (1) Validate against policy + (2) reject reuse — BEFORE any write.
-    await this.evaluateNewPassword(userId, newPassword);
+    const strength = await this.evaluateNewPassword(userId, newPassword, acceptWeakPassword);
+
+    // Consume immediately before the write. A concurrent attempt can only win once.
+    const redeemed = await this.tokenRepo.redeem(tokenHash, 'password_reset');
+    if (!redeemed || redeemed.userId === null || !redeemed.userId.equals(userId)) {
+      throw new Error('This password reset link is invalid or has expired.');
+    }
 
     const policy = await this.policyRepo.getActivePolicy();
 
@@ -156,6 +191,10 @@ export class PasswordService {
           passwordChangedAt: new Date(),
           'security.forcePasswordChange': false,
           'security.lockedUntil': null,
+          'security.passwordStrengthCategory': strength.category,
+          'security.passwordStrengthPercent': strength.percent,
+          'security.passwordStrengthEvaluatedAt': new Date(),
+          'security.passwordStrengthEvaluatorVersion': strength.evaluatorVersion,
           updatedAt: new Date(),
         },
       }

@@ -46,17 +46,27 @@ export class VerificationTokenRepository {
   /**
    * Marks a token used and returns its doc, or null if unknown/expired/already used.
    */
-  async redeem(tokenHash: string): Promise<{ userId: ObjectId | null; payload: Record<string, unknown> } | null> {
+  async redeem(tokenHash: string, type?: VerificationTokenType): Promise<{ userId: ObjectId | null; payload: Record<string, unknown> } | null> {
     const coll = await getVerificationTokensCollection();
     const now = new Date();
     const result = await coll.findOneAndUpdate(
-      { tokenHash, used: false, expiresAt: { $gt: now } },
+      { tokenHash, used: false, expiresAt: { $gt: now }, ...(type ? { type } : {}) },
       { $set: { used: true, usedAt: now } },
       { returnDocument: 'after' }
     );
     const doc = result;
     if (!doc) return null;
     return { userId: doc.userId, payload: doc.payload };
+  }
+
+  /** Reads token ownership without consuming it, so advisory validation can run first. */
+  async findValid(tokenHash: string, type: VerificationTokenType): Promise<{ userId: ObjectId | null } | null> {
+    const coll = await getVerificationTokensCollection();
+    const doc = await coll.findOne(
+      { tokenHash, type, used: false, expiresAt: { $gt: new Date() } },
+      { projection: { userId: 1 } }
+    );
+    return doc ? { userId: doc.userId } : null;
   }
 
   /**

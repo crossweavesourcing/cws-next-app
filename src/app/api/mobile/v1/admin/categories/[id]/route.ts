@@ -1,0 +1,43 @@
+import { NextResponse } from 'next/server';
+import { CategoryService } from '@/auth/services/category.service';
+import { CategorySchema } from '@/auth/validation/admin.schema';
+import { InsufficientRoleError } from '@/auth/dal';
+
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const formData = await req.formData();
+    
+    const name = formData.get('name') as string;
+    const slug = formData.get('slug') as string;
+    const description = formData.get('description') as string;
+    const visible = formData.get('visible') === 'true';
+    const imageFile = formData.get('image') as File | null;
+
+    const parsed = CategorySchema.safeParse({ name, slug, description, visible });
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Validation failed', details: parsed.error.issues }, { status: 400 });
+    }
+
+    const categoryService = new CategoryService();
+    await categoryService.updateCategory(id, parsed.data, imageFile);
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error: unknown) {
+    console.error('[API] Error updating category:', error);
+    
+    if (error instanceof InsufficientRoleError) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    if ((error instanceof Error ? error.message : String(error)) === 'Category not found') {
+      return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+    }
+
+    if ((error instanceof Error ? error.message : String(error)).includes('Validation')) {
+      return NextResponse.json({ error: (error instanceof Error ? error.message : String(error)) }, { status: 400 });
+    }
+
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

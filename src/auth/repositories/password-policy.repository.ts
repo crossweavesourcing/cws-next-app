@@ -11,13 +11,13 @@ export class PasswordPolicyRepository {
     const doc = await coll.findOne({ name: 'default' });
     if (!doc) return DEFAULT_PASSWORD_POLICY;
     return {
-      minLength: doc.minLength,
-      maxLength: doc.maxLength,
-      requireUppercase: doc.requireUppercase,
-      requireLowercase: doc.requireLowercase,
-      requireNumber: doc.requireNumber,
-      requireSpecialChar: doc.requireSpecialChar,
-      expirationDays: doc.expirationDays,
+      minLength: DEFAULT_PASSWORD_POLICY.minLength,
+      maxLength: DEFAULT_PASSWORD_POLICY.maxLength,
+      requireUppercase: false,
+      requireLowercase: false,
+      requireNumber: false,
+      requireSpecialChar: false,
+      expirationDays: 0,
       historyCount: doc.historyCount,
     };
   }

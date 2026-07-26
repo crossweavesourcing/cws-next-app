@@ -6,32 +6,30 @@ import { TwoFactorService } from '../services/two-factor.service';
 import { SessionService } from '../services/session.service';
 import { UserRepository } from '../repositories/user.repository';
 import { LoginAttemptRepository } from '../repositories/login-attempt.repository';
-import { verifySessionSignature } from '../crypto/token';
-import { getEnv } from '../config/env';
+import { PendingAuthenticationRepository } from '../repositories/pending-authentication.repository';
+import * as crypto from 'crypto';
 import { getClientIp } from '../lib/request';
 import { ensureDeviceId, setServerDeviceToken } from '../lib/device';
 import { setAuthCookies, clearingCookieOpts } from '../lib/cookies';
 import { withCsrfGuard } from '../lib/csrf';
 
-export type Verify2FAState = { error?: string };
+export type Verify2FAState = {
+  error?: string;
+  success?: boolean;
+  showTrustPrompt?: boolean;
+  pendingDeviceId?: string;
+};
 
 const TWO_FA_PENDING_COOKIE = 'cws_2fa_pending';
-const STEPUP_PENDING_COOKIE = 'cws_stepup_pending';
 
 // ─── Rate-limit windows (MongoDB-backed, no in-memory state). ──────────────────
-// Email 2FA code verification: at most 5 failed attempts per pending session
-// (per userId) within 15 minutes, then force re-auth (do not loop).
-const TWO_FA_MAX_FAILS = 5;
-const TWO_FA_WINDOW_MS = 15 * 60 * 1000;
 
 // Resend throttle: at most 1 resend per 30s AND at most 5 per 10min per user.
 const RESEND_MIN_INTERVAL_MS = 30 * 1000;
 const RESEND_MAX_PER_WINDOW = 5;
 const RESEND_WINDOW_MS = 10 * 60 * 1000;
 
-function twoFactorIdentifier(userId: ObjectId): string {
-  return `2fa:${userId.toHexString()}`;
-}
+
 
 function twoFactorResendIdentifier(userId: ObjectId): string {
   return `2fa_resend:${userId.toHexString()}`;
@@ -49,40 +47,29 @@ async function verify2faActionImpl(
   formData: FormData
 ): Promise<Verify2FAState> {
   const cookieStore = await cookies();
-  // Accept BOTH the standard MFA pending cookie and the step-up pending cookie
-  // (Item 9). Both carry the same HMAC-signed userId, so the 2FA flow is identical.
-  const pending =
-    cookieStore.get(TWO_FA_PENDING_COOKIE) ?? cookieStore.get(STEPUP_PENDING_COOKIE);
+  const pending = cookieStore.get(TWO_FA_PENDING_COOKIE);
   if (!pending?.value) {
     return { error: 'Your verification session expired. Please sign in again.' };
   }
 
-  const userIdStr = verifySessionSignature(pending.value, getEnv().SESSION_SECRET);
-  if (!userIdStr) {
-    return { error: 'Your verification session is invalid. Please sign in again.' };
+  const tokenHash = crypto.createHash('sha256').update(pending.value).digest('hex');
+  const pendingRepo = new PendingAuthenticationRepository();
+  const pendingAuth = await pendingRepo.findByTokenHash(tokenHash);
+
+  if (!pendingAuth || pendingAuth.consumedAt || pendingAuth.expiresAt.getTime() < Date.now()) {
+    cookieStore.set(TWO_FA_PENDING_COOKIE, '', clearingCookieOpts('strict', '/'));
+    return { error: 'Your verification session is invalid or has expired. Please sign in again.' };
   }
-  const userId = new ObjectId(userIdStr);
+
+  const userId = pendingAuth.userId;
+
+  if (pendingAuth.attemptsRemaining <= 0) {
+    cookieStore.set(TWO_FA_PENDING_COOKIE, '', clearingCookieOpts('strict', '/'));
+    return { error: 'Too many attempts. Please sign in again.' };
+  }
 
   const ip = await getClientIp();
   const ua = (await headers()).get('user-agent') || null;
-  const attemptRepo = new LoginAttemptRepository();
-
-  // Rate-limit: count recent FAILED verifications for this pending session
-  // (identifier = `2fa:<userId>`), persisted in MongoDB so the limit holds
-  // across serverless instances. Throws / blocks once the cap is reached.
-  const recentFails = await attemptRepo.countRecentByFilter(
-    { identifier: twoFactorIdentifier(userId), success: false },
-    TWO_FA_WINDOW_MS
-  );
-  if (recentFails >= TWO_FA_MAX_FAILS) {
-    // Force re-auth: invalidate the pending cookie so the brute-forcer cannot
-    // keep looping on the same session. A generic error avoids leaking the
-    // exact remaining-attempt count.
-    for (const name of [TWO_FA_PENDING_COOKIE, STEPUP_PENDING_COOKIE]) {
-      cookieStore.set(name, '', clearingCookieOpts('strict', '/'));
-    }
-    return { error: 'Too many attempts. Please sign in again.' };
-  }
 
   const code = formData.get('code');
   if (typeof code !== 'string' || code.trim().length < 4) {
@@ -92,26 +79,16 @@ async function verify2faActionImpl(
   const twoFactor = new TwoFactorService();
   const ok = await twoFactor.verify(userId, code.trim());
 
-  // Record EVERY verification attempt (success + failure) under the shared
-  // `2fa:<userId>` identifier so the failed-attempt counter above is accurate.
-  await attemptRepo.recordAttempt({
-    userId,
-    identifierType: 'EMAIL',
-    identifier: twoFactorIdentifier(userId),
-    ipAddress: ip,
-    userAgent: ua,
-    device: null,
-    success: ok,
-    failureReason: ok ? null : '2FA verification failed',
-    lockExpiresAt: null,
-    correlationId: null,
-    country: null,
-    city: null,
-  });
-
   if (!ok) {
+    const attemptsLeft = await pendingRepo.decrementAttempts(pendingAuth._id);
+    if (attemptsLeft <= 0) {
+      cookieStore.set(TWO_FA_PENDING_COOKIE, '', clearingCookieOpts('strict', '/'));
+      return { error: 'Too many attempts. Please sign in again.' };
+    }
     return { error: 'Invalid or expired code. Request a new code and try again.' };
   }
+
+  await pendingRepo.consume(pendingAuth._id);
 
   // Issue the real session now that 2FA passed.
   const userRepo = new UserRepository();
@@ -141,13 +118,23 @@ async function verify2faActionImpl(
 
   await setAuthCookies({ sessionCookie, refreshToken });
 
-  // Clear both pending cookies (only one was set, but clearing both is harmless).
-  // Use Strict to mirror issuance.
-  for (const name of [TWO_FA_PENDING_COOKIE, STEPUP_PENDING_COOKIE]) {
-    cookieStore.set(name, '', clearingCookieOpts('strict', '/'));
+  cookieStore.set(TWO_FA_PENDING_COOKIE, '', clearingCookieOpts('strict', '/'));
+
+  let showTrustPrompt = false;
+  let pendingDeviceId: string | undefined;
+
+  if (pendingAuth.deviceObjectId) {
+    // Import here to avoid circular dependency issues if any
+    const { DeviceRepository } = await import('../repositories/device.repository');
+    const deviceRepo = new DeviceRepository();
+    const d = await deviceRepo.findByServerDeviceId(pendingAuth.deviceObjectId, userId);
+    if (d && !d.trusted && !d.blocked) {
+      showTrustPrompt = true;
+      pendingDeviceId = d.deviceId;
+    }
   }
 
-  return {}; // success -> client redirects
+  return { success: true, showTrustPrompt, pendingDeviceId }; // success -> client redirects
 }
 
 /**
@@ -162,13 +149,14 @@ async function verify2faActionImpl(
  */
 async function resend2faActionImpl(): Promise<{ error?: string } | void> {
   const cookieStore = await cookies();
-  const pending =
-    cookieStore.get(TWO_FA_PENDING_COOKIE) ?? cookieStore.get(STEPUP_PENDING_COOKIE);
-  const userIdStr = pending?.value
-    ? verifySessionSignature(pending.value, getEnv().SESSION_SECRET)
-    : null;
-  if (!userIdStr) return;
-  const userId = new ObjectId(userIdStr);
+  const pending = cookieStore.get(TWO_FA_PENDING_COOKIE);
+  if (!pending?.value) return;
+
+  const tokenHash = crypto.createHash('sha256').update(pending.value).digest('hex');
+  const pendingRepo = new PendingAuthenticationRepository();
+  const pendingAuth = await pendingRepo.findByTokenHash(tokenHash);
+  if (!pendingAuth || pendingAuth.consumedAt || pendingAuth.expiresAt.getTime() < Date.now()) return;
+  const userId = pendingAuth.userId;
 
   const ip = await getClientIp();
   const attemptRepo = new LoginAttemptRepository();

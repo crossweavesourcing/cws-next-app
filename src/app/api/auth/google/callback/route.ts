@@ -118,8 +118,10 @@ export async function GET(request: NextRequest) {
     // force-password-change accounts, no session is issued yet — set the
     // corresponding signed pending cookie and redirect to complete the login.
     if (result.status === 'mfa_required') {
-      const pending = signSessionId(result.userId.toString(), env.SESSION_SECRET);
-      cookieStore.set(TWO_FA_PENDING_COOKIE, pending, {
+      if (!result.pendingAuthToken) {
+         throw new Error('Missing pendingAuthToken for MFA required state');
+      }
+      cookieStore.set(TWO_FA_PENDING_COOKIE, result.pendingAuthToken, {
         httpOnly: true,
         secure,
         sameSite: 'lax',
@@ -138,20 +140,6 @@ export async function GET(request: NextRequest) {
         maxAge: 10 * 60, // 10 minutes to complete the change
       });
       return NextResponse.redirect(`${env.APP_URL}/dashboard/change-password`);
-    }
-
-    // Item 9: step-up (new device / country change). Set the signed
-    // `cws_stepup_pending` cookie and redirect to verify-2fa to complete 2FA.
-    if (result.status === 'step_up') {
-      const pending = signSessionId(result.userId.toString(), env.SESSION_SECRET);
-      cookieStore.set(STEPUP_PENDING_COOKIE, pending, {
-        httpOnly: true,
-        secure,
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 5 * 60, // 5 minutes to complete the step-up 2FA
-      });
-      return NextResponse.redirect(`${env.APP_URL}/dashboard/verify-2fa`);
     }
 
     cookieStore.set(SESSION_COOKIE, result.sessionCookie, {

@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { ObjectId } from 'mongodb';
-import { PasswordService } from '../services/password.service';
+import { PasswordService, WeakPasswordConfirmationRequiredError } from '../services/password.service';
 import { verifySessionSignature } from '../crypto/token';
 import { getEnv } from '../config/env';
 import { AuthError } from '../errors/auth-errors';
@@ -10,7 +10,7 @@ import { clearingCookieOpts } from '../lib/cookies';
 import { withCsrfGuard } from '../lib/csrf';
 import { getAuthSession } from '../dal';
 
-export type ChangePasswordState = { error?: string; success?: boolean };
+export type ChangePasswordState = { error?: string; success?: boolean; requiresWeakConfirmation?: boolean };
 
 const PENDING_COOKIE = 'cws_pw_pending';
 
@@ -73,7 +73,8 @@ async function changePasswordActionImpl(
       new ObjectId(userIdStr),
       parsed.data.currentPassword,
       parsed.data.newPassword,
-      currentSessionId
+      currentSessionId,
+      formData.get('acceptWeakPassword') === 'true'
     );
 
     // FIX-02: after a successful change, clear the force-change pending cookie
@@ -84,6 +85,9 @@ async function changePasswordActionImpl(
 
     return { success: true };
   } catch (err) {
+    if (err instanceof WeakPasswordConfirmationRequiredError) {
+      return { error: err.message, requiresWeakConfirmation: true };
+    }
     if (err instanceof AuthError) return { error: err.publicMessage };
     return { error: err instanceof Error ? err.message : 'Unable to change password.' };
   }

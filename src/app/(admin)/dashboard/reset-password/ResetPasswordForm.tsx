@@ -4,6 +4,7 @@ import { useActionState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { resetPasswordAction, type ResetPasswordState } from '@/auth/actions/password-reset';
+import { PasswordStrengthFields } from '@/components/PasswordStrengthFields';
 
 export default function ResetPasswordForm({ token }: { token: string }) {
   const router = useRouter();
@@ -29,39 +30,9 @@ export default function ResetPasswordForm({ token }: { token: string }) {
         </div>
       )}
 
-      <label className="block">
-        <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-500">
-          New Password
-        </span>
-        <input
-          type="password"
-          name="newPassword"
-          required
-          minLength={12}
-          className="mt-2 h-12 w-full border border-neutral-200 bg-neutral-50 px-4 text-sm text-neutral-950 outline-none focus:border-neutral-900"
-        />
-      </label>
-
-      <label className="block">
-        <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-500">
-          Confirm New Password
-        </span>
-        <input
-          type="password"
-          name="confirmPassword"
-          required
-          minLength={12}
-          className="mt-2 h-12 w-full border border-neutral-200 bg-neutral-50 px-4 text-sm text-neutral-950 outline-none focus:border-neutral-900"
-        />
-      </label>
-
-      <button
-        type="submit"
-        disabled={isPending}
-        className="inline-flex h-12 w-full items-center justify-center bg-neutral-900 px-5 text-xs font-bold uppercase tracking-[0.18em] text-white transition-colors hover:bg-neutral-700 disabled:bg-neutral-400"
-      >
-        {isPending ? 'Updating...' : 'Reset Password'}
-      </button>
+      <fieldset disabled={isPending} className="space-y-4">
+        <PasswordStrengthFields weakConfirmationRequested={state.requiresWeakConfirmation} />
+      </fieldset>
     </form>
   );
 }

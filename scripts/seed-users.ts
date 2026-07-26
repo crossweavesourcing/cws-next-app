@@ -10,14 +10,34 @@ export async function seedUsers(): Promise<void> {
 
   console.log('Seeding predefined users...');
 
-  // Clear any past rate limits & login attempt records to reset E2E state.
-  // FIX-14: only wipe in non-production — a prod run must never delete live
-  // login-attempt / rate-limit history (would erase security telemetry).
+  // Clear all previous user & authentication-related data in non-production environments.
+  const AUTH_COLLECTIONS_TO_CLEAR = [
+    COLLECTION_NAMES.USERS,
+    COLLECTION_NAMES.USER_EMAILS,
+    COLLECTION_NAMES.USER_PHONES,
+    COLLECTION_NAMES.OAUTH_ACCOUNTS,
+    COLLECTION_NAMES.DEVICES,
+    COLLECTION_NAMES.SESSIONS,
+    COLLECTION_NAMES.REFRESH_TOKENS,
+    COLLECTION_NAMES.VERIFICATION_TOKENS,
+    COLLECTION_NAMES.OTP_CODES,
+    COLLECTION_NAMES.RECOVERY_CODES,
+    COLLECTION_NAMES.AUDIT_LOGS,
+    COLLECTION_NAMES.LOGIN_ATTEMPTS,
+    COLLECTION_NAMES.PASSWORD_HISTORY,
+    COLLECTION_NAMES.TOTP_CREDENTIALS,
+    COLLECTION_NAMES.WEBAUTHN_CREDENTIALS,
+    COLLECTION_NAMES.MOBILE_AUTH_CHALLENGES,
+    COLLECTION_NAMES.PENDING_AUTHENTICATIONS,
+  ];
+
   if (process.env.NODE_ENV !== 'production') {
-    await db.collection(COLLECTION_NAMES.LOGIN_ATTEMPTS).deleteMany({});
-    console.log('Cleared past login attempts and rate limits.');
+    for (const name of AUTH_COLLECTIONS_TO_CLEAR) {
+      await db.collection(name).deleteMany({});
+    }
+    console.log('Cleared all previous user accounts and authentication-related data.');
   } else {
-    console.log('Skipped clearing login attempts (production environment).');
+    console.log('Skipped clearing user data (production environment).');
   }
 
   const email = env.ADMIN_SEED_EMAIL;

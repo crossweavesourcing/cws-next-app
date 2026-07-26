@@ -157,3 +157,90 @@ async function renameDeviceActionImpl(
 export const trustDeviceAction = withCsrfGuard(trustDeviceActionImpl);
 export const blockDeviceAction = withCsrfGuard(blockDeviceActionImpl);
 export const renameDeviceAction = withCsrfGuard(renameDeviceActionImpl);
+
+/**
+ * Server Action: trust the current device immediately after 2FA success.
+ *
+ * C1: wrapped with `withCsrfGuard`.
+ */
+async function trustCurrentDeviceActionImpl(
+  _prev: DeviceActionState | undefined,
+  formData: FormData
+): Promise<DeviceActionState> {
+  const deviceId = typeof formData.get('deviceId') === 'string' ? (formData.get('deviceId') as string) : '';
+  if (!deviceId) return { error: 'Invalid device.' };
+
+  try {
+    const owned = await resolveOwnedDevice(deviceId);
+    if (!owned) return { error: 'You do not have access to this device.' };
+
+    await new DeviceRepository().setTrusted(deviceId, owned.session.userId, true, 'user');
+    await new AuditLogRepository().log({
+      userId: owned.session.userId,
+      sessionId: owned.session._id,
+      action: 'auth.device.trusted',
+      status: 'SUCCESS',
+      errorCode: null,
+      actor: { type: 'user', id: owned.session.userId },
+      source: { platform: 'web', appVersion: '0.1.0' },
+      correlationId: null,
+      requestId: null,
+      resource: { type: 'device', id: deviceId },
+      metadata: { trusted: true, context: 'post_2fa_prompt' },
+      ipAddress: owned.session.ipAddress,
+      userAgent: owned.session.userAgent,
+    });
+
+    revalidatePath('/dashboard/security');
+    return { success: true };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Unable to update device.' };
+  }
+}
+
+/**
+ * Server Action: update the user's 2FA preference.
+ *
+ * C1: wrapped with `withCsrfGuard`.
+ */
+async function updateTwoFaPreferenceActionImpl(
+  _prev: DeviceActionState | undefined,
+  formData: FormData
+): Promise<DeviceActionState> {
+  const preference = formData.get('preference') as string;
+  if (preference !== 'always' && preference !== 'new_device_only') {
+    return { error: 'Invalid preference.' };
+  }
+
+  try {
+    const session = await requireActiveSession();
+    const { UserRepository } = await import('../repositories/user.repository');
+    await new UserRepository().updateSecurity(session.userId, {
+      twoFaPreference: preference as 'always' | 'new_device_only',
+    });
+
+    await new AuditLogRepository().log({
+      userId: session.userId,
+      sessionId: session._id,
+      action: 'auth.security.2fa_preference_updated',
+      status: 'SUCCESS',
+      errorCode: null,
+      actor: { type: 'user', id: session.userId },
+      source: { platform: 'web', appVersion: '0.1.0' },
+      correlationId: null,
+      requestId: null,
+      resource: null,
+      metadata: { twoFaPreference: preference },
+      ipAddress: session.ipAddress,
+      userAgent: session.userAgent,
+    });
+
+    revalidatePath('/dashboard/security');
+    return { success: true };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Unable to update preference.' };
+  }
+}
+
+export const trustCurrentDeviceAction = withCsrfGuard(trustCurrentDeviceActionImpl);
+export const updateTwoFaPreferenceAction = withCsrfGuard(updateTwoFaPreferenceActionImpl);

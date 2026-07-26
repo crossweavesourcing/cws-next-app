@@ -25,8 +25,10 @@ export const COLLECTION_NAMES = {
   TOTP_CREDENTIALS:    'totp_credentials',
   WEBAUTHN_CREDENTIALS:'webauthn_credentials',
   MOBILE_AUTH_CHALLENGES: 'mobile_auth_challenges',
+  PENDING_AUTHENTICATIONS: 'pending_authentications',
   CATEGORIES:          'categories',
   PRODUCTS:            'products',
+  SECTIONS:            'sections',
 } as const;
 
 /**
@@ -61,6 +63,8 @@ export const COLLECTION_ORDER: readonly CollectionName[] = [
   COLLECTION_NAMES.TOTP_CREDENTIALS,
   COLLECTION_NAMES.WEBAUTHN_CREDENTIALS,
   COLLECTION_NAMES.MOBILE_AUTH_CHALLENGES,
+  COLLECTION_NAMES.PENDING_AUTHENTICATIONS,
   COLLECTION_NAMES.CATEGORIES,
   COLLECTION_NAMES.PRODUCTS,
+  COLLECTION_NAMES.SECTIONS,
 ] as const;

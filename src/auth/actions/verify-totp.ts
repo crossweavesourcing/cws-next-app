@@ -6,20 +6,23 @@ import { MfaService } from '../services/mfa.service';
 import { SessionService } from '../services/session.service';
 import { UserRepository } from '../repositories/user.repository';
 import { LoginAttemptRepository } from '../repositories/login-attempt.repository';
-import { AuditLogRepository } from '../repositories/audit-log.repository';
-import { verifySessionSignature } from '../crypto/token';
-import { getEnv } from '../config/env';
+import { PendingAuthenticationRepository } from '../repositories/pending-authentication.repository';
+import * as crypto from 'crypto';
 import { getClientIp } from '../lib/request';
 import { ensureDeviceId, setServerDeviceToken } from '../lib/device';
 import { setAuthCookies, clearingCookieOpts } from '../lib/cookies';
 import { withCsrfGuard } from '../lib/csrf';
 
-export type VerifyTotpState = { error?: string };
+import { AuditLogRepository } from '../repositories/audit-log.repository';
+
+export type VerifyTotpState = {
+  error?: string;
+  success?: boolean;
+  showTrustPrompt?: boolean;
+  pendingDeviceId?: string;
+};
 
 const TWO_FA_PENDING_COOKIE = 'cws_2fa_pending';
-const STEPUP_PENDING_COOKIE = 'cws_stepup_pending';
-const TOTP_MAX_FAILS = 5;
-const TOTP_WINDOW_MS = 15 * 60 * 1000;
 
 function totpIdentifier(userId: ObjectId): string {
   return `totp:${userId.toHexString()}`;
@@ -28,42 +31,38 @@ function totpIdentifier(userId: ObjectId): string {
 /**
  * Server Action: verifies the TOTP code and, on success, issues the real
  * session + refresh cookies (completing the login).
- *
- * C1: wrapped with `withCsrfGuard`; the pending cookies are cleared Strict
- * (mirroring issuance in login.ts where applicable).
  */
 async function verifyTotpActionImpl(
   _prev: VerifyTotpState,
   formData: FormData
 ): Promise<VerifyTotpState> {
   const cookieStore = await cookies();
-  const pending =
-    cookieStore.get(TWO_FA_PENDING_COOKIE) ?? cookieStore.get(STEPUP_PENDING_COOKIE);
+  const pending = cookieStore.get(TWO_FA_PENDING_COOKIE);
     
   if (!pending?.value) {
     return { error: 'Your verification session expired. Please sign in again.' };
   }
 
-  const userIdStr = verifySessionSignature(pending.value, getEnv().SESSION_SECRET);
-  if (!userIdStr) {
-    return { error: 'Your verification session is invalid. Please sign in again.' };
+  const tokenHash = crypto.createHash('sha256').update(pending.value).digest('hex');
+  const pendingRepo = new PendingAuthenticationRepository();
+  const pendingAuth = await pendingRepo.findByTokenHash(tokenHash);
+
+  if (!pendingAuth || pendingAuth.consumedAt || pendingAuth.expiresAt.getTime() < Date.now()) {
+    cookieStore.set(TWO_FA_PENDING_COOKIE, '', clearingCookieOpts('strict', '/'));
+    return { error: 'Your verification session is invalid or has expired. Please sign in again.' };
   }
-  const userId = new ObjectId(userIdStr);
+
+  const userId = pendingAuth.userId;
+
+  if (pendingAuth.attemptsRemaining <= 0) {
+    cookieStore.set(TWO_FA_PENDING_COOKIE, '', clearingCookieOpts('strict', '/'));
+    return { error: 'Too many attempts. Please sign in again.' };
+  }
+
   const ip = await getClientIp();
   const ua = (await headers()).get('user-agent') || null;
   const attemptRepo = new LoginAttemptRepository();
   const auditRepo = new AuditLogRepository();
-
-  const recentFails = await attemptRepo.countRecentByFilter(
-    { identifier: totpIdentifier(userId), success: false },
-    TOTP_WINDOW_MS
-  );
-  if (recentFails >= TOTP_MAX_FAILS) {
-    for (const name of [TWO_FA_PENDING_COOKIE, STEPUP_PENDING_COOKIE]) {
-      cookieStore.set(name, '', clearingCookieOpts('strict', '/'));
-    }
-    return { error: 'Too many attempts. Please sign in again.' };
-  }
 
   const code = formData.get('code');
   if (typeof code !== 'string' || code.trim().length !== 6) {
@@ -104,8 +103,15 @@ async function verifyTotpActionImpl(
   });
 
   if (!ok) {
+    const attemptsLeft = await pendingRepo.decrementAttempts(pendingAuth._id);
+    if (attemptsLeft <= 0) {
+      cookieStore.set(TWO_FA_PENDING_COOKIE, '', clearingCookieOpts('strict', '/'));
+      return { error: 'Too many attempts. Please sign in again.' };
+    }
     return { error: 'Invalid TOTP code. Please try again.' };
   }
+
+  await pendingRepo.consume(pendingAuth._id);
 
   // Issue the real session now that TOTP passed.
   const userRepo = new UserRepository();
@@ -138,11 +144,25 @@ async function verifyTotpActionImpl(
   // Clear both pending cookies. Use Strict to mirror issuance (same as
   // verify-2fa.ts). clearingCookieOpts routes the `secure` flag through the
   // single `isSecureCookies()` source of truth.
-  for (const name of [TWO_FA_PENDING_COOKIE, STEPUP_PENDING_COOKIE]) {
+  for (const name of [TWO_FA_PENDING_COOKIE]) {
     cookieStore.set(name, '', clearingCookieOpts('strict', '/'));
   }
 
-  return {}; // success -> client redirects
+  let showTrustPrompt = false;
+  let pendingDeviceId: string | undefined;
+
+  if (pendingAuth.deviceObjectId) {
+    // Import here to avoid circular dependency issues if any
+    const { DeviceRepository } = await import('../repositories/device.repository');
+    const deviceRepo = new DeviceRepository();
+    const d = await deviceRepo.findByServerDeviceId(pendingAuth.deviceObjectId, userId);
+    if (d && !d.trusted && !d.blocked) {
+      showTrustPrompt = true;
+      pendingDeviceId = d.deviceId;
+    }
+  }
+
+  return { success: true, showTrustPrompt, pendingDeviceId }; // success -> client redirects
 }
 
 export const verifyTotpAction = withCsrfGuard(verifyTotpActionImpl);

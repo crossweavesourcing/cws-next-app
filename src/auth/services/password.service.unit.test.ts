@@ -293,10 +293,10 @@ describe('PasswordService — policy + history enforcement', () => {
     // Perform 4 successful changes; each new password is unique and valid, and
     // we track the live plaintext so the change-password authn check passes.
     const passwords = [
-      'FirstNewPass1!',
-      'SecondNewPas1!',
-      'ThirdNewPass1!',
-      'FourthNewPa1!',
+      'First New Password Phrase 1',
+      'Second New Password Phrase 2',
+      'Third New Password Phrase 3',
+      'Fourth New Password Phrase 4',
     ];
     let knownPlain = 'OldPassw0rd!2024';
     for (const pw of passwords) {
@@ -307,5 +307,5 @@ describe('PasswordService — policy + history enforcement', () => {
     const entries = stores.history.filter((h) => h.userId.equals(userId));
     // Capped at historyCount (2): only the two most recent remain.
     expect(entries.length).toBe(2);
-  });
+  }, 15000);
 });

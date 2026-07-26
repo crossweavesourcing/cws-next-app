@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Mail } from 'lucide-react';
 import ProductFooter from '@/components/ProductFooter';
-import ProductHeader from '@/components/ProductHeader';
 import ProductImageGallery from '@/components/ProductImageGallery';
 import { ProductRepository } from '@/auth/repositories/product.repository';
 import { CategoryRepository } from '@/auth/repositories/category.repository';
+import { SectionService } from '@/auth/services/section.service';
 
 type ProductDetailsPageProps = {
   params: Promise<{
@@ -70,12 +70,18 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
   }
 
   const productImages = product.images?.length ? product.images : (product.image ? [product.image] : []);
+  const sections = await new SectionService().getPublicSections();
+  const section = (id: string) => sections.find((item) => item.sectionId === id);
+  const copy = (id: string, key: string, fallback: string) => {
+    const value = section(id)?.content?.[key];
+    return typeof value === 'string' ? value : fallback;
+  };
 
   return (
     <main className="product-site-shell bg-white text-[#1E1E1E] min-h-screen font-sans antialiased selection:bg-[#E02424]/10 selection:text-[#E02424]">
       {/* <ProductHeader /> */}
 
-      <section className="bg-[#101010] text-white">
+      {!section('detail-hero')?.paused && <section className="bg-[#101010] text-white">
         <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[560px]">
           <div className="overflow-hidden">
             <ProductImageGallery images={productImages} productName={product.name} />
@@ -87,7 +93,7 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
                 className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-neutral-400 transition-colors hover:text-[#E02424]"
               >
                 <ArrowLeft className="h-3.5 w-3.5" />
-                Back to Portfolio
+                {copy('detail-hero', 'backLabel', 'Back to Portfolio')}
               </Link>
               <div className="space-y-4">
                 <span className="block text-xs sm:text-sm font-sans font-bold text-[#E02424] uppercase tracking-[0.35em]">
@@ -103,19 +109,19 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
             </div>
           </div>
         </div>
-      </section>
+      </section>}
 
-      <section className="py-16 md:py-24 bg-white">
+      {!section('detail-overview')?.paused && <section id="overview" className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16">
           <div className="lg:col-span-5 space-y-6">
             <span className="block text-xs sm:text-sm font-sans font-bold text-[#E02424] uppercase tracking-[0.3em]">
-              Product Overview
+              {copy('detail-overview', 'eyebrow', 'Product Overview')}
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-neutral-900 tracking-tight uppercase leading-snug">
-              Built for Buyer Programs
+              {copy('detail-overview', 'heading', 'Built for Buyer Programs')}
             </h2>
             <p className="text-gray-700 text-sm sm:text-base leading-relaxed font-sans font-light">
-              {product.shortDescription} CWS positions this product as a manufacturing portfolio item, supported by sampling, commercial planning, quality checks and shipment coordination.
+              {product.shortDescription} {copy('detail-overview', 'supportingText', 'CWS positions this product as a manufacturing portfolio item, supported by sampling, commercial planning, quality checks and shipment coordination.')}
             </p>
           </div>
 
@@ -139,13 +145,13 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
             ))}
           </div>
         </div>
-      </section>
+      </section>}
 
-      <section className="py-16 md:py-24 bg-[#EAEAEA] border-y border-gray-200">
+      {!section('detail-specs')?.paused && <section id="specifications" className="py-16 md:py-24 bg-[#EAEAEA] border-y border-gray-200">
         <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
           <div className="bg-white border border-neutral-200 p-8 sm:p-10 space-y-6">
             <h2 className="text-xl md:text-2xl font-sans font-bold uppercase tracking-[0.2em] text-gray-950">
-              Specifications
+              {copy('detail-specs', 'specificationsHeading', 'Specifications')}
             </h2>
             <div className="divide-y divide-neutral-200">
               {Object.entries(product.specifications).map(([label, value]) => (
@@ -163,7 +169,7 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
 
           <div className="bg-[#101010] text-white p-8 sm:p-10 space-y-6">
             <h2 className="text-xl md:text-2xl font-sans font-bold uppercase tracking-[0.2em] text-white">
-              Features
+              {copy('detail-specs', 'featuresHeading', 'Features')}
             </h2>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {product.features.map((feature) => (
@@ -177,10 +183,10 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
             </ul>
           </div>
         </div>
-      </section>
+      </section>}
 
-      <section className="w-full bg-white select-none border-b border-gray-100">
-        <h2 className="sr-only">Product Gallery</h2>
+      {!section('detail-gallery')?.paused && <section id="gallery" className="w-full bg-white select-none border-b border-gray-100">
+        <h2 className="sr-only">{copy('detail-gallery', 'accessibleHeading', 'Product Gallery')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
           {productImages.map((image, index) => (
             <div key={`${image}-${index}`} className="relative h-[340px] sm:h-[420px] overflow-hidden">
@@ -195,21 +201,21 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
             </div>
           ))}
         </div>
-      </section>
+      </section>}
 
-      <section className="py-16 md:py-24 bg-white">
+      {!section('detail-related')?.paused && <section id="related-products" className="py-16 md:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-6 md:px-12 space-y-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-end">
             <div className="lg:col-span-5 space-y-3">
               <span className="block text-xs sm:text-sm font-sans font-bold text-[#E02424] uppercase tracking-[0.3em]">
-                Related Products
+                {copy('detail-related', 'eyebrow', 'Related Products')}
               </span>
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold text-neutral-900 tracking-tight uppercase leading-snug">
-                Explore More
+                {copy('detail-related', 'heading', 'Explore More')}
               </h2>
             </div>
             <p className="lg:col-span-7 text-gray-700 text-sm sm:text-base leading-relaxed font-sans font-light max-w-3xl lg:ml-auto">
-              Representative portfolio items across CWS production categories, shown as manufacturing capabilities rather than retail SKUs.
+              {copy('detail-related', 'body', 'Representative portfolio items across CWS production categories, shown as manufacturing capabilities rather than retail SKUs.')}
             </p>
           </div>
 
@@ -241,19 +247,19 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
             ))}
           </div>
         </div>
-      </section>
+      </section>}
 
-      <section className="py-16 md:py-24 bg-[#101010] text-white">
+      {!section('detail-cta')?.paused && <section id="contact" className="py-16 md:py-24 bg-[#101010] text-white">
         <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           <div className="lg:col-span-8 space-y-4">
             <span className="block text-xs sm:text-sm font-sans font-bold text-[#E02424] uppercase tracking-[0.3em]">
-              Contact CTA
+              {copy('detail-cta', 'eyebrow', 'Contact CTA')}
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-sans font-bold uppercase tracking-tight leading-snug">
-              Discuss a {categoryName} Program
+              {copy('detail-cta', 'headingTemplate', 'Discuss a {category} Program').replaceAll('{category}', categoryName)}
             </h2>
             <p className="text-sm sm:text-base leading-relaxed text-neutral-300 font-light max-w-3xl">
-              Share target product type, expected volume, sampling needs and delivery market. The CWS team can support development, costing, production follow-up and export coordination.
+              {copy('detail-cta', 'body', 'Share target product type, expected volume, sampling needs and delivery market. The CWS team can support development, costing, production follow-up and export coordination.')}
             </p>
           </div>
           <div className="lg:col-span-4 lg:text-right">
@@ -261,12 +267,12 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
               href="/#contracting"
               className="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 bg-[#E02424] px-7 text-xs font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-white hover:text-neutral-950"
             >
-              Contact Us
+              {copy('detail-cta', 'buttonLabel', 'Contact Us')}
               <Mail className="h-4 w-4" />
             </Link>
           </div>
         </div>
-      </section>
+      </section>}
       <ProductFooter />
     </main>
   );

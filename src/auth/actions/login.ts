@@ -5,7 +5,7 @@ import { LoginService } from '../services/login.service';
 import { AuthError } from '../errors/auth-errors';
 import { signSessionId } from '../crypto/token';
 import { getEnv } from '../config/env';
-import { setAuthCookies, strictCookieOpts } from '../lib/cookies';
+import { setAuthCookies, strictCookieOpts, sessionCookieOpts } from '../lib/cookies';
 import { getClientIp } from '../lib/request';
 import { withCsrfGuard } from '../lib/csrf';
 
@@ -27,7 +27,7 @@ export type LoginActionState = {
  * with `SameSite=Strict` — they are only ever read on same-site Server Action
  * POSTs, so Strict blocks a cross-site form POST from riding them.
  */
-async function loginActionImpl(
+export async function loginActionImpl(
   prevState: LoginActionState,
   formData: FormData
 ): Promise<LoginActionState> {
@@ -60,11 +60,11 @@ async function loginActionImpl(
     const env = getEnv();
 
     // MFA path: do NOT issue a real session yet. Set a short-lived pending
-    // cookie (signed userId) so the verify-2fa step can complete the login.
+    // cookie (opaque token) so the verify-2fa step can complete the login.
     if (result.status === 'mfa_required') {
-      const pending = signSessionId(result.userId.toString(), env.SESSION_SECRET);
+      const pending = result.pendingAuthToken;
       cookieStore.set('cws_2fa_pending', pending, {
-        ...strictCookieOpts(env, { path: '/' }),
+        ...sessionCookieOpts(env, { path: '/' }),
         maxAge: 5 * 60, // 5 minutes to complete 2FA
       });
       return { redirect: '/dashboard/verify-2fa' };
@@ -76,23 +76,13 @@ async function loginActionImpl(
       // so the change-password page + action can operate without a full session.
       const pending = signSessionId(result.userId.toString(), env.SESSION_SECRET);
       cookieStore.set('cws_pw_pending', pending, {
-        ...strictCookieOpts(env, { path: '/' }),
+        ...sessionCookieOpts(env, { path: '/' }),
         maxAge: 10 * 60, // 10 minutes to complete the change
       });
       return { redirect: '/dashboard/change-password' };
     }
-
     if (result.status === 'step_up') {
-      // Item 9: the login is from a new device / new country. No real session is
-      // issued yet — set the signed `cws_stepup_pending` cookie (same HMAC pattern
-      // as cws_2fa_pending) and redirect to /dashboard/verify-2fa. verify2faAction
-      // will complete the session creation after the user passes email 2FA.
-      const pending = signSessionId(result.userId.toString(), env.SESSION_SECRET);
-      cookieStore.set('cws_stepup_pending', pending, {
-        ...strictCookieOpts(env, { path: '/' }),
-        maxAge: 5 * 60, // 5 minutes to complete the step-up 2FA
-      });
-      return { redirect: '/dashboard/verify-2fa' };
+      return { redirect: '/dashboard/verify-step-up' };
     }
 
     const { sessionCookie, refreshToken, user, rememberMe: resultRememberMe } = result;

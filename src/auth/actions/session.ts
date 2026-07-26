@@ -10,6 +10,38 @@ import { withCsrfGuard } from '../lib/csrf';
 
 export type RevokeSessionState = { error?: string; success?: boolean };
 
+async function revokeFriendlySessionActionImpl(sessionId: string): Promise<void> {
+  if (!ObjectId.isValid(sessionId)) return;
+
+  const current = await requireActiveSession();
+  const targetId = new ObjectId(sessionId);
+  if (targetId.equals(current._id)) return;
+
+  const sessionService = new SessionService();
+  const target = await sessionService.getSessionById(targetId);
+  if (!target || !target.userId.equals(current.userId) || target.revoked) return;
+
+  await sessionService.terminateSession(target._id);
+  await new AuditLogRepository().log({
+    userId: current.userId,
+    sessionId: current._id,
+    action: 'auth.session.revoked',
+    status: 'SUCCESS',
+    errorCode: null,
+    actor: { type: 'user', id: current.userId },
+    source: { platform: 'web', appVersion: '0.1.0' },
+    correlationId: null,
+    requestId: null,
+    resource: { type: 'session', id: target._id.toString() },
+    metadata: { reason: 'user initiated from friendly device manager' },
+    ipAddress: current.ipAddress,
+    userAgent: current.userAgent,
+  });
+
+  revalidatePath('/dashboard/security');
+  revalidatePath('/dashboard/sessions');
+}
+
 /**
  * Revokes a single session. The caller must own the session — we re-fetch and
  * verify userId before revoking to prevent one user ending another's sessions.
@@ -128,3 +160,4 @@ async function revokeAllOtherSessionsActionImpl(
 
 export const revokeSessionAction = withCsrfGuard(revokeSessionActionImpl);
 export const revokeAllOtherSessionsAction = withCsrfGuard(revokeAllOtherSessionsActionImpl);
+export const revokeFriendlySessionAction = withCsrfGuard(revokeFriendlySessionActionImpl);

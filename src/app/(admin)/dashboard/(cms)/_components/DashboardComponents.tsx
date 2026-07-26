@@ -1,14 +1,10 @@
 "use client";
 
-import { useMemo, useState } from 'react';
 import type { ComponentType, ReactNode } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import {
-  ArrowUpRight,
   BellRing,
   CheckCircle2,
-  ChevronRight,
   Clock3,
   Component,
   FileText,
@@ -17,7 +13,6 @@ import {
   Laptop,
   Layers,
   LogOut,
-  Monitor,
   Navigation,
   Package,
   Paintbrush,
@@ -47,36 +42,10 @@ import {
   cmsSections,
   dashboardProductSeed,
   type CmsNavigationGroup,
-  type CmsPageKey,
 } from '@/lib/cms-dashboard';
 import { productCategories, type ProductCategory } from '@/lib/products';
 
 type WorkspaceKey = 'overview' | 'pages' | 'categories' | 'products' | 'navigation' | 'visibility' | 'media' | 'security' | 'design';
-
-const workspaceItems: Array<{
-  key: WorkspaceKey;
-  label: string;
-  helper: string;
-  icon: ComponentType<{ className?: string }>;
-}> = [
-  { key: 'overview', label: 'Overview', helper: 'CMS command center', icon: Monitor },
-  { key: 'pages', label: 'Page Content', helper: 'Sections and page copy', icon: FileText },
-  { key: 'categories', label: 'Categories', helper: 'Portfolio category cards', icon: Layers },
-  { key: 'products', label: 'Products', helper: 'Descriptions and media', icon: Package },
-  { key: 'navigation', label: 'Navigation', helper: 'Header and footer links', icon: Navigation },
-  { key: 'visibility', label: 'Visibility', helper: 'Pause section controls', icon: Pause },
-  { key: 'media', label: 'Media Library', helper: 'Images and video slots', icon: ImageIcon },
-  { key: 'security', label: 'Access Security', helper: 'Devices and sessions', icon: ShieldCheck },
-  { key: 'design', label: 'Design System', helper: 'Tokens and UI rules', icon: Palette },
-];
-
-const pageFilterItems: Array<{ key: CmsPageKey; label: string }> = [
-  { key: 'home', label: 'Home' },
-  { key: 'products', label: 'Products' },
-  { key: 'productDetail', label: 'Detail Template' },
-  { key: 'header', label: 'Header' },
-  { key: 'footer', label: 'Footer' },
-];
 
 const navigationGroups: CmsNavigationGroup[] = [
   'Main Header',
@@ -166,74 +135,6 @@ export function OverviewPanel({
         </Panel>
       </section>
     </>
-  );
-}
-
-export function PageContentPanel({
-  selectedPageKey,
-  onSelectPage,
-  sections,
-  pausedSectionIds,
-  onToggleSection,
-}: {
-  selectedPageKey: CmsPageKey;
-  onSelectPage: (pageKey: CmsPageKey) => void;
-  sections: typeof cmsSections;
-  pausedSectionIds: Set<string>;
-  onToggleSection: (sectionId: string) => void;
-}) {
-  const selectedRecord = cmsPageRecords.find((page) => page.key === selectedPageKey) ?? cmsPageRecords[0];
-
-  return (
-    <Panel eyebrow="Page Content" title="Manage Public Page Sections">
-      <div className="flex flex-wrap gap-2">
-        {pageFilterItems.map((item) => (
-          <button
-            key={item.key}
-            type="button"
-            onClick={() => onSelectPage(item.key)}
-            className={`min-h-10 border px-4 py-2 text-center text-[11px] font-bold uppercase tracking-[0.14em] transition-colors ${
-              selectedPageKey === item.key
-                ? 'border-[#E02424] bg-[#E02424] text-white'
-                : 'border-neutral-200 bg-white text-neutral-700 hover:border-[#E02424]/50 hover:text-[#E02424]'
-            }`}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="mt-5 border border-neutral-200 bg-[#F9F9F9] p-5">
-        <span className="block break-all text-[10px] font-bold uppercase tracking-[0.16em] text-[#E02424]">
-          {selectedRecord.route}
-        </span>
-        <h3 className="mt-2 text-2xl font-black uppercase tracking-tight text-neutral-950">
-          {selectedRecord.label}
-        </h3>
-        <p className="mt-3 max-w-3xl text-sm leading-relaxed text-neutral-600">
-          {selectedRecord.description}
-        </p>
-      </div>
-
-      <div className="mt-5 overflow-hidden border border-neutral-200 bg-white">
-        <div className="hidden grid-cols-[minmax(0,1fr)_120px_120px_112px] border-b border-neutral-200 bg-neutral-950 px-5 py-3 text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-300 xl:grid">
-          <span>Section</span>
-          <span>Status</span>
-          <span>Edited</span>
-          <span className="text-right">Pause</span>
-        </div>
-        <div className="divide-y divide-neutral-200">
-          {sections.map((section) => (
-            <SectionRow
-              key={section.id}
-              section={section}
-              isPaused={pausedSectionIds.has(section.id)}
-              onToggle={() => onToggleSection(section.id)}
-            />
-          ))}
-        </div>
-      </div>
-    </Panel>
   );
 }
 
@@ -1208,35 +1109,6 @@ export function AccessMethodRow({ label, status }: { label: string; status: stri
       <span className="break-words text-xs font-bold uppercase tracking-[0.12em] text-white">{label}</span>
       <span className="break-words text-[10px] font-bold uppercase tracking-[0.14em] text-[#E02424]">{status}</span>
     </div>
-  );
-}
-
-export function SectionRow({
-  section,
-  isPaused,
-  onToggle,
-}: {
-  section: (typeof cmsSections)[number];
-  isPaused: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <article className="grid min-w-0 grid-cols-1 gap-4 px-5 py-5 xl:grid-cols-[minmax(0,1fr)_120px_120px_112px] xl:items-center">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <h3 className="break-words text-sm font-black uppercase tracking-[0.1em] text-neutral-950">{section.label}</h3>
-          <span className="inline-flex min-h-6 max-w-full items-center border border-neutral-200 px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-neutral-500">
-            {section.route}
-          </span>
-        </div>
-        <p className="mt-2 break-words text-sm leading-relaxed text-neutral-600">{section.summary}</p>
-      </div>
-      <StatusPill label={isPaused ? 'Paused' : section.status} active={!isPaused} />
-      <span className="text-xs font-medium text-neutral-500">{section.lastEdited}</span>
-      <div className="xl:justify-self-end">
-        <ToggleButton active={!isPaused} onClick={onToggle} activeLabel="Live" inactiveLabel="Paused" />
-      </div>
-    </article>
   );
 }
 

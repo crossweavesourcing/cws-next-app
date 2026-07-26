@@ -1,28 +1,29 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { verifySessionSignature } from '@/auth/crypto/token';
-import { getEnv } from '@/auth/config/env';
+import { PendingAuthenticationRepository } from '@/auth/repositories/pending-authentication.repository';
 import { UserRepository } from '@/auth/repositories/user.repository';
-import { ObjectId } from 'mongodb';
+import * as crypto from 'crypto';
 import Verify2FAForm from './Verify2FAForm';
 import VerifyTotpForm from './VerifyTotpForm';
 import VerifyWebAuthnForm from './VerifyWebAuthnForm';
 
 export default async function Verify2FAPage() {
   const cookieStore = await cookies();
-  // Accept the standard MFA pending cookie AND the step-up pending cookie (Item 9)
-  // — both carry the same HMAC-signed userId and complete via verify2faAction.
-  const pending =
-    cookieStore.get('cws_2fa_pending') ?? cookieStore.get('cws_stepup_pending');
-  const userIdStr = pending?.value
-    ? verifySessionSignature(pending.value, getEnv().SESSION_SECRET)
-    : null;
-  if (!userIdStr) {
+  const pending = cookieStore.get('cws_2fa_pending');
+  if (!pending?.value) {
+    redirect('/dashboard/login');
+  }
+
+  const tokenHash = crypto.createHash('sha256').update(pending.value).digest('hex');
+  const pendingRepo = new PendingAuthenticationRepository();
+  const pendingAuth = await pendingRepo.findByTokenHash(tokenHash);
+
+  if (!pendingAuth || pendingAuth.consumedAt || pendingAuth.expiresAt.getTime() < Date.now()) {
     redirect('/dashboard/login');
   }
 
   const userRepo = new UserRepository();
-  const user = await userRepo.findById(new ObjectId(userIdStr));
+  const user = await userRepo.findById(pendingAuth.userId);
 
   if (!user) {
     redirect('/dashboard/login');
