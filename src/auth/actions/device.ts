@@ -208,7 +208,7 @@ async function updateTwoFaPreferenceActionImpl(
   formData: FormData
 ): Promise<DeviceActionState> {
   const preference = formData.get('preference') as string;
-  if (preference !== 'always' && preference !== 'new_device_only') {
+  if (preference !== 'always' && preference !== 'new_device_only' && preference !== 'off') {
     return { error: 'Invalid preference.' };
   }
 
@@ -216,7 +216,7 @@ async function updateTwoFaPreferenceActionImpl(
     const session = await requireActiveSession();
     const { UserRepository } = await import('../repositories/user.repository');
     await new UserRepository().updateSecurity(session.userId, {
-      twoFaPreference: preference as 'always' | 'new_device_only',
+      twoFaPreference: preference as 'always' | 'new_device_only' | 'off',
     });
 
     await new AuditLogRepository().log({

@@ -155,7 +155,7 @@ function makeUser(overrides: Partial<UserDocument> = {}): UserDocument {
     password: null,
     passwordChangedAt: null,
     passwordExpiresAt: null,
-    role: 'admin',
+    role: 'super_admin',
     status: 'active',
     loginMethods: ['password'],
     security: {
@@ -199,10 +199,10 @@ describe('RBAC — requireRole', () => {
     expect(session.userId.toString()).toBe(userId.toString());
   });
 
-  it('throws InsufficientRoleError for a non-admin (member) requesting admin', async () => {
+  it('throws InsufficientRoleError for a non-admin (manager) requesting admin', async () => {
     const userId = new ObjectId();
     state.session = makeSession({ userId });
-    state.user = makeUser({ role: 'member', _id: userId });
+    state.user = makeUser({ role: 'manager', _id: userId });
 
     await expect(requireRole('admin')).rejects.toBeInstanceOf(InsufficientRoleError);
   });
@@ -218,12 +218,12 @@ describe('RBAC — requireRole', () => {
     });
   });
 
-  it('rejects a viewer from a member-only check (exact-match path)', async () => {
+  it('rejects a manager from an admin-only check', async () => {
     const userId = new ObjectId();
     state.session = makeSession({ userId });
-    state.user = makeUser({ role: 'viewer', _id: userId });
+    state.user = makeUser({ role: 'manager', _id: userId });
 
-    await expect(requireRole('member')).rejects.toBeInstanceOf(InsufficientRoleError);
+    await expect(requireRole('admin')).rejects.toBeInstanceOf(InsufficientRoleError);
   });
 });
 
@@ -246,7 +246,7 @@ describe('Admin forced/batch logout actions — RBAC + audit', () => {
   it('adminRevokeUserSessionsAction: rejects a non-admin with a permission error', async () => {
     const adminId = new ObjectId();
     state.session = makeSession({ userId: adminId });
-    state.user = makeUser({ role: 'member', _id: adminId });
+    state.user = makeUser({ role: 'manager', _id: adminId });
 
     const fd = new FormData();
     fd.set('userId', new ObjectId().toString());
@@ -260,7 +260,7 @@ describe('Admin forced/batch logout actions — RBAC + audit', () => {
     const adminId = new ObjectId();
     const targetId = new ObjectId();
     state.session = makeSession({ userId: adminId });
-    state.user = makeUser({ role: 'admin', _id: adminId });
+    state.user = makeUser({ role: 'super_admin', _id: adminId });
 
     const fd = new FormData();
     fd.set('userId', targetId.toString());
@@ -272,13 +272,13 @@ describe('Admin forced/batch logout actions — RBAC + audit', () => {
 
     const auditEntry = state.audit.find((a) => a.action === 'auth.session.revoked');
     expect(auditEntry).toBeDefined();
-    expect((auditEntry!.actor as { type: string }).type).toBe('admin');
+    expect((auditEntry!.actor as { type: string }).type).toBe('super_admin');
   });
 
   it('adminRevokeUserSessionsAction: an admin cannot force-logout themselves', async () => {
     const adminId = new ObjectId();
     state.session = makeSession({ userId: adminId });
-    state.user = makeUser({ role: 'admin', _id: adminId });
+    state.user = makeUser({ role: 'super_admin', _id: adminId });
 
     const fd = new FormData();
     fd.set('userId', adminId.toString());
@@ -291,7 +291,7 @@ describe('Admin forced/batch logout actions — RBAC + audit', () => {
   it('adminRevokeAllSessionsAction: rejects a non-admin with a permission error', async () => {
     const adminId = new ObjectId();
     state.session = makeSession({ userId: adminId });
-    state.user = makeUser({ role: 'viewer', _id: adminId });
+    state.user = makeUser({ role: 'manager', _id: adminId });
 
     const res = await adminRevokeAllSessionsAction();
     expect(res.error).toMatch(/permission/i);
@@ -301,7 +301,7 @@ describe('Admin forced/batch logout actions — RBAC + audit', () => {
   it('adminRevokeAllSessionsAction: admin revokes all sessions globally + audits', async () => {
     const adminId = new ObjectId();
     state.session = makeSession({ userId: adminId });
-    state.user = makeUser({ role: 'admin', _id: adminId });
+    state.user = makeUser({ role: 'super_admin', _id: adminId });
 
     const res = await adminRevokeAllSessionsAction();
     expect(res.success).toBe(true);
@@ -309,12 +309,12 @@ describe('Admin forced/batch logout actions — RBAC + audit', () => {
 
     const auditEntry = state.audit.find((a) => a.action === 'auth.session.revoked_all');
     expect(auditEntry).toBeDefined();
-    expect((auditEntry!.actor as { type: string }).type).toBe('admin');
+    expect((auditEntry!.actor as { type: string }).type).toBe('super_admin');
   });
 
   it('adminRevokeUserSessionsAction: returns an error for a malformed userId (before RBAC)', async () => {
     state.session = makeSession();
-    state.user = makeUser({ role: 'admin' });
+    state.user = makeUser({ role: 'super_admin' });
 
     const fd = new FormData();
     fd.set('userId', 'not-a-valid-objectid');

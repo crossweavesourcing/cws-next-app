@@ -83,7 +83,7 @@ export default function Verify2FAForm() {
               Trust this device?
             </h3>
             <p className="mb-6 text-xs text-neutral-600">
-              If you trust this device, you won't be asked for a verification code every time you sign in.
+              If you trust this device, you won&apos;t be asked for a verification code every time you sign in.
             </p>
             <div className="flex gap-3">
               <button

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CategoryService } from './category.service';
 import { CategoryRepository } from '../repositories/category.repository';
-import { requireRole } from '../dal';
+import { getAuthUser, requireCmsPermission } from '../dal';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { ObjectId } from 'mongodb';
 
@@ -16,10 +16,10 @@ describe('CategoryService', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     service = new CategoryService();
-    mockCategoryRepo = (service as any).categoryRepo;
+    mockCategoryRepo = (service as unknown as { categoryRepo: jest.Mocked<CategoryRepository> }).categoryRepo;
     
     // Default mocks
-    vi.mocked(requireRole).mockResolvedValue({ userId: new ObjectId() } as any);
+    vi.mocked(requireCmsPermission).mockResolvedValue({ userId: new ObjectId() } as unknown as ReturnType<typeof requireCmsPermission>);
   });
 
   describe('createCategory', () => {
@@ -33,14 +33,14 @@ describe('CategoryService', () => {
     it('creates category successfully with image', async () => {
       const file = new File(['content'], 'test.jpg', { type: 'image/jpeg' });
       vi.mocked(uploadToCloudinary).mockResolvedValue('https://cloudinary.com/test.jpg');
-      mockCategoryRepo.create.mockResolvedValue({ _id: new ObjectId(), name: 'Test' } as any);
+      mockCategoryRepo.create.mockResolvedValue({ _id: new ObjectId(), name: 'Test' } as unknown as ReturnType<typeof mockCategoryRepo.create>);
 
       const result = await service.createCategory(
         { name: 'Test', slug: 'test', description: 'desc', visible: true },
         file
       );
 
-      expect(requireRole).toHaveBeenCalledWith('admin');
+      expect(requireCmsPermission).toHaveBeenCalledWith('categories');
       expect(uploadToCloudinary).toHaveBeenCalled();
       expect(mockCategoryRepo.create).toHaveBeenCalledWith({
         name: 'Test',
@@ -64,7 +64,7 @@ describe('CategoryService', () => {
     });
 
     it('updates category successfully without new image', async () => {
-      mockCategoryRepo.findById.mockResolvedValue({ _id: new ObjectId(), image: 'old.jpg' } as any);
+      mockCategoryRepo.findById.mockResolvedValue({ _id: new ObjectId(), image: 'old.jpg' } as unknown as ReturnType<typeof mockCategoryRepo.findById>);
       mockCategoryRepo.update.mockResolvedValue(true);
 
       const result = await service.updateCategory(
@@ -86,7 +86,7 @@ describe('CategoryService', () => {
 
     it('updates category successfully with new image', async () => {
       const file = new File(['new'], 'new.jpg', { type: 'image/jpeg' });
-      mockCategoryRepo.findById.mockResolvedValue({ _id: new ObjectId(), image: 'old.jpg' } as any);
+      mockCategoryRepo.findById.mockResolvedValue({ _id: new ObjectId(), image: 'old.jpg' } as unknown as ReturnType<typeof mockCategoryRepo.findById>);
       vi.mocked(uploadToCloudinary).mockResolvedValue('https://cloudinary.com/new.jpg');
       mockCategoryRepo.update.mockResolvedValue(true);
 

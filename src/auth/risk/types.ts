@@ -53,7 +53,7 @@ export interface TwoFactorPolicyInput {
   primaryAuthenticationMethod: string;
   riskDecision: AuthenticationRiskDecision;
   trustedDeviceValid: boolean;
-  twoFaPreference: 'always' | 'new_device_only';
+  twoFaPreference: 'always' | 'new_device_only' | 'off';
   accountPolicy?: {
     requireStrongTwoFactor?: boolean;
   };

@@ -1,5 +1,5 @@
 import { ProductRepository } from '../repositories/product.repository';
-import { requireRole } from '../dal';
+import { requireCmsPermission } from '../dal';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { ObjectId } from 'mongodb';
 
@@ -14,7 +14,7 @@ export class ProductService {
     features: unknown,
     specifications: unknown
   ) {
-    await requireRole('admin');
+    await requireCmsPermission('products');
 
     if (!imageFile || imageFile.size === 0) {
       throw new Error('Main image is required');
@@ -62,7 +62,7 @@ export class ProductService {
     features: unknown,
     specifications: unknown
   ) {
-    await requireRole('admin');
+    await requireCmsPermission('products');
 
     const existingProduct = await this.productRepo.findById(id);
     if (!existingProduct) {
@@ -75,7 +75,7 @@ export class ProductService {
       imageUrl = await uploadToCloudinary(mainImageBuffer, 'cws_products');
     }
 
-    let galleryUrls: string[] = Array.isArray(existingGalleryUrls) ? [...existingGalleryUrls] : [];
+    const galleryUrls: string[] = Array.isArray(existingGalleryUrls) ? [...existingGalleryUrls] : [];
     const validGalleryFiles = Array.isArray(galleryFiles) ? galleryFiles.filter(file => file && file.size > 0) : [];
     
     if (validGalleryFiles.length > 0) {
@@ -94,9 +94,9 @@ export class ProductService {
       overview: data.overview,
       image: imageUrl,
       images: galleryUrls,
-      manufacturing: manufacturing as any,
-      features: features as any,
-      specifications: specifications as any,
+      manufacturing: manufacturing as string[],
+      features: features as string[],
+      specifications: specifications as { material: string; productionFocus: string; finishing: string; quality: string; },
       visible: data.visible,
     });
 
@@ -108,7 +108,7 @@ export class ProductService {
   }
 
   async deleteProduct(id: string) {
-    await requireRole('admin');
+    await requireCmsPermission('products');
     const deleted = await this.productRepo.delete(id);
     if (!deleted) {
       throw new Error('Product not found or could not be deleted');

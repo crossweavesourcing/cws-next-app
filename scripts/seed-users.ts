@@ -98,7 +98,8 @@ export async function seedUsers(): Promise<void> {
     {
       $setOnInsert: {
         profile: adminProfile,
-        role: 'admin',
+        role: 'super_admin',
+        permissions: [],
         status: 'active',
         loginMethods: ['password'],
         metadata: {

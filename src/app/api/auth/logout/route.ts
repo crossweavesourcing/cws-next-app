@@ -9,7 +9,6 @@ import { clearingCookieOpts } from '@/auth/lib/cookies';
 
 const SESSION_COOKIE = 'cws_session';
 const REFRESH_COOKIE = 'cws_refresh';
-const DEVICE_TOKEN_COOKIE = 'cws_device_token';
 
 /**
  * Route handler to terminate the current session and clear cookies.
@@ -46,11 +45,9 @@ export async function POST() {
     }
   }
 
-  // Clear auth cookies. Session stays Lax; refresh + device tokens are
-  // high-value → Strict (mirrors issuance in cookies.ts / device.ts).
+  // Clear auth cookies. Session stays Lax; refresh is Strict.
   cookieStore.set(SESSION_COOKIE, '', clearingCookieOpts('lax', '/'));
   cookieStore.set(REFRESH_COOKIE, '', clearingCookieOpts('strict', '/api/auth/refresh'));
-  cookieStore.set(DEVICE_TOKEN_COOKIE, '', clearingCookieOpts('strict', '/'));
 
   return new NextResponse(null, { status: 204 });
 }

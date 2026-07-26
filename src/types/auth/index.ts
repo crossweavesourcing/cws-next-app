@@ -32,6 +32,9 @@ export type {
   UserDocument,
 } from './user.types';
 
+export type { CmsPermission } from './permission.types';
+export { ADMIN_IMPLICIT_PERMISSIONS, ALL_CMS_PERMISSIONS } from './permission.types';
+
 export type { UserEmailDocument }          from './user-email.types';
 export type { UserPhoneDocument }          from './user-phone.types';
 export type { OAuthAccountDocument }       from './oauth-account.types';

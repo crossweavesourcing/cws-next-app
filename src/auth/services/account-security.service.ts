@@ -8,6 +8,7 @@ import { MfaRepository } from '../repositories/mfa.repository';
 import { RecoveryCodeRepository } from '../repositories/recovery-code.repository';
 import { SessionRepository } from '../repositories/session.repository';
 import { UserRepository } from '../repositories/user.repository';
+import type { CmsPermission } from '@/types/auth';
 
 export interface AccountSecurityViewModel {
   profile: {
@@ -17,6 +18,8 @@ export interface AccountSecurityViewModel {
     email: string | null;
     emailVerified: boolean;
     role: string;
+    permissions: CmsPermission[];
+    avatarUrl: string | null;
   };
   password: {
     configured: boolean;
@@ -31,6 +34,8 @@ export interface AccountSecurityViewModel {
     totpEnabled: boolean;
     passkeyCount: number | null;
     recoveryCodesRemaining: number | null;
+    twoFaPreference: 'always' | 'new_device_only' | 'off';
+    defaultTwoFaMethod: 'email' | 'totp' | 'webauthn' | null;
   };
   access: {
     activeSessionCount: number | null;
@@ -100,6 +105,8 @@ export async function getAccountSecurityView(): Promise<AccountSecurityViewModel
       email: email?.email ?? null,
       emailVerified: email?.verified ?? false,
       role: user.role,
+      permissions: user.permissions ?? [],
+      avatarUrl: user.profile.avatar?.url ?? null,
     },
     password: {
       configured: user.password !== null,
@@ -114,6 +121,8 @@ export async function getAccountSecurityView(): Promise<AccountSecurityViewModel
       totpEnabled: user.security.totpEnabled ?? false,
       passkeyCount: passkeys?.length ?? null,
       recoveryCodesRemaining: recoveryCount,
+      twoFaPreference: user.security.twoFaPreference ?? 'always',
+      defaultTwoFaMethod: user.security.defaultTwoFaMethod ?? null,
     },
     access: {
       activeSessionCount: activeSessions?.length ?? null,

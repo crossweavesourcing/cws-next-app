@@ -99,7 +99,7 @@ describe('SessionService.createSession — Centralized Risk Policy Architecture'
       role: 'user',
       createdAt: new Date(),
       updatedAt: new Date(),
-    } as any;
+    } as unknown as UserDocument;
   });
 
   it('creates an authenticated session directly when invoked', async () => {

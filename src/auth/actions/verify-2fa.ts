@@ -118,22 +118,29 @@ async function verify2faActionImpl(
 
   await setAuthCookies({ sessionCookie, refreshToken });
 
-  cookieStore.set(TWO_FA_PENDING_COOKIE, '', clearingCookieOpts('strict', '/'));
-
   let showTrustPrompt = false;
   let pendingDeviceId: string | undefined;
 
   if (pendingAuth.deviceObjectId) {
-    // Import here to avoid circular dependency issues if any
+    const fs = await import('fs');
+    fs.appendFileSync('debug-verify.log', '\n\n[DEBUG] pendingAuth.deviceObjectId: ' + pendingAuth.deviceObjectId + '\n');
     const { DeviceRepository } = await import('../repositories/device.repository');
     const deviceRepo = new DeviceRepository();
     const d = await deviceRepo.findByServerDeviceId(pendingAuth.deviceObjectId, userId);
+    fs.appendFileSync('debug-verify.log', '[DEBUG] device found: ' + !!d + '\n');
+    if (d) {
+      fs.appendFileSync('debug-verify.log', '[DEBUG] d.trusted: ' + d.trusted + ' d.blocked: ' + d.blocked + '\n');
+    }
     if (d && !d.trusted && !d.blocked) {
+      fs.appendFileSync('debug-verify.log', '[DEBUG] SETTING showTrustPrompt = true\n');
       showTrustPrompt = true;
       pendingDeviceId = d.deviceId;
     }
   }
 
+  if (!showTrustPrompt) {
+    cookieStore.set(TWO_FA_PENDING_COOKIE, '', clearingCookieOpts('strict', '/'));
+  }
   return { success: true, showTrustPrompt, pendingDeviceId }; // success -> client redirects
 }
 

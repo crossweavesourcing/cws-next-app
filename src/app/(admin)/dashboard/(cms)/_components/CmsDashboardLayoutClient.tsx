@@ -17,31 +17,50 @@ import {
   ImageIcon,
   Palette,
   ShieldCheck,
+  Users,
 } from 'lucide-react';
 import type { ComponentType, ReactNode } from 'react';
 import { useDashboardContext } from './DashboardContext';
 import { PreviewPanel, StatusMiniCard } from './DashboardComponents';
+import { UserAvatar } from './UserAvatar';
+import type { UserRole, CmsPermission } from '@/types/auth';
 
-const workspaceItems: Array<{
+const ALL_WORKSPACE_ITEMS: Array<{
   href: string;
   label: string;
   helper: string;
   icon: ComponentType<{ className?: string }>;
+  permissionKey: CmsPermission | 'super_admin_only' | 'always' | 'users';
 }> = [
-  { href: '/dashboard', label: 'Overview', helper: 'CMS command center', icon: Monitor },
-  { href: '/dashboard/page-content', label: 'Page Content', helper: 'Sections and page copy', icon: FileText },
-  { href: '/dashboard/categories', label: 'Categories', helper: 'Portfolio category cards', icon: Layers },
-  { href: '/dashboard/products', label: 'Products', helper: 'Descriptions and media', icon: Package },
-  { href: '/dashboard/navigation', label: 'Navigation', helper: 'Header and footer links', icon: Navigation },
-  { href: '/dashboard/visibility', label: 'Visibility', helper: 'Pause section controls', icon: Pause },
-  { href: '/dashboard/media', label: 'Media Library', helper: 'Images and video slots', icon: ImageIcon },
-  { href: '/dashboard/design', label: 'Design System', helper: 'Tokens and UI rules', icon: Palette },
-  { href: '/dashboard/account-security', label: 'Account & Security', helper: 'Profile, password and 2FA', icon: ShieldCheck },
+  { href: '/dashboard', label: 'Overview', helper: 'CMS command center', icon: Monitor, permissionKey: 'overview' },
+  { href: '/dashboard/page-content', label: 'Page Content', helper: 'Sections and page copy', icon: FileText, permissionKey: 'page_content' },
+  { href: '/dashboard/categories', label: 'Categories', helper: 'Portfolio category cards', icon: Layers, permissionKey: 'categories' },
+  { href: '/dashboard/products', label: 'Products', helper: 'Descriptions and media', icon: Package, permissionKey: 'products' },
+  { href: '/dashboard/navigation', label: 'Navigation', helper: 'Header and footer links', icon: Navigation, permissionKey: 'super_admin_only' },
+  { href: '/dashboard/visibility', label: 'Visibility', helper: 'Pause section controls', icon: Pause, permissionKey: 'super_admin_only' },
+  { href: '/dashboard/media', label: 'Media Library', helper: 'Images and video slots', icon: ImageIcon, permissionKey: 'super_admin_only' },
+  { href: '/dashboard/design', label: 'Design System', helper: 'Tokens and UI rules', icon: Palette, permissionKey: 'super_admin_only' },
+  { href: '/dashboard/users', label: 'Users', helper: 'Manage CMS access', icon: Users, permissionKey: 'users' },
+  { href: '/dashboard/account-security', label: 'Account & Security', helper: 'Profile, password and 2FA', icon: ShieldCheck, permissionKey: 'always' },
 ];
 
-export function CmsDashboardLayoutClient({ children }: { children: ReactNode }) {
+export function CmsDashboardLayoutClient({ 
+  children,
+  role,
+  permissions,
+  canManageUsers,
+  userName,
+  avatarUrl,
+}: { 
+  children: ReactNode;
+  role: UserRole;
+  permissions: CmsPermission[];
+  canManageUsers: boolean;
+  userName: string;
+  avatarUrl: string | null;
+}) {
   const pathname = usePathname();
-  const isWideWorkspace = pathname?.startsWith('/dashboard/page-content') || pathname?.startsWith('/dashboard/account-security');
+  const isWideWorkspace = pathname?.startsWith('/dashboard/page-content') || pathname?.startsWith('/dashboard/account-security') || pathname?.startsWith('/dashboard/users');
   const {
     activeWorkspace,
     selectedPage,
@@ -51,6 +70,13 @@ export function CmsDashboardLayoutClient({ children }: { children: ReactNode }) 
     visibleSections,
     enabledNavIds,
   } = useDashboardContext();
+
+  const workspaceItems = ALL_WORKSPACE_ITEMS.filter(item => {
+    if (item.permissionKey === 'always') return true;
+    if (item.permissionKey === 'super_admin_only') return role === 'super_admin';
+    if (item.permissionKey === 'users') return canManageUsers;
+    return role === 'super_admin' || permissions.includes(item.permissionKey);
+  });
 
   // Find current workspace label based on URL
   const currentWorkspaceItem = workspaceItems.find(item => 
@@ -66,18 +92,19 @@ export function CmsDashboardLayoutClient({ children }: { children: ReactNode }) 
               <Link href="/" className="relative block h-14 w-44" aria-label="Back to CWS home">
                 <Image src="/cws_logo.png" alt="CWS" fill priority sizes="176px" className="object-contain object-left" />
               </Link>
-              <div className="mt-6 flex items-center gap-2">
-                <span className="h-2 w-2 bg-[#E02424]" />
-                <span className="break-words text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">
-                  CMS Prepage UI
-                </span>
+              
+              <div className="mt-8 flex items-center gap-3 rounded-lg border border-white/10 bg-white/5 p-3">
+                <UserAvatar name={userName} avatarUrl={avatarUrl} size={36} />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium text-white">{userName}</div>
+                  <div className="truncate text-[10px] font-bold uppercase tracking-wider text-[#E02424]">
+                    {role.replace('_', ' ')}
+                  </div>
+                </div>
               </div>
-              <h1 className="mt-3 break-words text-2xl font-black uppercase leading-none tracking-tight">
-                Content Management
-              </h1>
             </div>
 
-            <nav className="flex-1 space-y-2 overflow-y-auto px-3 py-5">
+            <nav className="flex-1 space-y-2 overflow-y-auto px-3 py-5 scrollbar-thin scrollbar-thumb-white/10">
               {workspaceItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = item.href === '/dashboard' ? pathname === '/dashboard' : pathname?.startsWith(item.href);
@@ -127,7 +154,7 @@ export function CmsDashboardLayoutClient({ children }: { children: ReactNode }) 
           </div>
         </aside>
 
-        <section className="min-w-0">
+        <section className="min-w-0 flex flex-col min-h-screen">
           <header className="sticky top-0 z-30 border-b border-neutral-200 bg-white/95 px-4 py-4 backdrop-blur md:px-8">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
@@ -162,7 +189,7 @@ export function CmsDashboardLayoutClient({ children }: { children: ReactNode }) 
             </div>
           </header>
 
-          <div className={`grid grid-cols-1 gap-5 p-4 md:p-8 ${isWideWorkspace ? '' : '2xl:grid-cols-[minmax(0,1fr)_340px]'}`}>
+          <div className={`flex-1 grid grid-cols-1 gap-5 p-4 md:p-8 ${isWideWorkspace ? '' : '2xl:grid-cols-[minmax(0,1fr)_340px]'}`}>
             <div className="min-w-0 space-y-5">
               {children}
             </div>

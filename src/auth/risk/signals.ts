@@ -96,7 +96,7 @@ export async function collectRiskSignals(input: SignalCollectorInput): Promise<R
   const recentTwoFactorDisable = false;
   // If we track exact timestamps for these in `user.security`, we can evaluate them.
   // For the sake of this implementation, we will use hypothetical fields if they existed, or default to false.
-  // @ts-ignore
+  // @ts-expect-error Password changed at is not yet fully modeled
   if (user.security?.passwordChangedAt && now - user.security.passwordChangedAt.getTime() < SECURITY_EVENT_WINDOW_MS) {
     recentPasswordChange = true;
   }
@@ -115,6 +115,6 @@ export async function collectRiskSignals(input: SignalCollectorInput): Promise<R
     recentPasswordChange,
     recentAccountRecovery: false,
     recentTwoFactorDisable,
-    isPrivilegedAccount: user.role === 'admin',
+    isPrivilegedAccount: user.role === 'super_admin' || user.role === 'admin',
   };
 }

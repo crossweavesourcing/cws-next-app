@@ -49,14 +49,21 @@ export function resolveTwoFactorPolicy(input: TwoFactorPolicyInput): TwoFactorPo
     return { action: 'require_2fa', reasonCodes };
   }
 
-  // 6. User preference: 'new_device_only' (default)
+  // 6. User preference: 'off' -> bypass 2FA for low risk
+  // Note: High/Medium risk already handled above and will override 'off'
+  if (twoFaPreference === 'off') {
+    reasonCodes.push('policy:user_preference_off');
+    return { action: 'allow', reasonCodes };
+  }
+
+  // 7. User preference: 'new_device_only' (default)
   // If the device is explicitly trusted by the user -> allow bypass
   if (trustedDeviceValid) {
     reasonCodes.push('policy:trusted_device_bypass');
     return { action: 'allow', reasonCodes };
   }
 
-  // 7. New or untrusted device -> require 2FA
+  // 8. New or untrusted device -> require 2FA
   reasonCodes.push('policy:new_or_untrusted_device_requires_2fa');
   // Admin on untrusted device: escalate to strong
   if (userRole === 'admin') {

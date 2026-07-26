@@ -1,9 +1,9 @@
 import * as z from 'zod/v4';
 import { ObjectIdSchema, IsoDateTimeSchema } from '../primitives';
 
-export const UserRoleSchema = z.enum(['admin', 'manager', 'operator', 'viewer']).meta({
+export const UserRoleSchema = z.enum(['super_admin', 'admin', 'manager']).meta({
   description: 'User role for RBAC',
-  example: 'admin',
+  example: 'super_admin',
 });
 
 export const UserStatusSchema = z.enum(['active', 'suspended', 'disabled', 'deleted']).meta({

@@ -1,5 +1,5 @@
 import { CategoryRepository } from '../repositories/category.repository';
-import { requireRole } from '../dal';
+import { requireCmsPermission } from '../dal';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 
 export class CategoryService {
@@ -9,7 +9,7 @@ export class CategoryService {
     data: { name: string; slug: string; description: string; visible: boolean },
     imageFile: File | null
   ) {
-    await requireRole('admin');
+    await requireCmsPermission('categories');
 
     if (!imageFile || imageFile.size === 0) {
       throw new Error('Image is required');
@@ -47,7 +47,7 @@ export class CategoryService {
     data: { name: string; slug: string; description: string; visible: boolean },
     imageFile: File | null
   ) {
-    await requireRole('admin');
+    await requireCmsPermission('categories');
 
     const existingCategory = await this.categoryRepo.findById(id);
     if (!existingCategory) {
@@ -78,7 +78,7 @@ export class CategoryService {
   }
 
   async deleteCategory(id: string) {
-    await requireRole('admin');
+    await requireCmsPermission('categories');
     const deleted = await this.categoryRepo.delete(id);
     if (!deleted) {
       throw new Error('Category not found or could not be deleted');

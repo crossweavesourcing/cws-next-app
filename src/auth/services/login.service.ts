@@ -191,7 +191,10 @@ export class LoginService {
       if (user.security?.totpEnabled) availableMethods.push('totp');
       availableMethods.push('email');
 
-      if (availableMethods.length === 1 && availableMethods[0] === 'email') {
+      const defaultMethod = user.security?.defaultTwoFaMethod;
+      const shouldAutoSendEmail = defaultMethod === 'email' || (!defaultMethod && availableMethods.length === 1 && availableMethods[0] === 'email');
+
+      if (shouldAutoSendEmail) {
         await this.twoFactorService.sendCode(userId);
       }
       return { status: 'mfa_required', userId, availableMethods, pendingAuthToken: token };

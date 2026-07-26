@@ -4,7 +4,7 @@
 // src/database/constants.ts and is derived from COLLECTION_NAMES.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type UserRole = 'admin' | 'member' | 'viewer';
+export type UserRole = 'super_admin' | 'admin' | 'manager';
 
 export type UserStatus = 
   | 'active' 

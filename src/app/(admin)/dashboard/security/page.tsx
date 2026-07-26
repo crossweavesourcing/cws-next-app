@@ -8,15 +8,9 @@ import {
 } from 'lucide-react';
 import { getFriendlySecurityView } from '@/auth/services/friendly-security.service';
 import { DevicesTabbedManager } from './DevicesTabbedManager';
-import { TwoFaPreferenceToggle } from './SecurityClient';
-import { requireActiveSession } from '@/auth/dal';
-import { UserRepository } from '@/auth/repositories/user.repository';
 
 export default async function SecurityPage() {
   const data = await getFriendlySecurityView();
-  const session = await requireActiveSession();
-  const user = await new UserRepository().findById(session.userId);
-  const twoFaPreference = user?.security?.twoFaPreference ?? 'always';
 
   return (
     <main className="min-h-screen bg-[#F5F5F3] text-neutral-950">
@@ -67,13 +61,6 @@ export default async function SecurityPage() {
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> Some sign-in information is temporarily unavailable.
           </div>
         )}
-
-        <section className="mt-8 rounded-xl border border-neutral-200 bg-white p-6 shadow-sm sm:p-10">
-          <h2 className="mb-6 text-sm font-black uppercase tracking-tight text-neutral-900">
-            Security Preferences
-          </h2>
-          <TwoFaPreferenceToggle preference={twoFaPreference} />
-        </section>
 
         {/* Tabbed Devices & Activity Manager */}
         <DevicesTabbedManager

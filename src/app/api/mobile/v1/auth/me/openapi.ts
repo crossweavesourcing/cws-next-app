@@ -19,7 +19,8 @@ export const mobileMePath = {
                 type: 'object',
                 properties: {
                   id: { type: 'string', description: 'MongoDB ObjectId', example: '507f1f77bcf86cd799439011' },
-                  role: { type: 'string', enum: ['admin', 'manager', 'operator', 'viewer'], example: 'admin' },
+                  role: { type: 'string', enum: ['super_admin', 'admin', 'manager'], example: 'super_admin' },
+                  permissions: { type: 'array', items: { type: 'string', enum: ['overview', 'page_content', 'categories', 'products'] } },
                   status: { type: 'string', enum: ['active', 'suspended', 'disabled', 'deleted'], example: 'active' },
                   profile: {
                     type: 'object',
@@ -32,7 +33,7 @@ export const mobileMePath = {
                     },
                   },
                 },
-                required: ['id', 'role', 'status', 'profile'],
+                required: ['id', 'role', 'permissions', 'status', 'profile'],
               },
             },
           },

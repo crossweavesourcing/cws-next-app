@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ProductService } from './product.service';
 import { ProductRepository } from '../repositories/product.repository';
-import { requireRole } from '../dal';
+import { requireCmsPermission } from '../dal';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { ObjectId } from 'mongodb';
 
@@ -16,9 +16,9 @@ describe('ProductService', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     service = new ProductService();
-    mockProductRepo = (service as any).productRepo;
+    mockProductRepo = (service as unknown as { productRepo: jest.Mocked<ProductRepository> }).productRepo;
     
-    vi.mocked(requireRole).mockResolvedValue({ userId: new ObjectId() } as any);
+    vi.mocked(requireCmsPermission).mockResolvedValue({ userId: new ObjectId() } as unknown as ReturnType<typeof requireCmsPermission>);
   });
 
   describe('createProduct', () => {
@@ -39,7 +39,7 @@ describe('ProductService', () => {
         .mockResolvedValueOnce('main.jpg')
         .mockResolvedValueOnce('gallery.jpg');
         
-      mockProductRepo.create.mockResolvedValue({ _id: new ObjectId(), name: 'Test' } as any);
+      mockProductRepo.create.mockResolvedValue({ _id: new ObjectId(), name: 'Test' } as unknown as ReturnType<typeof mockProductRepo.create>);
 
       const result = await service.createProduct(
         { categoryId: '507f1f77bcf86cd799439011', name: 'Test', slug: 'test', shortDescription: 'desc', overview: 'ov', visible: true },
@@ -48,7 +48,7 @@ describe('ProductService', () => {
         { man: true }, { feat: true }, { spec: true }
       );
 
-      expect(requireRole).toHaveBeenCalledWith('admin');
+      expect(requireCmsPermission).toHaveBeenCalledWith('products');
       expect(uploadToCloudinary).toHaveBeenCalledTimes(2);
       expect(mockProductRepo.create).toHaveBeenCalledWith({
         categoryId: new ObjectId('507f1f77bcf86cd799439011'),
@@ -78,7 +78,7 @@ describe('ProductService', () => {
     });
 
     it('updates product successfully without new images', async () => {
-      mockProductRepo.findById.mockResolvedValue({ _id: new ObjectId(), image: 'old.jpg', images: ['old_gal.jpg'] } as any);
+      mockProductRepo.findById.mockResolvedValue({ _id: new ObjectId(), image: 'old.jpg', images: ['old_gal.jpg'] } as unknown as ReturnType<typeof mockProductRepo.findById>);
       mockProductRepo.update.mockResolvedValue(true);
 
       const result = await service.updateProduct(
@@ -117,7 +117,7 @@ describe('ProductService', () => {
       
       const result = await service.deleteProduct('507f1f77bcf86cd799439011');
       
-      expect(requireRole).toHaveBeenCalledWith('admin');
+      expect(requireCmsPermission).toHaveBeenCalledWith('products');
       expect(mockProductRepo.delete).toHaveBeenCalledWith('507f1f77bcf86cd799439011');
       expect(result).toBe(true);
     });

@@ -63,10 +63,19 @@ export const usersSchema: Document = {
     passwordChangedAt: { bsonType: ['date', 'null'] },
     passwordExpiresAt: { bsonType: ['date', 'null'] },
 
-    role: { bsonType: 'string', enum: ['admin', 'member', 'viewer'], description: 'Application-level role; single source of truth for authorization (no roles/permissions collection)' },
+    role: { bsonType: 'string', enum: ['super_admin', 'admin', 'manager'], description: 'Application-level role; single source of truth for authorization (no roles/permissions collection)' },
     status: {
       bsonType: 'string',
       enum: ['active', 'inactive', 'disabled', 'suspended', 'deleted']
+    },
+
+    permissions: {
+      bsonType: ['array', 'null'],
+      items: {
+        bsonType: 'string',
+        enum: ['overview', 'page_content', 'categories', 'products'],
+      },
+      description: 'CMS permissions for manager role; ignored for super_admin/admin',
     },
 
     loginMethods: {
@@ -93,7 +102,8 @@ export const usersSchema: Document = {
         passwordStrengthPercent: { bsonType: ['int', 'null'], minimum: 0, maximum: 100 },
         passwordStrengthEvaluatedAt: { bsonType: ['date', 'null'] },
         passwordStrengthEvaluatorVersion: { bsonType: ['string', 'null'], maxLength: 80 },
-        twoFaPreference: { bsonType: ['string', 'null'], enum: ['always', 'new_device_only', null] },
+        twoFaPreference: { bsonType: ['string', 'null'], enum: ['always', 'new_device_only', 'off', null] },
+        defaultTwoFaMethod: { bsonType: ['string', 'null'], enum: ['email', 'totp', 'webauthn', null] },
       },
     },
 

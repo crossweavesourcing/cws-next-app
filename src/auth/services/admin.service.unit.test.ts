@@ -23,16 +23,16 @@ describe('AdminService', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     service = new AdminService();
-    mockSessionRepo = (service as any).sessionRepo;
-    mockRefreshRepo = (service as any).refreshRepo;
-    mockAuditRepo = (service as any).auditRepo;
+    mockSessionRepo = (service as unknown as { sessionRepo: jest.Mocked<SessionRepository> }).sessionRepo;
+    mockRefreshRepo = (service as unknown as { refreshRepo: jest.Mocked<RefreshTokenRepository> }).refreshRepo;
+    mockAuditRepo = (service as unknown as { auditRepo: jest.Mocked<AuditLogRepository> }).auditRepo;
 
     vi.mocked(requireRole).mockResolvedValue({ 
       _id: adminSessionId,
       userId: adminUserId,
       ipAddress: '127.0.0.1',
       userAgent: 'test-agent'
-    } as any);
+    } as unknown as ReturnType<typeof requireRole>);
   });
 
   describe('revokeUserSessions', () => {
@@ -53,7 +53,7 @@ describe('AdminService', () => {
       const result = await service.revokeUserSessions(targetUserId.toString());
       
       expect(result).toBe(true);
-      expect(requireRole).toHaveBeenCalledWith('admin');
+      expect(requireRole).toHaveBeenCalledWith('super_admin');
       expect(mockSessionRepo.revokeAllUserSessions).toHaveBeenCalledWith(targetUserId, 'admin');
       expect(mockRefreshRepo.revokeBySessions).toHaveBeenCalledWith(sessionIds, 'admin');
       
@@ -75,7 +75,7 @@ describe('AdminService', () => {
       const result = await service.revokeAllSessions();
       
       expect(result).toBe(true);
-      expect(requireRole).toHaveBeenCalledWith('admin');
+      expect(requireRole).toHaveBeenCalledWith('super_admin');
       expect(mockSessionRepo.revokeAllSessions).toHaveBeenCalledWith('admin');
       expect(mockRefreshRepo.revokeBySessions).toHaveBeenCalledWith(sessionIds, 'admin');
       

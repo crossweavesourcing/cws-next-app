@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { getAccountSecurityView } from '@/auth/services/account-security.service';
 import { PASSWORD_STRENGTH_EVALUATOR_VERSION } from '@/auth/validation/password-strength';
+import { TotpConfigurator } from './TotpConfigurator';
+import { SecurityPreferencesClient } from './SecurityPreferencesClient';
 
 function dateLabel(value: string | null): string {
   if (!value) return 'Not available';
@@ -67,10 +69,22 @@ export default async function AccountSecurityPage() {
             <Heading eyebrow="Protection" title="Two-factor authentication" copy="Authenticator apps and passkeys provide stronger protection than a password alone." />
             <div className="mt-6 space-y-3">
               {[
-                { icon: Smartphone, title: 'Authenticator app', detail: data.protection.totpEnabled ? 'Configured' : 'Not configured', active: data.protection.totpEnabled },
-                { icon: Fingerprint, title: 'Passkeys', detail: data.protection.passkeyCount === null ? 'Unavailable' : `${data.protection.passkeyCount} registered`, active: (data.protection.passkeyCount ?? 0) > 0 },
-                { icon: LockKeyhole, title: 'Recovery codes', detail: data.protection.recoveryCodesRemaining === null ? 'Unavailable' : `${data.protection.recoveryCodesRemaining} remaining`, active: (data.protection.recoveryCodesRemaining ?? 0) > 0 },
-              ].map(({ icon: Icon, title, detail, active }) => <article key={title} className="grid gap-4 border border-neutral-200 p-5 sm:grid-cols-[48px_1fr_auto] sm:items-center"><span className="flex h-12 w-12 items-center justify-center bg-neutral-100 text-[#E02424]"><Icon className="h-5 w-5" /></span><div><h3 className="text-sm font-black uppercase tracking-[0.1em]">{title}</h3><p className="mt-1 text-sm text-neutral-600">{detail}</p></div><Status active={active}>{active ? 'Protected' : 'Recommended'}</Status></article>)}
+                { icon: Smartphone, title: 'Authenticator app', detail: data.protection.totpEnabled ? 'Configured' : 'Not configured', active: data.protection.totpEnabled, renderExtras: () => <TotpConfigurator initiallyEnabled={data.protection.totpEnabled} /> },
+                { icon: Fingerprint, title: 'Passkeys', detail: data.protection.passkeyCount === null ? 'Unavailable' : `${data.protection.passkeyCount} registered`, active: (data.protection.passkeyCount ?? 0) > 0, renderExtras: undefined },
+                { icon: LockKeyhole, title: 'Recovery codes', detail: data.protection.recoveryCodesRemaining === null ? 'Unavailable' : `${data.protection.recoveryCodesRemaining} remaining`, active: (data.protection.recoveryCodesRemaining ?? 0) > 0, renderExtras: undefined },
+              ].map(({ icon: Icon, title, detail, active, renderExtras }) => <article key={title} className="grid gap-4 border border-neutral-200 p-5 sm:grid-cols-[48px_1fr_auto] sm:items-start"><span className="flex h-12 w-12 items-center justify-center bg-neutral-100 text-[#E02424] mt-1"><Icon className="h-5 w-5" /></span><div className="flex flex-col"><h3 className="text-sm font-black uppercase tracking-[0.1em]">{title}</h3><p className="mt-1 text-sm text-neutral-600">{detail}</p>{renderExtras?.()}</div><Status active={active}>{active ? 'Protected' : 'Recommended'}</Status></article>)}
+            </div>
+          </section>
+
+          <section className="border border-neutral-200 bg-white p-6 md:p-8">
+            <Heading eyebrow="Settings" title="Security Preferences" copy="Configure when Two-Factor Authentication is required and set your default verification method." />
+            <div className="mt-6">
+              <SecurityPreferencesClient 
+                preference={data.protection.twoFaPreference}
+                defaultMethod={data.protection.defaultTwoFaMethod ?? 'email'}
+                hasTotp={data.protection.totpEnabled}
+                hasWebAuthn={(data.protection.passkeyCount ?? 0) > 0}
+              />
             </div>
           </section>
         </div>

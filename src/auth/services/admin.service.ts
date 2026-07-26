@@ -1,5 +1,5 @@
 import { ObjectId } from 'mongodb';
-import { requireRole, InsufficientRoleError } from '../dal';
+import { requireRole } from '../dal';
 import { SessionRepository } from '../repositories/session.repository';
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository';
 import { AuditLogRepository } from '../repositories/audit-log.repository';
@@ -14,7 +14,7 @@ export class AdminService {
       throw new Error('Invalid user.');
     }
 
-    const adminSession = await requireRole('admin');
+    const adminSession = await requireRole('super_admin');
     const adminUserId = adminSession.userId;
 
     if (adminUserId.equals(new ObjectId(userIdRaw))) {
@@ -50,7 +50,7 @@ export class AdminService {
   }
 
   async revokeAllSessions() {
-    const adminSession = await requireRole('admin');
+    const adminSession = await requireRole('super_admin');
     const adminUserId = adminSession.userId;
 
     const allSessionIds = await this.sessionRepo.findAllActiveSessionIds();

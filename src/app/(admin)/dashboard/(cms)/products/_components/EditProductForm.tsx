@@ -30,6 +30,7 @@ export function EditProductForm({ product, categories, onSuccess, onCancel }: { 
         });
       });
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMediaItems(initialItems);
   }, [product]);
 

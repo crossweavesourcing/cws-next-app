@@ -1,6 +1,6 @@
 import type { ObjectId } from 'mongodb';
 import { SectionRepository } from '@/auth/repositories/section.repository';
-import { requireRole } from '@/auth/dal';
+import { requireCmsPermission } from '@/auth/dal';
 import { AuditLogRepository } from '@/auth/repositories/audit-log.repository';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import {
@@ -95,7 +95,7 @@ export class SectionService {
   }
 
   async getAdminSections(actor?: SectionAdminActor) {
-    if (!actor) await requireRole('admin');
+    if (!actor) await requireCmsPermission('page_content');
     const sections = await this.getPublicSections();
     return sections.map((section) => ({
       ...section,
@@ -177,7 +177,7 @@ export class SectionService {
   }
 
   private async requireWebActor(): Promise<SectionAdminActor> {
-    const session = await requireRole('admin');
+    const session = await requireCmsPermission('page_content');
     return { userId: session.userId, sessionId: session._id, source: 'web' };
   }
 }

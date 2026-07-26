@@ -5,7 +5,8 @@ import { getEnv } from '../config/env';
 import { verifyMobileAccessToken } from '../services/mobile-token.service';
 import { SessionService } from '../services/session.service';
 import { UserRepository } from '../repositories/user.repository';
-import type { SessionDocument, UserDocument } from '@/types/auth';
+import type { SessionDocument, UserDocument, CmsPermission } from '@/types/auth';
+import { ADMIN_IMPLICIT_PERMISSIONS } from '@/types/auth';
 
 export function mobileCorsHeaders(request: Request): Headers {
   const headers = new Headers();
@@ -76,4 +77,10 @@ export async function authenticateCookieOrBearer(request: NextRequest): Promise<
   const user = await getAuthUser(session.userId);
   if (!user || user.status !== 'active') return null;
   return { session, user };
+}
+
+export function hasCmsPermission(user: UserDocument, permission: CmsPermission): boolean {
+  if (user.role === 'super_admin') return true;
+  if (user.role === 'admin') return ADMIN_IMPLICIT_PERMISSIONS.includes(permission);
+  return user.permissions?.includes(permission) ?? false;
 }

@@ -7,6 +7,7 @@ import * as crypto from 'crypto';
  */
 
 const stores = vi.hoisted(() => ({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   pendingAuths: new Map<string, any>(),
   cookies: new Map<string, { value: string; opts: Record<string, unknown> }>(),
   clientIp: '203.0.113.9',

@@ -1,5 +1,6 @@
 import type { ObjectId } from 'mongodb';
 import type { UserRole, UserStatus, LoginMethod, HashAlgorithm, AvatarSource } from './shared.types';
+import type { CmsPermission } from './permission.types';
 import type { PasswordStrengthCategory } from '@/auth/validation/password-strength';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -45,7 +46,7 @@ export interface UserPassword {
   algorithm: HashAlgorithm;
 }
 
-export type TwoFaPreference = 'always' | 'new_device_only';
+export type TwoFaPreference = 'always' | 'new_device_only' | 'off';
 
 export interface UserSecurity {
   failedLoginAttempts:       number;
@@ -55,6 +56,7 @@ export interface UserSecurity {
   twoFaPreference?:          TwoFaPreference;
   totpEnabled?:              boolean;
   webAuthnEnabled?:          boolean;
+  defaultTwoFaMethod?:       'email' | 'totp' | 'webauthn' | null;
   lastPasswordResetRequestAt: Date | null;
   forcePasswordChange:       boolean;
   accountSecurityVersion:    number;
@@ -93,6 +95,13 @@ export interface UserDocument {
 
   role:   UserRole;
   status: UserStatus;
+
+  /**
+   * CMS permissions — only meaningful for 'manager' role.
+   * super_admin and admin derive their permissions from their role.
+   * Empty array or undefined = no CMS access (for managers).
+   */
+  permissions?: CmsPermission[];
 
   /**
    * Derived capability flags — NOT the authoritative source.

@@ -1,6 +1,6 @@
 import type { NextRequest } from 'next/server';
 import { SectionService, SectionValidationError, type SectionUpdateInput } from '@/auth/services/section.service';
-import { authenticateBearerRequest, mobileJson, mobileOptions } from '@/auth/lib/mobile';
+import { authenticateBearerRequest, mobileJson, mobileOptions, hasCmsPermission } from '@/auth/lib/mobile';
 import type { SectionContent } from '@/lib/section-definitions';
 import { SECTION_DEFINITION_MAP } from '@/lib/section-definitions';
 
@@ -11,7 +11,7 @@ export async function OPTIONS(request: NextRequest) {
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateBearerRequest(request);
   if (!auth) return mobileJson(request, { error: 'Unauthorized' }, { status: 401 });
-  if (auth.user.role !== 'admin') return mobileJson(request, { error: 'Forbidden' }, { status: 403 });
+  if (!hasCmsPermission(auth.user, 'page_content')) return mobileJson(request, { error: 'Forbidden' }, { status: 403 });
   try {
     const { id } = await params;
     const actor = { userId: auth.user._id, sessionId: auth.session._id, source: 'mobile' as const };
