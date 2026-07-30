@@ -46,6 +46,23 @@ vi.mock('../repositories/login-attempt.repository', () => ({
         .sort((a, b) => b.lockExpiresAt!.getTime() - a.lockExpiresAt!.getTime());
       return active[0]?.lockExpiresAt ?? null;
     }
+    async getTimeSinceLastFailure(identifier: string): Promise<number | null> {
+      const id = identifier.trim().toLowerCase();
+      const failures = stores.attempts
+        .filter((a) => a.identifier === id && !a.success)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      if (failures.length === 0) return null;
+      return Date.now() - failures[0].createdAt.getTime();
+    }
+    async recordFailure(identifier: string, ip: string, userAgent: string | null): Promise<void> {
+      stores.attempts.push({
+        ipAddress: ip,
+        identifier: identifier.trim().toLowerCase(),
+        success: false,
+        createdAt: new Date(),
+        lockExpiresAt: null,
+      });
+    }
   },
 }));
 

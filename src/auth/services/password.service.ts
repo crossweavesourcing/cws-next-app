@@ -51,6 +51,18 @@ export class PasswordService {
   private loginAttemptRepo = new LoginAttemptRepository();
   private alertingService = new AlertingService();
 
+  async verifyUserPassword(userId: ObjectId, candidate: string): Promise<boolean> {
+    const user = await this.userRepo.findById(userId);
+    if (!user || !user.password?.hash) {
+      return false;
+    }
+    return verifyPassword(user.password.hash, candidate);
+  }
+
+  async verifyPassword(userId: ObjectId, candidate: string): Promise<boolean> {
+    return this.verifyUserPassword(userId, candidate);
+  }
+
   /**
    * Shared pre-write gate used by BOTH changePassword and resetPassword.
    *
@@ -257,7 +269,8 @@ export class PasswordService {
     const raw = user
       ? await this.tokenRepo.create(
           { userId: user._id, type: 'password_reset', payload: { email } },
-          RESET_TTL_MS
+          RESET_TTL_MS,
+          32
         )
       : null;
     if (raw && user) {

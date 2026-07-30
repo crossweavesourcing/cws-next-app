@@ -21,7 +21,6 @@ const SESSION_COOKIE = 'cws_session';
 const REFRESH_COOKIE = 'cws_refresh';
 const TWO_FA_PENDING_COOKIE = 'cws_2fa_pending';
 const PW_PENDING_COOKIE = 'cws_pw_pending';
-const STEPUP_PENDING_COOKIE = 'cws_stepup_pending';
 
 /**
  * GET /api/auth/google/callback
@@ -124,11 +123,11 @@ export async function GET(request: NextRequest) {
       cookieStore.set(TWO_FA_PENDING_COOKIE, result.pendingAuthToken, {
         httpOnly: true,
         secure,
-        sameSite: 'lax',
+        sameSite: 'strict',
         path: '/',
         maxAge: 5 * 60, // 5 minutes to complete 2FA
       });
-      return NextResponse.redirect(`${env.APP_URL}/dashboard/verify-2fa`);
+      return NextResponse.redirect(`${env.APP_URL}/dashboard/verify-2fa?method=email`);
     }
     if (result.status === 'force_change') {
       const pending = signSessionId(result.userId.toString(), env.SESSION_SECRET);

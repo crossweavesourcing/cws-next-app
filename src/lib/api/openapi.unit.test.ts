@@ -15,8 +15,12 @@ const EXPECTED_DOCUMENTED_OPERATIONS = [
   { method: 'POST', path: '/api/chat', operationId: 'sendChatMessage' },
   { method: 'POST', path: '/api/auth/webauthn/login-options', operationId: 'webauthnLoginOptions' },
   { method: 'POST', path: '/api/auth/webauthn/login-verify', operationId: 'webauthnLoginVerify' },
+  { method: 'POST', path: '/api/auth/webauthn/register-options', operationId: 'webauthnRegisterOptions' },
+  { method: 'POST', path: '/api/auth/webauthn/register-verify', operationId: 'webauthnRegisterVerify' },
   { method: 'POST', path: '/api/auth/logout', operationId: 'logout' },
+  { method: 'POST', path: '/api/auth/login', operationId: 'webPasswordLogin' },
   { method: 'POST', path: '/api/auth/refresh', operationId: 'refreshSession' },
+  { method: 'GET', path: '/api/auth/test-cookies', operationId: 'testAuthCookies' },
   { method: 'GET', path: '/api/auth/google', operationId: 'googleOAuthStart' },
   { method: 'GET', path: '/api/auth/google/callback', operationId: 'googleOAuthCallback' },
   { method: 'POST', path: '/api/mobile/v1/auth/password', operationId: 'mobilePasswordLogin' },
@@ -24,6 +28,13 @@ const EXPECTED_DOCUMENTED_OPERATIONS = [
   { method: 'POST', path: '/api/mobile/v1/auth/mfa/totp', operationId: 'mobileMfaTotpVerify' },
   { method: 'POST', path: '/api/mobile/v1/auth/mfa/webauthn/options', operationId: 'mobileMfaWebauthnOptions' },
   { method: 'POST', path: '/api/mobile/v1/auth/mfa/webauthn/verify', operationId: 'mobileMfaWebauthnVerify' },
+  { method: 'GET', path: '/api/mobile/v1/auth/passkeys', operationId: 'mobilePasskeysList' },
+  { method: 'PATCH', path: '/api/mobile/v1/auth/passkeys/{id}', operationId: 'mobilePasskeyRename' },
+  { method: 'DELETE', path: '/api/mobile/v1/auth/passkeys/{id}', operationId: 'mobilePasskeyRemove' },
+  { method: 'POST', path: '/api/mobile/v1/auth/passkeys/register/options', operationId: 'mobilePasskeyRegisterOptions' },
+  { method: 'POST', path: '/api/mobile/v1/auth/passkeys/register/verify', operationId: 'mobilePasskeyRegisterVerify' },
+  { method: 'POST', path: '/api/mobile/v1/auth/passkeys/login/options', operationId: 'mobilePasskeyLoginOptions' },
+  { method: 'POST', path: '/api/mobile/v1/auth/passkeys/login/verify', operationId: 'mobilePasskeyLoginVerify' },
   { method: 'GET', path: '/api/mobile/v1/auth/me', operationId: 'mobileGetCurrentUser' },
   { method: 'POST', path: '/api/mobile/v1/auth/refresh', operationId: 'mobileRefreshToken' },
   { method: 'POST', path: '/api/mobile/v1/auth/google', operationId: 'mobileGoogleLogin' },
@@ -36,6 +47,8 @@ const EXPECTED_DOCUMENTED_OPERATIONS = [
   { method: 'PUT', path: '/api/mobile/v1/admin/products/{id}', operationId: 'updateProductMobile' },
   { method: 'DELETE', path: '/api/mobile/v1/admin/products/{id}', operationId: 'deleteProductMobile' },
   { method: 'POST', path: '/api/mobile/v1/admin/sessions/revoke', operationId: 'revokeSessionsMobile' },
+  { method: 'GET', path: '/api/mobile/v1/admin/sections', operationId: 'getSectionsMobile' },
+  { method: 'PATCH', path: '/api/mobile/v1/admin/sections/{id}', operationId: 'updateSectionMobile' },
 ];
 
 describe('OpenAPI Document Assembly', () => {
@@ -104,7 +117,7 @@ describe('OpenAPI Document Assembly', () => {
         if ((pathItem as Record<string, unknown>)[method]) count++;
       }
     }
-    expect(count).toBe(29);
+    expect(count).toBe(EXPECTED_DOCUMENTED_OPERATIONS.length);
   });
 
   it('documents the representative user endpoint with all expected fields', () => {
@@ -211,6 +224,12 @@ describe('Route Exclusion Configuration', () => {
     expect(excludedPaths).toContain('/api/mobile/v1/auth/mfa/totp');
     expect(excludedPaths).toContain('/api/mobile/v1/auth/mfa/webauthn/options');
     expect(excludedPaths).toContain('/api/mobile/v1/auth/mfa/webauthn/verify');
+    expect(excludedPaths).toContain('/api/mobile/v1/auth/passkeys');
+    expect(excludedPaths).toContain('/api/mobile/v1/auth/passkeys/{id}');
+    expect(excludedPaths).toContain('/api/mobile/v1/auth/passkeys/register/options');
+    expect(excludedPaths).toContain('/api/mobile/v1/auth/passkeys/register/verify');
+    expect(excludedPaths).toContain('/api/mobile/v1/auth/passkeys/login/options');
+    expect(excludedPaths).toContain('/api/mobile/v1/auth/passkeys/login/verify');
     expect(excludedPaths).toContain('/api/mobile/v1/users/{id}');
   });
 });

@@ -14,10 +14,10 @@ export const mobileMfaWebauthnOptionsPath = {
   '/api/mobile/v1/auth/mfa/webauthn/options': {
     post: {
       operationId: 'mobileMfaWebauthnOptions',
-      summary: 'Get WebAuthn MFA options',
+      summary: 'Deprecated WebAuthn MFA options',
       description:
-        'Generates WebAuthn authentication options for the pending MFA challenge. ' +
-        'Returns PublicKeyCredentialRequestOptions for the client to use with navigator.credentials.get().',
+        'Deprecated. Passkeys are available for passwordless sign-in only; use email code for verification.',
+      deprecated: true,
       tags: [TAGS.MOBILE_AUTH],
       security: [],
       requestBody: {
@@ -29,35 +29,8 @@ export const mobileMfaWebauthnOptionsPath = {
         },
       },
       responses: {
-        '200': {
-          description: 'WebAuthn options generated',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                description: 'PublicKeyCredentialRequestOptions',
-                properties: {
-                  challenge: { type: 'string' },
-                  rpId: { type: 'string' },
-                  timeout: { type: 'integer', example: 60000 },
-                  allowCredentials: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        id: { type: 'string' },
-                        type: { type: 'string', example: 'public-key' },
-                      },
-                    },
-                  },
-                  userVerification: { type: 'string', example: 'preferred' },
-                },
-              },
-            },
-          },
-        },
-        '401': {
-          description: 'Invalid or expired verification challenge',
+        '410': {
+          description: 'WebAuthn MFA is no longer supported',
           content: {
             'application/json': {
               schema: createSchema(ErrorSchema).schema,

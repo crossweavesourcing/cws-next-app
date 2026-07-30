@@ -19,8 +19,9 @@ function stubBaseEnv() {
   vi.stubEnv('MONGODB_URI', 'mongodb://localhost:27017/test');
   vi.stubEnv('SESSION_SECRET', 'test-session-secret-at-least-thirty-two-chars!!');
   vi.stubEnv('APP_URL', 'https://example.com');
-  vi.stubEnv('ARGON2_SECRET', 'argon2_secret_pepper_min_16');
-  vi.stubEnv('ADMIN_SEED_PASSWORD', 'SeedPassword123!');
+  vi.stubEnv('ARGON2_SECRET', 'this_is_a_mock_argon2_secret_32_chars_long');
+  vi.stubEnv('TOTP_ENCRYPTION_KEY', '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef');
+  vi.stubEnv('ADMIN_SEED_PASSWORD', 'SuperSecretSeed123!');
   vi.stubEnv('TRUSTED_PROXY_IP_HEADER', 'x-vercel-proxied-for');
 }
 

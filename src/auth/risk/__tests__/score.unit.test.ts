@@ -43,11 +43,12 @@ describe('evaluateRiskScore', () => {
   it('determines high risk correctly', () => {
     const result = evaluateRiskScore({
       ...baseSignals,
+      trustedDeviceStatus: 'missing',
       isAnonymizingNetwork: true, // 40
       isUnusualCountry: true, // 30
     });
 
-    expect(result.score).toBe(70);
+    expect(result.score).toBe(80);
     expect(result.level).toBe('high');
   });
 

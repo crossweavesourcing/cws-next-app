@@ -79,17 +79,22 @@ export function evaluateRiskScore(
   addScore(signals.trustedDeviceStatus === 'missing', policy.weights.trustedDeviceMissing, 'trusted_device_missing');
   addScore(signals.trustedDeviceStatus === 'expired', policy.weights.trustedDeviceExpired, 'trusted_device_expired');
   addScore(signals.trustedDeviceStatus === 'invalid' || signals.trustedDeviceStatus === 'revoked', policy.weights.trustedDeviceInvalid, 'trusted_device_invalid');
-  
+
   // Device/Browser novelty
   addScore(signals.isNewDevice, policy.weights.newDevice, 'new_device');
   addScore(signals.isNewBrowserFamily, policy.weights.newBrowserFamily, 'new_browser_family');
 
   // Network/Geo
-  addScore(signals.isUnusualCountry, policy.weights.unusualCountry, 'unusual_country');
-  addScore(signals.isUnusualNetwork, policy.weights.unusualNetwork, 'unusual_network');
+  // A valid trusted device bypasses normal geo/network risk factors
+  if (signals.trustedDeviceStatus !== 'valid') {
+    addScore(signals.isUnusualCountry, policy.weights.unusualCountry, 'unusual_country');
+    addScore(signals.isUnusualNetwork, policy.weights.unusualNetwork, 'unusual_network');
+    addScore(signals.impossibleTravel, policy.weights.impossibleTravel, 'impossible_travel');
+  }
+
+  // High-risk indicators (malicious/anonymizing) apply regardless of device trust
   addScore(signals.isAnonymizingNetwork, policy.weights.anonymizingNetwork, 'anonymizing_network');
   addScore(signals.isMaliciousIp, policy.weights.maliciousIp, 'malicious_ip');
-  addScore(signals.impossibleTravel, policy.weights.impossibleTravel, 'impossible_travel');
 
   // Behavior
   addScore(signals.recentFailedAttemptsCount > 0 && !signals.excessiveFailedAttempts, policy.weights.recentFailedAttempts, 'recent_failed_attempts');

@@ -82,7 +82,7 @@ export const usersSchema: Document = {
       bsonType: 'array',
       minItems: 0,
       uniqueItems: true,
-      items: { bsonType: 'string', enum: ['password', 'google', 'linkedin', 'whatsapp'] },
+      items: { bsonType: 'string', enum: ['password', 'google', 'linkedin', 'whatsapp', 'passkey'] },
     },
 
     security: {
@@ -95,6 +95,7 @@ export const usersSchema: Document = {
         mfaEnabled: { bsonType: 'bool' },
         totpEnabled: { bsonType: 'bool' },
         webAuthnEnabled: { bsonType: 'bool' },
+        requireTwoFactor: { bsonType: ['bool', 'null'] },
         lastPasswordResetRequestAt: { bsonType: ['date', 'null'] },
         forcePasswordChange: { bsonType: 'bool' },
         accountSecurityVersion: { bsonType: 'int', minimum: 1, description: 'Incremented to invalidate all sessions/tokens' },
@@ -103,7 +104,7 @@ export const usersSchema: Document = {
         passwordStrengthEvaluatedAt: { bsonType: ['date', 'null'] },
         passwordStrengthEvaluatorVersion: { bsonType: ['string', 'null'], maxLength: 80 },
         twoFaPreference: { bsonType: ['string', 'null'], enum: ['always', 'new_device_only', 'off', null] },
-        defaultTwoFaMethod: { bsonType: ['string', 'null'], enum: ['email', 'totp', 'webauthn', null] },
+        defaultTwoFaMethod: { bsonType: ['string', 'null'], enum: ['email', 'totp', null] },
       },
     },
 

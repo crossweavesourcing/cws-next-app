@@ -55,7 +55,7 @@ export const mobileGooglePath = {
                 properties: {
                   status: { type: 'string', example: 'mfa_required' },
                   challengeToken: { type: 'string', description: 'Token for completing MFA challenge' },
-                  methods: { type: 'array', items: { type: 'string' }, example: ['email', 'totp', 'webauthn'] },
+                  methods: { type: 'array', items: { type: 'string' }, example: ['email', 'totp'] },
                 },
               },
             },

@@ -214,7 +214,7 @@ describe('PasswordService — policy + history enforcement', () => {
     seedUser(currentHash, 'OldPassw0rd!2024');
 
     await expect(
-      service.changePassword(userId, 'OldPassw0rd!2024', 'short1!', userId.toString())
+      service.changePassword(userId, 'OldPassw0rd!2024', 'sh1!', userId.toString())
     ).rejects.toThrow(/does not meet the account requirements/i);
 
     // No write happened: user hash is unchanged + no history recorded.

@@ -20,10 +20,27 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   const categoryRepo = new CategoryRepository();
   const categories = await categoryRepo.findAll();
 
+  const serializedProduct = {
+    ...product,
+    _id: product._id.toString(),
+    categoryId: product.categoryId?.toString() || null,
+    createdAt: product.createdAt.toISOString(),
+    updatedAt: product.updatedAt.toISOString(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
+
+  const serializedCategories = categories.map(cat => ({
+    ...cat,
+    _id: cat._id.toString(),
+    createdAt: cat.createdAt.toISOString(),
+    updatedAt: cat.updatedAt.toISOString(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  })) as any[];
+
   return (
     <div className="mx-auto max-w-3xl py-8">
       <div className="border border-neutral-800 bg-[#101010] p-6 text-white shadow-xl md:p-8">
-        <EditProductForm product={product} categories={categories} />
+        <EditProductForm product={serializedProduct} categories={serializedCategories} />
       </div>
     </div>
   );

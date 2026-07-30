@@ -53,6 +53,9 @@ async function verifyTotpActionImpl(
   }
 
   const userId = pendingAuth.userId;
+  if (pendingAuth.primaryAuthenticationMethod === 'passkey' || pendingAuth.primaryAuthenticationMethod === 'google') {
+    return { error: 'Use the email code to finish this sign-in.' };
+  }
 
   if (pendingAuth.attemptsRemaining <= 0) {
     cookieStore.set(TWO_FA_PENDING_COOKIE, '', clearingCookieOpts('strict', '/'));
@@ -67,6 +70,16 @@ async function verifyTotpActionImpl(
   const code = formData.get('code');
   if (typeof code !== 'string' || code.trim().length !== 6) {
     return { error: 'Please enter the 6-digit TOTP code.' };
+  }
+
+  // Check global rate limit before verifying
+  const recentFailures = await attemptRepo.countRecentTotpFailures(userId, 15 * 60 * 1000);
+  if (recentFailures >= 5) {
+    const userRepo = new UserRepository();
+    await userRepo.lockAccount(userId, new Date(Date.now() + 15 * 60 * 1000));
+    await pendingRepo.consume(pendingAuth._id);
+    cookieStore.set(TWO_FA_PENDING_COOKIE, '', clearingCookieOpts('strict', '/'));
+    return { error: 'Account locked due to too many failed verification attempts. Try again in 15 minutes.' };
   }
 
   const mfaService = new MfaService();
@@ -103,6 +116,14 @@ async function verifyTotpActionImpl(
   });
 
   if (!ok) {
+    if (recentFailures + 1 >= 5) {
+      const userRepo = new UserRepository();
+      await userRepo.lockAccount(userId, new Date(Date.now() + 15 * 60 * 1000));
+      await pendingRepo.consume(pendingAuth._id);
+      cookieStore.set(TWO_FA_PENDING_COOKIE, '', clearingCookieOpts('strict', '/'));
+      return { error: 'Account locked due to too many failed verification attempts. Try again in 15 minutes.' };
+    }
+
     const attemptsLeft = await pendingRepo.decrementAttempts(pendingAuth._id);
     if (attemptsLeft <= 0) {
       cookieStore.set(TWO_FA_PENDING_COOKIE, '', clearingCookieOpts('strict', '/'));
@@ -125,7 +146,7 @@ async function verifyTotpActionImpl(
     userId,
     ip,
     ua,
-    'password',
+    pendingAuth.primaryAuthenticationMethod,
     device
   );
   

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { CategoryService } from '@/auth/services/category.service';
 import { CategorySchema } from '@/auth/validation/admin.schema';
 import { InsufficientRoleError } from '@/auth/dal';
+import { SessionExpiredError } from '@/auth/errors/auth-errors';
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -28,6 +29,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     
     if (error instanceof InsufficientRoleError) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    if (error instanceof SessionExpiredError) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if ((error instanceof Error ? error.message : String(error)) === 'Category not found') {

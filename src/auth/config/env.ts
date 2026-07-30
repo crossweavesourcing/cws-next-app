@@ -8,6 +8,7 @@ const envSchema = z.object({
   // mirroring SESSION_SECRET. Dev stays warn-only so local boot works without it.
   ARGON2_SECRET: z.string().optional(),
   SESSION_SECRET: z.string().min(32),
+  TOTP_ENCRYPTION_KEY: z.string().length(64).optional(),
   APP_URL: z.string().url(),
 
   // Session / token lifetimes (milliseconds). Defaults applied when absent.
@@ -144,8 +145,8 @@ function validateSecurityConfig(env: EnvConfig): void {
   //
   // GOOGLE_CLIENT_SECRET is only required when Google OAuth is enabled
   // (GOOGLE_CLIENT_ID configured). EMAIL_PASSWORD is only required when email
-  // delivery is enabled (EMAIL_USER configured). The other four (MONGODB_URI,
-  // SESSION_SECRET, ARGON2_SECRET, ADMIN_SEED_PASSWORD) are always required in
+  // delivery is enabled (EMAIL_USER configured). The other five (MONGODB_URI,
+  // SESSION_SECRET, ARGON2_SECRET, ADMIN_SEED_PASSWORD, TOTP_ENCRYPTION_KEY) are always required in
   // production. ADMIN_SEED_PASSWORD is required so db:seed can provision the
   // initial admin account; if you do not seed in prod you may relax this, but
   // keeping it required avoids a no-op seed silently deploying without an admin.
@@ -155,6 +156,7 @@ function validateSecurityConfig(env: EnvConfig): void {
     if (!env.MONGODB_URI?.trim()) missing.push('MONGODB_URI');
     if (!env.SESSION_SECRET?.trim()) missing.push('SESSION_SECRET');
     if (!env.ARGON2_SECRET?.trim()) missing.push('ARGON2_SECRET');
+    if (!env.TOTP_ENCRYPTION_KEY?.trim()) missing.push('TOTP_ENCRYPTION_KEY');
     if (!env.ADMIN_SEED_PASSWORD?.trim()) missing.push('ADMIN_SEED_PASSWORD');
 
     // Google OAuth secret — only when OAuth is enabled (GOOGLE_CLIENT_ID set).
@@ -174,7 +176,8 @@ function validateSecurityConfig(env: EnvConfig): void {
           '. Inject them via the secret manager (Vercel/Netlify project env, ' +
           'HashiCorp Vault, AWS Secrets Manager). The app refuses to boot with ' +
           'a missing secret rather than running insecurely. (No secret values ' +
-          'are printed in this message.)'
+          'are printed in this message.) Note: TOTP_ENCRYPTION_KEY must be generated ' +
+          'with `openssl rand -hex 32`.'
       );
     }
   } else {
@@ -183,6 +186,7 @@ function validateSecurityConfig(env: EnvConfig): void {
     // never throw outside production.
     const devMissing: string[] = [];
     if (!env.MONGODB_URI?.trim()) devMissing.push('MONGODB_URI');
+    if (!env.TOTP_ENCRYPTION_KEY?.trim()) devMissing.push('TOTP_ENCRYPTION_KEY');
     if (env.GOOGLE_CLIENT_ID?.trim() && !env.GOOGLE_CLIENT_SECRET?.trim()) {
       devMissing.push('GOOGLE_CLIENT_SECRET');
     }
@@ -432,4 +436,9 @@ export function getEnv(): EnvConfig {
   cachedEnv = parsed.data;
   validateSecurityConfig(cachedEnv);
   return cachedEnv;
+}
+
+export function __clearEnvCacheForTests(): void {
+  cachedEnv = null;
+  securityConfigValidated = false;
 }

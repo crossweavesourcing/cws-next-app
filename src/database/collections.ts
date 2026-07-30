@@ -18,6 +18,7 @@ import type {
   PasswordHistoryDocument,
   TOTPCredentialDocument,
   WebAuthnCredentialDocument,
+  WebAuthnChallengeDocument,
   MobileAuthChallengeDocument,
 } from '@/types/auth';
 import type { CategoryDocument, ProductDocument } from '@/types/catalog';
@@ -96,6 +97,10 @@ export const getWebAuthnCredentialsCollection =
   (): Promise<Collection<WebAuthnCredentialDocument>> =>
     getDb().then(db => db.collection<WebAuthnCredentialDocument>(COLLECTION_NAMES.WEBAUTHN_CREDENTIALS));
 
+export const getWebAuthnChallengesCollection =
+  (): Promise<Collection<WebAuthnChallengeDocument>> =>
+    getDb().then(db => db.collection<WebAuthnChallengeDocument>(COLLECTION_NAMES.WEBAUTHN_CHALLENGES));
+
 export const getMobileAuthChallengesCollection =
   (): Promise<Collection<MobileAuthChallengeDocument>> =>
     getDb().then(db => db.collection<MobileAuthChallengeDocument>(COLLECTION_NAMES.MOBILE_AUTH_CHALLENGES));
@@ -111,4 +116,3 @@ export const getProductsCollection =
 export const getSectionsCollection =
   (): Promise<Collection<SectionDocument>> =>
     getDb().then(db => db.collection<SectionDocument>(COLLECTION_NAMES.SECTIONS));
-

@@ -65,6 +65,7 @@ export {
   getPasswordHistoryCollection,
   getTotpCredentialsCollection,
   getWebAuthnCredentialsCollection,
+  getWebAuthnChallengesCollection,
   getMobileAuthChallengesCollection,
 }                                                   from './collections';
 

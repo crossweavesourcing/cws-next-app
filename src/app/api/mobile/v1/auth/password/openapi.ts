@@ -30,7 +30,7 @@ export const MobileMfaRequiredResponseSchema = z.object({
   challengeToken: z.string().meta({ description: 'Token for completing MFA challenge' }),
   methods: z.array(z.string()).meta({
     description: 'Available MFA methods',
-    example: ['email', 'totp', 'webauthn'],
+    example: ['email', 'totp'],
   }),
 });
 

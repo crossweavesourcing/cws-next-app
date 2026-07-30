@@ -16,6 +16,7 @@ import { getAccountSecurityView } from '@/auth/services/account-security.service
 import { PASSWORD_STRENGTH_EVALUATOR_VERSION } from '@/auth/validation/password-strength';
 import { TotpConfigurator } from './TotpConfigurator';
 import { SecurityPreferencesClient } from './SecurityPreferencesClient';
+import { PasskeyManager } from './PasskeyManager';
 
 function dateLabel(value: string | null): string {
   if (!value) return 'Not available';
@@ -66,26 +67,62 @@ export default async function AccountSecurityPage() {
           </section>
 
           <section className="border border-neutral-200 bg-white p-6 md:p-8">
-            <Heading eyebrow="Protection" title="Two-factor authentication" copy="Authenticator apps and passkeys provide stronger protection than a password alone." />
-            <div className="mt-6 space-y-3">
-              {[
-                { icon: Smartphone, title: 'Authenticator app', detail: data.protection.totpEnabled ? 'Configured' : 'Not configured', active: data.protection.totpEnabled, renderExtras: () => <TotpConfigurator initiallyEnabled={data.protection.totpEnabled} /> },
-                { icon: Fingerprint, title: 'Passkeys', detail: data.protection.passkeyCount === null ? 'Unavailable' : `${data.protection.passkeyCount} registered`, active: (data.protection.passkeyCount ?? 0) > 0, renderExtras: undefined },
-                { icon: LockKeyhole, title: 'Recovery codes', detail: data.protection.recoveryCodesRemaining === null ? 'Unavailable' : `${data.protection.recoveryCodesRemaining} remaining`, active: (data.protection.recoveryCodesRemaining ?? 0) > 0, renderExtras: undefined },
-              ].map(({ icon: Icon, title, detail, active, renderExtras }) => <article key={title} className="grid gap-4 border border-neutral-200 p-5 sm:grid-cols-[48px_1fr_auto] sm:items-start"><span className="flex h-12 w-12 items-center justify-center bg-neutral-100 text-[#E02424] mt-1"><Icon className="h-5 w-5" /></span><div className="flex flex-col"><h3 className="text-sm font-black uppercase tracking-[0.1em]">{title}</h3><p className="mt-1 text-sm text-neutral-600">{detail}</p>{renderExtras?.()}</div><Status active={active}>{active ? 'Protected' : 'Recommended'}</Status></article>)}
+            <Heading eyebrow="Protection" title="Password sign-in protection" copy="Email and authenticator codes are used only after email and password sign-ins. Google and passkey sign-ins use email verification only when risk is high." />
+            <div className="mt-6 grid gap-4 lg:grid-cols-2">
+              <article className="grid gap-4 border border-neutral-200 bg-neutral-50 p-5 sm:grid-cols-[48px_1fr_auto] sm:items-start lg:grid-cols-[48px_1fr]">
+                <span className="mt-1 flex h-12 w-12 items-center justify-center bg-white text-[#E02424]"><Mail className="h-5 w-5" /></span>
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-[0.1em]">Email codes</h3>
+                  <p className="mt-1 text-sm text-neutral-600">Available as the safe verification fallback for password sign-ins and high-risk Google or passkey sign-ins.</p>
+                  <div className="mt-4"><Status active={data.profile.emailVerified}>{data.profile.emailVerified ? 'Ready' : 'Verify email'}</Status></div>
+                </div>
+              </article>
+              <article className="grid gap-4 border border-neutral-200 bg-neutral-50 p-5 sm:grid-cols-[48px_1fr_auto] sm:items-start lg:grid-cols-[48px_1fr]">
+                <span className="mt-1 flex h-12 w-12 items-center justify-center bg-white text-[#E02424]"><Smartphone className="h-5 w-5" /></span>
+                <div>
+                  <h3 className="text-sm font-black uppercase tracking-[0.1em]">Authenticator app</h3>
+                  <p className="mt-1 text-sm text-neutral-600">{data.protection.totpEnabled ? 'Configured for password sign-in verification.' : 'Optional for password sign-in verification.'}</p>
+                  <div className="mt-4"><Status active={data.protection.totpEnabled}>{data.protection.totpEnabled ? 'Configured' : 'Optional'}</Status></div>
+                  <TotpConfigurator initiallyEnabled={data.protection.totpEnabled} />
+                </div>
+              </article>
+            </div>
+            <div className="mt-6 border-t border-neutral-200 pt-6">
+              <div className="mb-5">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#E02424]">Password 2FA settings</p>
+                <h3 className="mt-2 text-lg font-black uppercase tracking-tight text-neutral-950">Security Preferences</h3>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">Configure when password sign-ins need a second step and which password verification method appears first.</p>
+              </div>
+              <SecurityPreferencesClient 
+                key={[
+                  data.protection.twoFaPreference,
+                  data.protection.defaultTwoFaMethod ?? 'email',
+                  data.protection.totpEnabled,
+                ].join(':')}
+                preference={data.protection.twoFaPreference}
+                defaultMethod={data.protection.defaultTwoFaMethod ?? 'email'}
+                hasTotp={data.protection.totpEnabled}
+              />
             </div>
           </section>
 
           <section className="border border-neutral-200 bg-white p-6 md:p-8">
-            <Heading eyebrow="Settings" title="Security Preferences" copy="Configure when Two-Factor Authentication is required and set your default verification method." />
+            <Heading eyebrow="Passwordless" title="Device-bound passkeys" copy="Passkeys sign you in without a password, but each passkey is accepted only from the device and browser where it was enrolled." />
             <div className="mt-6">
-              <SecurityPreferencesClient 
-                preference={data.protection.twoFaPreference}
-                defaultMethod={data.protection.defaultTwoFaMethod ?? 'email'}
-                hasTotp={data.protection.totpEnabled}
-                hasWebAuthn={(data.protection.passkeyCount ?? 0) > 0}
-              />
+              <PasskeyManager passkeys={data.protection.passkeys ?? []} />
             </div>
+          </section>
+
+          <section className="border border-neutral-200 bg-white p-6 md:p-8">
+            <Heading eyebrow="Recovery" title="Recovery access" copy="Recovery codes are a backup path for account access when normal verification is unavailable." />
+            <article className="mt-6 grid gap-4 border border-neutral-200 bg-neutral-50 p-5 sm:grid-cols-[48px_1fr_auto] sm:items-start">
+              <span className="mt-1 flex h-12 w-12 items-center justify-center bg-white text-[#E02424]"><LockKeyhole className="h-5 w-5" /></span>
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-[0.1em]">Recovery codes</h3>
+                <p className="mt-1 text-sm text-neutral-600">{data.protection.recoveryCodesRemaining === null ? 'Recovery code status is unavailable.' : `${data.protection.recoveryCodesRemaining} recovery codes remaining.`}</p>
+              </div>
+              <Status active={(data.protection.recoveryCodesRemaining ?? 0) > 0}>{(data.protection.recoveryCodesRemaining ?? 0) > 0 ? 'Ready' : 'Recommended'}</Status>
+            </article>
           </section>
         </div>
 

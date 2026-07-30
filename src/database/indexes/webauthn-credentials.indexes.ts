@@ -6,6 +6,10 @@ export const webauthnCredentialsIndexes: IndexDescription[] = [
     key: { userId: 1 },
     name: 'idx_userId',
   },
+  {
+    key: { userId: 1, deviceObjectId: 1 },
+    name: 'idx_userId_deviceObjectId',
+  },
   // 2. Look up a passkey by its credential ID (must be unique).
   {
     key: { credentialID: 1 },

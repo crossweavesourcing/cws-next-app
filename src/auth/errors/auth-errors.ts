@@ -117,3 +117,14 @@ export class OAuthProviderUnavailableError extends AuthError {
     );
   }
 }
+
+export class SudoRequiredError extends AuthError {
+  constructor() {
+    super(
+      'AUTH_SUDO_REQUIRED',
+      'Please confirm your password to continue.',
+      'Sudo mode required for this action'
+    );
+  }
+}
+

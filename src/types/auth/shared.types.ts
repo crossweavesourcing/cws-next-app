@@ -18,7 +18,7 @@ export type UserStatus =
   | 'deleted' 
   | 'pending_invite';
 
-export type LoginMethod = 'password' | 'google' | 'linkedin' | 'whatsapp';
+export type LoginMethod = 'password' | 'google' | 'linkedin' | 'whatsapp' | 'passkey';
 
 export type OAuthProvider = 'google' | 'linkedin';
 

@@ -408,15 +408,34 @@
       "post": {
         "operationId": "webauthnLoginOptions",
         "summary": "Get WebAuthn login options",
-        "description": "Generates WebAuthn authentication options for the pending MFA challenge. Requires a valid cws_2fa_pending or cws_stepup_pending cookie.",
+        "description": "Generates passwordless passkey authentication options for this enrolled device.",
         "tags": [
           "Authentication"
         ],
-        "security": [
-          {
-            "pendingSession": []
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                    "description": "Account email for email-first passkey login",
+                    "example": "admin@example.com"
+                  }
+                },
+                "required": [
+                  "email"
+                ],
+                "additionalProperties": false
+              }
+            }
           }
-        ],
+        },
         "responses": {
           "200": {
             "description": "WebAuthn options generated successfully",
@@ -488,7 +507,7 @@
             }
           },
           "401": {
-            "description": "Session expired or invalid pending cookie",
+            "description": "Passkey is not available for this device",
             "content": {
               "application/json": {
                 "schema": {
@@ -514,15 +533,11 @@
       "post": {
         "operationId": "webauthnLoginVerify",
         "summary": "Verify WebAuthn login response",
-        "description": "Verifies the WebAuthn authentication response against the pending challenge. On success, issues session and refresh cookies and clears pending cookies. Requires cws_2fa_pending/cws_stepup_pending and cws_webauthn_challenge cookies.",
+        "description": "Verifies a passwordless passkey response for this enrolled device. On success, issues dashboard session cookies or redirects to email verification for high-risk sign-ins.",
         "tags": [
           "Authentication"
         ],
-        "security": [
-          {
-            "pendingSession": []
-          }
-        ],
+        "security": [],
         "requestBody": {
           "required": true,
           "content": {
@@ -530,60 +545,77 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "id": {
+                  "email": {
                     "type": "string",
-                    "description": "Authenticator credential ID",
-                    "example": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
-                  },
-                  "rawId": {
-                    "type": "string",
-                    "description": "Raw credential ID (base64url)"
+                    "format": "email",
+                    "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$",
+                    "description": "Account email used to start passkey login",
+                    "example": "admin@example.com"
                   },
                   "response": {
                     "type": "object",
                     "properties": {
-                      "authenticatorData": {
+                      "id": {
                         "type": "string",
-                        "description": "Authenticator data (base64url)"
+                        "description": "Authenticator credential ID",
+                        "example": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
                       },
-                      "clientDataJSON": {
+                      "rawId": {
                         "type": "string",
-                        "description": "Client data JSON (base64url)"
+                        "description": "Raw credential ID (base64url)"
                       },
-                      "signature": {
+                      "response": {
+                        "type": "object",
+                        "properties": {
+                          "authenticatorData": {
+                            "type": "string",
+                            "description": "Authenticator data (base64url)"
+                          },
+                          "clientDataJSON": {
+                            "type": "string",
+                            "description": "Client data JSON (base64url)"
+                          },
+                          "signature": {
+                            "type": "string",
+                            "description": "Signature (base64url)"
+                          },
+                          "userHandle": {
+                            "description": "User handle (base64url)",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "authenticatorData",
+                          "clientDataJSON",
+                          "signature"
+                        ],
+                        "additionalProperties": false
+                      },
+                      "type": {
                         "type": "string",
-                        "description": "Signature (base64url)"
+                        "const": "public-key",
+                        "example": "public-key"
                       },
-                      "userHandle": {
-                        "description": "User handle (base64url)",
-                        "type": "string"
+                      "clientExtensionResults": {
+                        "type": "object",
+                        "propertyNames": {
+                          "type": "string"
+                        },
+                        "additionalProperties": {}
                       }
                     },
                     "required": [
-                      "authenticatorData",
-                      "clientDataJSON",
-                      "signature"
+                      "id",
+                      "rawId",
+                      "response",
+                      "type"
                     ],
                     "additionalProperties": false
-                  },
-                  "type": {
-                    "type": "string",
-                    "const": "public-key",
-                    "example": "public-key"
-                  },
-                  "clientExtensionResults": {
-                    "type": "object",
-                    "propertyNames": {
-                      "type": "string"
-                    },
-                    "additionalProperties": {}
                   }
                 },
                 "required": [
-                  "id",
-                  "rawId",
-                  "response",
-                  "type"
+                  "email",
+                  "response"
                 ],
                 "additionalProperties": false
               }
@@ -601,6 +633,10 @@
                     "success": {
                       "type": "boolean",
                       "example": true
+                    },
+                    "redirect": {
+                      "type": "string",
+                      "example": "/dashboard/verify-2fa?method=email"
                     }
                   },
                   "required": [
@@ -621,7 +657,7 @@
             }
           },
           "401": {
-            "description": "Session expired or missing challenge cookie",
+            "description": "Passkey is not available for this device or challenge expired",
             "content": {
               "application/json": {
                 "schema": {
@@ -632,6 +668,284 @@
           },
           "500": {
             "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/webauthn/register-options": {
+      "post": {
+        "operationId": "webauthnRegisterOptions",
+        "summary": "Get WebAuthn registration options",
+        "description": "Generates passkey registration options for the active dashboard session.",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registration options generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "challenge": {
+                      "type": "string",
+                      "description": "WebAuthn challenge string",
+                      "example": "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
+                    },
+                    "rpId": {
+                      "type": "string",
+                      "description": "Relying Party ID",
+                      "example": "localhost"
+                    },
+                    "timeout": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991,
+                      "description": "Challenge timeout in ms",
+                      "example": 60000
+                    },
+                    "allowCredentials": {
+                      "description": "Allowed authenticator credentials",
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "description": "Credential ID (base64url)"
+                          },
+                          "type": {
+                            "type": "string",
+                            "const": "public-key",
+                            "example": "public-key"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "type"
+                        ],
+                        "additionalProperties": false
+                      }
+                    },
+                    "userVerification": {
+                      "type": "string",
+                      "enum": [
+                        "preferred",
+                        "required",
+                        "discouraged"
+                      ],
+                      "description": "User verification requirement",
+                      "example": "preferred"
+                    },
+                    "rp": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "name"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "displayName"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "challenge",
+                    "rpId",
+                    "timeout",
+                    "userVerification"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Cannot start registration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request blocked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/webauthn/register-verify": {
+      "post": {
+        "operationId": "webauthnRegisterVerify",
+        "summary": "Verify WebAuthn registration response",
+        "description": "Verifies a passkey registration response and stores the credential for the active dashboard user.",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [
+          {
+            "cookieAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "rawId": {
+                    "type": "string"
+                  },
+                  "response": {
+                    "type": "object",
+                    "properties": {
+                      "attestationObject": {
+                        "type": "string"
+                      },
+                      "clientDataJSON": {
+                        "type": "string"
+                      },
+                      "transports": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "required": [
+                      "attestationObject",
+                      "clientDataJSON"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "type": {
+                    "type": "string",
+                    "const": "public-key"
+                  },
+                  "clientExtensionResults": {
+                    "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
+                    "additionalProperties": {}
+                  },
+                  "authenticatorAttachment": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "rawId",
+                  "response",
+                  "type"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Passkey registered",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid registration response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or expired challenge",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Request blocked",
             "content": {
               "application/json": {
                 "schema": {
@@ -775,6 +1089,22 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/auth/test-cookies": {
+      "get": {
+        "operationId": "testAuthCookies",
+        "summary": "Test auth cookie handling",
+        "description": "Diagnostic route that sets a test cookie and redirects to the dashboard login page.",
+        "tags": [
+          "Authentication"
+        ],
+        "security": [],
+        "responses": {
+          "303": {
+            "description": "Redirect to dashboard login after setting a test cookie."
           }
         }
       }
@@ -985,8 +1315,7 @@
                       "description": "Available MFA methods",
                       "example": [
                         "email",
-                        "totp",
-                        "webauthn"
+                        "totp"
                       ]
                     }
                   },
@@ -1231,8 +1560,9 @@
     "/api/mobile/v1/auth/mfa/webauthn/options": {
       "post": {
         "operationId": "mobileMfaWebauthnOptions",
-        "summary": "Get WebAuthn MFA options",
-        "description": "Generates WebAuthn authentication options for the pending MFA challenge. Returns PublicKeyCredentialRequestOptions for the client to use with navigator.credentials.get().",
+        "summary": "Deprecated WebAuthn MFA options",
+        "description": "Deprecated. Passkeys are available for passwordless sign-in only; use email code for verification.",
+        "deprecated": true,
         "tags": [
           "Mobile Authentication"
         ],
@@ -1260,50 +1590,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "WebAuthn options generated",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "description": "PublicKeyCredentialRequestOptions",
-                  "properties": {
-                    "challenge": {
-                      "type": "string"
-                    },
-                    "rpId": {
-                      "type": "string"
-                    },
-                    "timeout": {
-                      "type": "integer",
-                      "example": 60000
-                    },
-                    "allowCredentials": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": {
-                            "type": "string"
-                          },
-                          "type": {
-                            "type": "string",
-                            "example": "public-key"
-                          }
-                        }
-                      }
-                    },
-                    "userVerification": {
-                      "type": "string",
-                      "example": "preferred"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or expired verification challenge",
+          "410": {
+            "description": "WebAuthn MFA is no longer supported",
             "content": {
               "application/json": {
                 "schema": {
@@ -1328,8 +1616,9 @@
     "/api/mobile/v1/auth/mfa/webauthn/verify": {
       "post": {
         "operationId": "mobileMfaWebauthnVerify",
-        "summary": "Verify WebAuthn MFA response",
-        "description": "Verifies the WebAuthn authentication response against the pending challenge. Returns JWT tokens on success.",
+        "summary": "Deprecated WebAuthn MFA verification",
+        "description": "Deprecated. Passkeys are available for passwordless sign-in only; use email code for verification.",
+        "deprecated": true,
         "tags": [
           "Mobile Authentication"
         ],
@@ -1417,42 +1706,8 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "MFA verification successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": {
-                      "type": "string",
-                      "example": "authenticated"
-                    },
-                    "accessToken": {
-                      "type": "string",
-                      "description": "JWT access token"
-                    },
-                    "refreshToken": {
-                      "type": "string",
-                      "description": "Refresh token"
-                    },
-                    "expiresIn": {
-                      "type": "integer",
-                      "example": 900
-                    }
-                  },
-                  "required": [
-                    "status",
-                    "accessToken",
-                    "refreshToken",
-                    "expiresIn"
-                  ]
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid or expired verification challenge",
+          "410": {
+            "description": "WebAuthn MFA is no longer supported",
             "content": {
               "application/json": {
                 "schema": {
@@ -1463,6 +1718,497 @@
           },
           "415": {
             "description": "Content-Type must be application/json",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/passkeys": {
+      "get": {
+        "operationId": "mobilePasskeysList",
+        "summary": "List passkeys",
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registered passkeys",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "passkeys": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "credentialDeviceType": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "credentialBackedUp": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "transports": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "deviceObjectId": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "deviceName": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "deviceType": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "browser": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "operatingSystem": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "trusted": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "blocked": {
+                            "anyOf": [
+                              {
+                                "type": "boolean"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "lastUsedAt": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "createdAt": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name",
+                          "credentialDeviceType",
+                          "credentialBackedUp",
+                          "transports",
+                          "deviceObjectId",
+                          "deviceName",
+                          "deviceType",
+                          "browser",
+                          "operatingSystem",
+                          "trusted",
+                          "blocked",
+                          "lastUsedAt",
+                          "createdAt"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "passkeys"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/passkeys/{id}": {
+      "patch": {
+        "operationId": "mobilePasskeyRename",
+        "summary": "Rename a passkey",
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 80
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Passkey renamed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "mobilePasskeyRemove",
+        "summary": "Remove a passkey",
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Passkey removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/passkeys/register/options": {
+      "post": {
+        "operationId": "mobilePasskeyRegisterOptions",
+        "summary": "Deprecated mobile passkey registration options",
+        "description": "Mobile passkey registration is unavailable until mobile device binding is supported.",
+        "deprecated": true,
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Cannot start registration",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Mobile passkeys unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/passkeys/register/verify": {
+      "post": {
+        "operationId": "mobilePasskeyRegisterVerify",
+        "summary": "Deprecated mobile passkey registration verification",
+        "description": "Mobile passkey registration is unavailable until mobile device binding is supported.",
+        "deprecated": true,
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "400": {
+            "description": "Invalid registration response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or expired challenge",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Mobile passkeys unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/passkeys/login/options": {
+      "post": {
+        "operationId": "mobilePasskeyLoginOptions",
+        "summary": "Deprecated mobile passkey login options",
+        "description": "Mobile passkey login is unavailable until mobile device binding is supported.",
+        "deprecated": true,
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [],
+        "responses": {
+          "410": {
+            "description": "Mobile passkeys unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mobile/v1/auth/passkeys/login/verify": {
+      "post": {
+        "operationId": "mobilePasskeyLoginVerify",
+        "summary": "Deprecated mobile passkey login verification",
+        "description": "Mobile passkey login is unavailable until mobile device binding is supported.",
+        "deprecated": true,
+        "tags": [
+          "Mobile Authentication"
+        ],
+        "security": [],
+        "responses": {
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or expired challenge",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Mobile passkeys unavailable",
             "content": {
               "application/json": {
                 "schema": {
@@ -1503,12 +2249,23 @@
                     "role": {
                       "type": "string",
                       "enum": [
+                        "super_admin",
                         "admin",
-                        "manager",
-                        "operator",
-                        "viewer"
+                        "manager"
                       ],
-                      "example": "admin"
+                      "example": "super_admin"
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "overview",
+                          "page_content",
+                          "categories",
+                          "products"
+                        ]
+                      }
                     },
                     "status": {
                       "type": "string",
@@ -1555,6 +2312,7 @@
                   "required": [
                     "id",
                     "role",
+                    "permissions",
                     "status",
                     "profile"
                   ]
@@ -1763,8 +2521,7 @@
                       },
                       "example": [
                         "email",
-                        "totp",
-                        "webauthn"
+                        "totp"
                       ]
                     }
                   }
@@ -3276,13 +4033,12 @@
           "role": {
             "type": "string",
             "enum": [
+              "super_admin",
               "admin",
-              "manager",
-              "operator",
-              "viewer"
+              "manager"
             ],
             "description": "User role for RBAC",
-            "example": "admin"
+            "example": "super_admin"
           },
           "status": {
             "type": "string",

@@ -274,8 +274,38 @@ describe('OAuthService.verifyIdToken — JWKS cache (Prompt 21)', () => {
 
     const token = makeIdToken(keyA.kid, keyA.privateKey, { exp: undefined });
     await expect(verifyIdToken(service, token, env)).rejects.toThrow(
-      /expired/i
+      'id_token expired.'
     );
+  });
+
+  it('C4: missing iat is rejected', async () => {
+    const service = new OAuthService();
+    const env = fakeEnv();
+    const token = makeIdToken(keyA.kid, keyA.privateKey, { iat: undefined });
+    await expect(verifyIdToken(service, token, env)).rejects.toThrow(
+      'id_token issued in the future.'
+    );
+  });
+
+  it('C4: honors 60-second clock skew for exp and iat', async () => {
+    const service = new OAuthService();
+    const env = fakeEnv();
+    const now = Math.floor(Date.now() / 1000);
+    // Token expired 30 seconds ago (should be accepted due to 60s tolerance)
+    const token1 = makeIdToken(keyA.kid, keyA.privateKey, { exp: now - 30 });
+    await verifyIdToken(service, token1, env);
+
+    // Token expires 61 seconds ago (should be rejected)
+    const token2 = makeIdToken(keyA.kid, keyA.privateKey, { exp: now - 61 });
+    await expect(verifyIdToken(service, token2, env)).rejects.toThrow('id_token expired.');
+
+    // Token issued 30 seconds in the future (should be accepted due to 60s tolerance)
+    const token3 = makeIdToken(keyA.kid, keyA.privateKey, { iat: now + 30 });
+    await verifyIdToken(service, token3, env);
+
+    // Token issued 120 seconds in the future (should be rejected)
+    const token4 = makeIdToken(keyA.kid, keyA.privateKey, { iat: now + 120 });
+    await expect(verifyIdToken(service, token4, env)).rejects.toThrow('id_token issued in the future.');
   });
 
   it('C5: cache honors max-age — after expiry a fresh fetch occurs', async () => {

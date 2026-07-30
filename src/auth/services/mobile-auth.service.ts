@@ -77,11 +77,8 @@ export class MobileAuthService {
   }
 
   async webAuthnOptions(challengeToken: string): Promise<unknown | null> {
-    const challenge = await this.challengeRepo.findActive(hashToken(challengeToken));
-    if (!challenge || !challenge.methods.includes('webauthn')) return null;
-    const options = await this.mfaService.generateWebAuthnAuthenticationOptions(challenge.userId);
-    await this.challengeRepo.setWebAuthnChallenge(challenge.tokenHash, options.challenge);
-    return options;
+    void challengeToken;
+    return null;
   }
 
   async completeWebAuthn(
@@ -90,19 +87,28 @@ export class MobileAuthService {
     ipAddress: string,
     userAgent: string | null
   ): Promise<MobileAuthResult | null> {
-    const challenge = await this.challengeRepo.findActive(hashToken(challengeToken));
-    if (!challenge || !challenge.methods.includes('webauthn') || !challenge.webauthnChallenge) return null;
-    const valid = await this.mfaService.verifyWebAuthnAuthentication(
-      challenge.userId,
-      response,
-      challenge.webauthnChallenge
-    );
-    if (!valid) {
-      await this.challengeRepo.recordFailure(challenge.tokenHash);
-      await this.auditFailure(challenge.userId, ipAddress, userAgent, 'webauthn');
-      return null;
-    }
-    return this.redeemAndIssue(challenge.tokenHash, ipAddress, userAgent);
+    void challengeToken;
+    void response;
+    void ipAddress;
+    void userAgent;
+    return null;
+  }
+
+  async passkeyLoginOptions(ipAddress: string, userAgent: string | null): Promise<unknown> {
+    void ipAddress;
+    void userAgent;
+    return null;
+  }
+
+  async completePasskeyLogin(
+    response: Parameters<MfaService['verifyWebAuthnAuthentication']>[1],
+    ipAddress: string,
+    userAgent: string | null
+  ): Promise<MobileAuthResult | null> {
+    void response;
+    void ipAddress;
+    void userAgent;
+    return null;
   }
 
   private async createChallenge(
@@ -150,14 +156,14 @@ export class MobileAuthService {
     return { status: 'authenticated', accessToken: access.token, refreshToken, expiresIn: access.expiresIn, sessionId };
   }
 
-  private async auditFailure(userId: ObjectId, ipAddress: string, userAgent: string | null, method: string): Promise<void> {
+  private async auditFailure(userId: ObjectId | null, ipAddress: string, userAgent: string | null, method: string): Promise<void> {
     await this.auditRepo.log({
       userId,
       sessionId: null,
       action: 'auth.mfa.failed',
       status: 'FAILURE',
       errorCode: 'AUTH_MOBILE_MFA_INVALID',
-      actor: { type: 'user', id: userId },
+      actor: userId ? { type: 'user', id: userId } : null,
       source: { platform: 'mobile', appVersion: '0.1.0' },
       correlationId: null,
       requestId: null,

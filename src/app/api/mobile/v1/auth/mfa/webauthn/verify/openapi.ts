@@ -26,10 +26,10 @@ export const mobileMfaWebauthnVerifyPath = {
   '/api/mobile/v1/auth/mfa/webauthn/verify': {
     post: {
       operationId: 'mobileMfaWebauthnVerify',
-      summary: 'Verify WebAuthn MFA response',
+      summary: 'Deprecated WebAuthn MFA verification',
       description:
-        'Verifies the WebAuthn authentication response against the pending challenge. ' +
-        'Returns JWT tokens on success.',
+        'Deprecated. Passkeys are available for passwordless sign-in only; use email code for verification.',
+      deprecated: true,
       tags: [TAGS.MOBILE_AUTH],
       security: [],
       requestBody: {
@@ -41,25 +41,8 @@ export const mobileMfaWebauthnVerifyPath = {
         },
       },
       responses: {
-        '200': {
-          description: 'MFA verification successful',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  status: { type: 'string', example: 'authenticated' },
-                  accessToken: { type: 'string', description: 'JWT access token' },
-                  refreshToken: { type: 'string', description: 'Refresh token' },
-                  expiresIn: { type: 'integer', example: 900 },
-                },
-                required: ['status', 'accessToken', 'refreshToken', 'expiresIn'],
-              },
-            },
-          },
-        },
-        '401': {
-          description: 'Invalid or expired verification challenge',
+        '410': {
+          description: 'WebAuthn MFA is no longer supported',
           content: {
             'application/json': {
               schema: createSchema(ErrorSchema).schema,

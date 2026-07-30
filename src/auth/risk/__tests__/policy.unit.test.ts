@@ -4,6 +4,8 @@ import { TwoFactorPolicyInput } from '../types';
 
 describe('resolveTwoFactorPolicy', () => {
   const baseInput: TwoFactorPolicyInput = {
+    userId: 'user-1',
+    primaryAuthenticationMethod: 'password',
     riskDecision: {
       level: 'low',
       score: 0,
@@ -64,5 +66,30 @@ describe('resolveTwoFactorPolicy', () => {
       twoFaPreference: 'always',
     });
     expect(result.action).toBe('require_2fa');
+  });
+
+  it('allows google login on new device, medium risk, and always preference', () => {
+    const result = resolveTwoFactorPolicy({
+      ...baseInput,
+      primaryAuthenticationMethod: 'google',
+      trustedDeviceValid: false,
+      twoFaPreference: 'always',
+      riskDecision: { ...baseInput.riskDecision, level: 'medium' },
+    });
+
+    expect(result.action).toBe('allow');
+  });
+
+  it('requires email-compatible 2FA for high-risk google and passkey login', () => {
+    for (const method of ['google', 'passkey'] as const) {
+      const result = resolveTwoFactorPolicy({
+        ...baseInput,
+        primaryAuthenticationMethod: method,
+        riskDecision: { ...baseInput.riskDecision, level: 'high' },
+      });
+
+      expect(result.action).toBe('require_2fa');
+      expect(result.reasonCodes).toContain(`policy:${method}_high_risk_email_otp`);
+    }
   });
 });

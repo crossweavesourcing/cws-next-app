@@ -18,7 +18,7 @@ export const sessionsSchema: Document = {
     latestRefreshTokenId: { bsonType: ['objectId', 'null'] },
     loginMethod: {
       bsonType: 'string',
-      enum: ['password', 'google', 'linkedin', 'whatsapp'],
+      enum: ['password', 'google', 'linkedin', 'whatsapp', 'passkey'],
     },
     device:          { bsonType: ['string', 'null'], maxLength: 200 },
     platform:        { bsonType: ['string', 'null'], enum: ['web', 'mobile', 'desktop', null] },

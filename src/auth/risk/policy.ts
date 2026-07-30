@@ -11,13 +11,22 @@ import type { TwoFactorPolicyInput, TwoFactorPolicyDecision } from './types';
  * 6. Trusted-device convenience policy
  */
 export function resolveTwoFactorPolicy(input: TwoFactorPolicyInput): TwoFactorPolicyDecision {
-  const { riskDecision, userRole, trustedDeviceValid, twoFaPreference, accountPolicy } = input;
+  const { riskDecision, userRole, trustedDeviceValid, twoFaPreference, accountPolicy, primaryAuthenticationMethod } = input;
   const reasonCodes: string[] = [];
 
   // 1. Critical risk -> always block
   if (riskDecision.level === 'critical') {
     reasonCodes.push('policy:critical_risk_block');
     return { action: 'block', reasonCodes };
+  }
+
+  if (primaryAuthenticationMethod === 'google' || primaryAuthenticationMethod === 'passkey') {
+    if (riskDecision.level === 'high') {
+      reasonCodes.push(`policy:${primaryAuthenticationMethod}_high_risk_email_otp`);
+      return { action: 'require_2fa', reasonCodes };
+    }
+    reasonCodes.push(`policy:${primaryAuthenticationMethod}_primary_allowed`);
+    return { action: 'allow', reasonCodes };
   }
 
   // 2. Explicit strong 2FA requirement (account restriction)

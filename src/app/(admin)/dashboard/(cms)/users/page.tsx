@@ -1,7 +1,6 @@
 import { requireRole, getEffectivePermissions, getAuthUser } from '@/auth/dal';
 import { UserManagementService } from '@/auth/services/user-management.service';
 import { UsersClient } from './UsersClient';
-import type { UserRole } from '@/types/auth';
 
 export const metadata = {
   title: 'Users Management | CWS Admin',

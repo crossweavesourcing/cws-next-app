@@ -125,7 +125,7 @@ export class UserRepository {
     userId: ObjectId,
     threshold: number,
     lockDurationMs: number
-  ): Promise<{ failedAttempts: number; locked: boolean }> {
+  ): Promise<{ failedAttempts: number; locked: boolean; lockExpiresAt: Date | null }> {
     const usersColl = await getUsersCollection();
     const now = new Date();
     const res = await usersColl.findOneAndUpdate(
@@ -150,7 +150,19 @@ export class UserRepository {
                     threshold,
                   ],
                 },
-                new Date(Date.now() + lockDurationMs),
+                {
+                  $cond: [
+                    { $gte: [{ $add: ['$security.failedLoginAttempts', 1] }, threshold * 3] },
+                    new Date(Date.now() + 24 * 60 * 60 * 1000), // 15+ attempts: 24h lock
+                    {
+                      $cond: [
+                        { $gte: [{ $add: ['$security.failedLoginAttempts', 1] }, threshold * 2] },
+                        new Date(Date.now() + 60 * 60 * 1000), // 10-14 attempts: 1h lock
+                        new Date(Date.now() + lockDurationMs), // 5-9 attempts: 15m lock
+                      ],
+                    },
+                  ],
+                },
                 '$security.lockedUntil',
               ],
             },
@@ -162,10 +174,11 @@ export class UserRepository {
     );
 
     const failedAttempts = res?.security?.failedLoginAttempts ?? 0;
+    const lockExpiresAt = res?.security?.lockedUntil ?? null;
     const locked =
-      !!res?.security?.lockedUntil &&
-      res.security.lockedUntil.getTime() > Date.now();
-    return { failedAttempts, locked };
+      !!lockExpiresAt &&
+      lockExpiresAt.getTime() > Date.now();
+    return { failedAttempts, locked, lockExpiresAt };
   }
 
   /**
@@ -334,7 +347,7 @@ export class UserRepository {
       enabled: true,
       createdAt: now,
       updatedAt: now,
-    } as any);
+    } as unknown as UserEmailDocument);
 
     return (await this.findById(userId))!;
   }

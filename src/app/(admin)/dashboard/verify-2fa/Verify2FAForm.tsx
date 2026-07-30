@@ -1,13 +1,10 @@
 'use client';
 
-import { useActionState, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useActionState, useState, useTransition, useEffect } from 'react';
 import { verify2faAction, resend2faAction, type Verify2FAState } from '@/auth/actions/verify-2fa';
 import { trustCurrentDeviceAction } from '@/auth/actions/device';
 
 export default function Verify2FAForm() {
-  const router = useRouter();
   const [sent, setSent] = useState(false);
   const [state, formAction, isPending] = useActionState<Verify2FAState, FormData>(
     verify2faAction,
@@ -17,13 +14,15 @@ export default function Verify2FAForm() {
 
   const [trustPending, startTrust] = useTransition();
 
+  const isSuccess = Boolean(state?.success);
+  const showTrustPrompt = Boolean(state?.showTrustPrompt);
+
   useEffect(() => {
-    if (state?.success && !state?.showTrustPrompt) {
+    if (isSuccess && !showTrustPrompt) {
       // Explicit success (cookies set, pending cleared).
-      router.push('/dashboard');
-      router.refresh();
+      window.location.href = '/dashboard';
     }
-  }, [state, router]);
+  }, [isSuccess, showTrustPrompt]);
 
   const handleTrust = (trust: boolean) => {
     startTrust(async () => {
@@ -32,8 +31,7 @@ export default function Verify2FAForm() {
         fd.append('deviceId', state.pendingDeviceId);
         await trustCurrentDeviceAction(undefined, fd);
       }
-      router.push('/dashboard');
-      router.refresh();
+      window.location.href = '/dashboard';
     });
   };
 

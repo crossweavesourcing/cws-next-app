@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { AdminService } from '@/auth/services/admin.service';
 import { InsufficientRoleError } from '@/auth/dal';
+import { SessionExpiredError } from '@/auth/errors/auth-errors';
 import { z } from 'zod';
 
 const bodySchema = z.object({
@@ -30,6 +31,10 @@ export async function POST(req: Request) {
     
     if (error instanceof InsufficientRoleError) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    if (error instanceof SessionExpiredError) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if ((error instanceof Error ? error.message : String(error)).includes('own account') || (error instanceof Error ? error.message : String(error)).includes('Invalid user')) {

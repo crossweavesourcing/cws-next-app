@@ -1,76 +1,101 @@
 import { NextResponse } from 'next/server';
 import { cookies, headers } from 'next/headers';
 import { MfaService } from '@/auth/services/mfa.service';
-import { SessionService } from '@/auth/services/session.service';
-import { PendingAuthenticationRepository } from '@/auth/repositories/pending-authentication.repository';
-import * as crypto from 'crypto';
-import { getClientIp } from '@/auth/lib/request';
-import { ensureDeviceId, setServerDeviceToken } from '@/auth/lib/device';
-import { setAuthCookies } from '@/auth/lib/cookies';
+import { LoginService } from '@/auth/services/login.service';
+import { RateLimitService } from '@/auth/services/rate-limit.service';
+import { UserRepository } from '@/auth/repositories/user.repository';
+import { WebAuthnChallengeRepository } from '@/auth/repositories/webauthn-challenge.repository';
+import { assertSameOriginStrict, CsrfError, getClientIp } from '@/auth/lib/request';
+import { getDeviceId, setServerDeviceToken } from '@/auth/lib/device';
+import { setAuthCookies, sessionCookieOpts, strictCookieOpts } from '@/auth/lib/cookies';
+import { getEnv } from '@/auth/config/env';
+import { AuthError } from '@/auth/errors/auth-errors';
+import { challengeFromClientDataJSON, parseAuthenticationResponse } from '@/auth/lib/webauthn';
 
 export async function POST(request: Request) {
   try {
+    await assertSameOriginStrict();
     const cookieStore = await cookies();
-    const pending = cookieStore.get('cws_2fa_pending');
-    const challengeCookie = cookieStore.get('cws_webauthn_challenge');
-    
-    if (!pending?.value || !challengeCookie?.value) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 });
-    }
-
-    const tokenHash = crypto.createHash('sha256').update(pending.value).digest('hex');
-    const pendingRepo = new PendingAuthenticationRepository();
-    const pendingAuth = await pendingRepo.findByTokenHash(tokenHash);
-
-    if (!pendingAuth || pendingAuth.consumedAt || pendingAuth.expiresAt.getTime() < Date.now()) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-    }
-
-    const userId = pendingAuth.userId;
-    const body = await request.json();
-    const mfaService = new MfaService();
-    
-    const isValid = await mfaService.verifyWebAuthnAuthentication(userId, body, challengeCookie.value);
-    
-    if (!isValid) {
+    const payload = await request.json().catch(() => null) as { email?: unknown; response?: unknown } | null;
+    const email = typeof payload?.email === 'string' ? payload.email.trim().toLowerCase() : '';
+    const body = parseAuthenticationResponse(payload?.response ?? null);
+    const challenge = body ? challengeFromClientDataJSON(body.response.clientDataJSON) : null;
+    if (!email || !body || !challenge) {
       return NextResponse.json({ error: 'Invalid WebAuthn response' }, { status: 400 });
     }
 
-    // Success! Issue real session.
     const ip = await getClientIp();
+    const rateLimitService = new RateLimitService();
+    await rateLimitService.checkRateLimit(ip, email);
+
+    const mfaService = new MfaService();
+    const device = await getDeviceId();
+    if (!device?.serverDeviceId) {
+      return NextResponse.json(
+        { error: 'This passkey is saved for another device. Add a passkey on this device or sign in with email and password.' },
+        { status: 401 }
+      );
+    }
+
     const ua = (await headers()).get('user-agent') || null;
-    const device = await ensureDeviceId();
-    const sessionService = new SessionService();
-    
-    const created = await sessionService.createSession(
-      userId,
-      ip,
-      ua,
-      'password',
-      device
+
+    const user = await new UserRepository().findByEmail(email);
+    if (!user || user.status !== 'active') {
+      await rateLimitService.recordIpFailure(ip, ua);
+      return NextResponse.json({ error: 'Invalid WebAuthn response' }, { status: 400 });
+    }
+
+    const challengeDoc = await new WebAuthnChallengeRepository().consume({
+      challenge,
+      purpose: 'passwordless_login',
+      userId: user._id,
+    });
+    if (!challengeDoc) {
+      await rateLimitService.recordIpFailure(ip, ua);
+      return NextResponse.json({ error: 'Session expired' }, { status: 401 });
+    }
+    if (!challengeDoc.deviceObjectId || !challengeDoc.deviceObjectId.equals(device.serverDeviceId)) {
+      return NextResponse.json(
+        { error: 'This passkey is saved for another device. Add a passkey on this device or sign in with email and password.' },
+        { status: 401 }
+      );
+    }
+
+    const verification = await mfaService.verifyWebAuthnPasswordlessAuthentication(
+      body,
+      challengeDoc.challenge,
+      device.serverDeviceId,
+      user._id
     );
-    
-    if (created.status !== 'authenticated') {
-      return NextResponse.json({ error: 'Unable to complete sign-in' }, { status: 400 });
+    if (verification && 'error' in verification) {
+      return NextResponse.json(
+        { error: 'This passkey is saved for another device. Add a passkey on this device or sign in with email and password.' },
+        { status: 401 }
+      );
     }
-    
-    const { sessionCookie, refreshToken, deviceObjectId } = created;
-
-    if (deviceObjectId) {
-      await setServerDeviceToken(deviceObjectId);
+    if (!verification) {
+      await rateLimitService.recordIpFailure(ip, ua);
+      return NextResponse.json({ error: 'Invalid WebAuthn response' }, { status: 400 });
     }
+    const result = await new LoginService().loginWithPasskey(verification.userId, ip, ua);
+    if (result.status === 'mfa_required') {
+      cookieStore.set('cws_2fa_pending', result.pendingAuthToken, {
+        ...strictCookieOpts(getEnv(), { path: '/' }),
+        maxAge: 5 * 60,
+      });
+      return NextResponse.json({ success: true, redirect: '/dashboard/verify-2fa?method=email' });
+    }
+    await setAuthCookies({ sessionCookie: result.sessionCookie, refreshToken: result.refreshToken });
 
-    await setAuthCookies({ sessionCookie, refreshToken });
-    await pendingRepo.consume(pendingAuth._id);
-
-    // Clear pending cookies
-    for (const name of ['cws_2fa_pending', 'cws_stepup_pending', 'cws_webauthn_challenge']) {
-      cookieStore.set(name, '', { maxAge: 0, path: '/' });
+    if (device.serverDeviceId) {
+      await setServerDeviceToken(device.serverDeviceId);
     }
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('WebAuthn verify error:', err);
+    if (err instanceof CsrfError) return NextResponse.json({ error: 'Request blocked.' }, { status: 403 });
+    if (err instanceof AuthError) return NextResponse.json({ error: err.publicMessage }, { status: 401 });
+    console.error('WebAuthn verify error:', err instanceof Error ? err.name : 'UnknownError');
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

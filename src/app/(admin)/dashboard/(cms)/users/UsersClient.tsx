@@ -1,12 +1,13 @@
 'use client';
+/* eslint-disable react-hooks/set-state-in-effect */
 
 import { useState, useActionState, useEffect } from 'react';
+import Link from 'next/link';
 import { UserPlus, Shield, Settings2, X, Trash2, Undo2 } from 'lucide-react';
 import { UserAvatar } from '../_components/UserAvatar';
 import type { UserRole, CmsPermission } from '@/types/auth';
 import { ALL_CMS_PERMISSIONS } from '@/types/auth';
 import { 
-  createUserAction, 
   setManagerPermissionsAction,
   deleteUserAction,
   undoDeleteUserAction
@@ -32,17 +33,11 @@ export function UsersClient({
   callerRole: UserRole;
   callerId: string;
 }) {
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingPermissionsFor, setEditingPermissionsFor] = useState<UserRow | null>(null);
   
   const [showDeleted, setShowDeleted] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserRow | null>(null);
   const [userToUndo, setUserToUndo] = useState<UserRow | null>(null);
-
-  const [addState, addFormAction, addIsPending] = useActionState<ActionState, FormData>(
-    createUserAction,
-    { success: false }
-  );
 
   const [permState, permFormAction, permIsPending] = useActionState<ActionState, FormData>(
     setManagerPermissionsAction,
@@ -59,31 +54,20 @@ export function UsersClient({
     { success: false }
   );
 
-  const [newRole, setNewRole] = useState<UserRole>('manager');
-
-  useEffect(() => {
-    if (addState.success) {
-      setIsAddModalOpen(false);
-    }
-  }, [addState]);
-
   useEffect(() => {
     if (permState.success) {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       setEditingPermissionsFor(null);
     }
   }, [permState]);
 
   useEffect(() => {
     if (delState.success) {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       setUserToDelete(null);
     }
   }, [delState]);
 
   useEffect(() => {
     if (undoState.success) {
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       setUserToUndo(null);
     }
   }, [undoState]);
@@ -102,13 +86,15 @@ export function UsersClient({
           />
           Show Deleted Users
         </label>
-        <button
-          onClick={() => setIsAddModalOpen(true)}
-          className="inline-flex items-center gap-2 bg-[#1E1E1E] text-white px-4 py-2 text-sm font-bold uppercase tracking-wider hover:bg-black transition-colors"
+        <Link
+          href="/dashboard/users/new"
+          scroll={false}
+          prefetch={true}
+          className="inline-flex items-center gap-2 bg-[#E02424] text-white px-4 py-2 text-sm font-bold uppercase tracking-wider transition-colors hover:bg-[#c91f1f]"
         >
           <UserPlus className="w-4 h-4" />
           Add User
-        </button>
+        </Link>
       </div>
 
       <div className="bg-white border border-neutral-200 shadow-sm overflow-hidden">
@@ -222,93 +208,6 @@ export function UsersClient({
           </tbody>
         </table>
       </div>
-
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-lg bg-white shadow-xl flex flex-col max-h-[90vh]">
-            <div className="flex items-center justify-between p-6 border-b border-neutral-100">
-              <h2 className="text-lg font-bold uppercase tracking-wide text-neutral-900">Add User</h2>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-neutral-400 hover:text-neutral-900">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <form action={addFormAction} className="flex-1 overflow-y-auto p-6 space-y-6">
-              {addState.error && (
-                <div className="border border-red-500/25 bg-red-500/5 px-4 py-3 text-xs font-bold uppercase tracking-[0.14em] text-red-500">
-                  {addState.error}
-                </div>
-              )}
-              
-              <div className="grid grid-cols-2 gap-4">
-                <label className="block col-span-2">
-                  <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-500 mb-2">Email Address</span>
-                  <input type="email" name="email" required className="w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-neutral-900" />
-                </label>
-                
-                <label className="block">
-                  <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-500 mb-2">First Name</span>
-                  <input type="text" name="firstName" required className="w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-neutral-900" />
-                </label>
-
-                <label className="block">
-                  <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-500 mb-2">Last Name</span>
-                  <input type="text" name="lastName" required className="w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-neutral-900" />
-                </label>
-              </div>
-
-              <label className="block">
-                <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-500 mb-2">Role</span>
-                <select 
-                  name="role" 
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value as UserRole)}
-                  className="w-full border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm outline-none focus:border-neutral-900"
-                >
-                  <option value="manager">Manager</option>
-                  {callerRole === 'super_admin' && (
-                    <option value="admin">Admin</option>
-                  )}
-                </select>
-                <p className="mt-1.5 text-xs text-neutral-500">
-                  {newRole === 'admin' ? 'Admins have full access to most CMS areas.' : 'Managers need explicit permissions assigned.'}
-                </p>
-              </label>
-
-              {newRole === 'manager' && (
-                <div>
-                  <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-500 mb-3">Permissions</span>
-                  <div className="space-y-2">
-                    {ALL_CMS_PERMISSIONS.map(perm => (
-                      <label key={perm} className="flex items-center gap-3">
-                        <input type="checkbox" name="permissions" value={perm} className="w-4 h-4 border-neutral-300 text-neutral-900 focus:ring-neutral-900" />
-                        <span className="text-sm text-neutral-700 capitalize">{perm.replace('_', ' ')}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="pt-4 flex justify-end gap-3 border-t border-neutral-100">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-neutral-500 hover:text-neutral-900"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={addIsPending}
-                  className="bg-[#1E1E1E] text-white px-4 py-2 text-xs font-bold uppercase tracking-wider hover:bg-black transition-colors disabled:opacity-50"
-                >
-                  {addIsPending ? 'Creating...' : 'Create User'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
 
       {editingPermissionsFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

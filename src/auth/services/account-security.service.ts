@@ -4,10 +4,10 @@ import { requireActiveSession } from '@/auth/dal';
 import { getUserEmailsCollection } from '@/database';
 import { DeviceRepository } from '../repositories/device.repository';
 import { LoginAttemptRepository } from '../repositories/login-attempt.repository';
-import { MfaRepository } from '../repositories/mfa.repository';
 import { RecoveryCodeRepository } from '../repositories/recovery-code.repository';
 import { SessionRepository } from '../repositories/session.repository';
 import { UserRepository } from '../repositories/user.repository';
+import { MfaService, type PasskeySummary } from './mfa.service';
 import type { CmsPermission } from '@/types/auth';
 
 export interface AccountSecurityViewModel {
@@ -33,9 +33,10 @@ export interface AccountSecurityViewModel {
     mfaEnabled: boolean;
     totpEnabled: boolean;
     passkeyCount: number | null;
+    passkeys: PasskeySummary[] | null;
     recoveryCodesRemaining: number | null;
     twoFaPreference: 'always' | 'new_device_only' | 'off';
-    defaultTwoFaMethod: 'email' | 'totp' | 'webauthn' | null;
+    defaultTwoFaMethod: 'email' | 'totp' | null;
   };
   access: {
     activeSessionCount: number | null;
@@ -66,7 +67,7 @@ export async function getAccountSecurityView(): Promise<AccountSecurityViewModel
 
   const results = await Promise.allSettled([
     getUserEmailsCollection().then((collection) => collection.findOne({ userId: user._id, primary: true, enabled: true })),
-    new MfaRepository().getWebAuthnCredentials(user._id),
+    new MfaService().listWebAuthnCredentials(user._id),
     new RecoveryCodeRepository().countRemaining(user._id),
     new SessionRepository().listForUser(user._id, 8),
     new DeviceRepository().listForUser(user._id, 12),
@@ -120,9 +121,10 @@ export async function getAccountSecurityView(): Promise<AccountSecurityViewModel
       mfaEnabled: user.security.mfaEnabled,
       totpEnabled: user.security.totpEnabled ?? false,
       passkeyCount: passkeys?.length ?? null,
+      passkeys: passkeys ?? null,
       recoveryCodesRemaining: recoveryCount,
       twoFaPreference: user.security.twoFaPreference ?? 'always',
-      defaultTwoFaMethod: user.security.defaultTwoFaMethod ?? null,
+      defaultTwoFaMethod: user.security.defaultTwoFaMethod === 'totp' ? 'totp' : user.security.defaultTwoFaMethod === 'email' ? 'email' : null,
     },
     access: {
       activeSessionCount: activeSessions?.length ?? null,
@@ -144,4 +146,3 @@ export async function getAccountSecurityView(): Promise<AccountSecurityViewModel
     unavailable,
   };
 }
-

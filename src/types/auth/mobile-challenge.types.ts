@@ -1,7 +1,7 @@
 import type { ObjectId } from 'mongodb';
 import type { LoginMethod } from './shared.types';
 
-export type MobileMfaMethod = 'totp' | 'email' | 'webauthn';
+export type MobileMfaMethod = 'totp' | 'email';
 
 export interface MobileAuthChallengeDocument {
   readonly _id: ObjectId;

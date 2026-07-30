@@ -41,6 +41,7 @@ vi.mock('@/auth/repositories/pending-authentication.repository', () => ({
 vi.mock('@/auth/repositories/login-attempt.repository', () => ({
   LoginAttemptRepository: class {
     async recordAttempt() {}
+    async countRecentTotpFailures() { return 0; }
   },
 }));
 
@@ -69,6 +70,7 @@ vi.mock('@/auth/repositories/user.repository', () => ({
     async findById() {
       return { _id: mockUserId, status: 'active', security: {}, profile: {} };
     }
+    async lockAccount() {}
   },
 }));
 

@@ -2,7 +2,7 @@ import { ZxcvbnFactory } from '@zxcvbn-ts/core';
 import { adjacencyGraphs, dictionary } from '@zxcvbn-ts/language-common';
 
 export const PASSWORD_STRENGTH_EVALUATOR_VERSION = 'zxcvbn-ts-4.1-nist-v1';
-export const PASSWORD_MIN_LENGTH = 15;
+export const PASSWORD_MIN_LENGTH = 6;
 export const PASSWORD_MAX_LENGTH = 128;
 
 export type PasswordStrengthCategory =

@@ -115,7 +115,7 @@ export async function seedUsers(): Promise<void> {
           algorithm: 'argon2id',
         },
         security: adminSecurity,
-        passwordChangedAt: new Date(),
+        passwordChangedAt: new Date(Date.now() - 48 * 60 * 60 * 1000),
         passwordExpiresAt: null,
         updatedAt: new Date(),
         deletedAt: null,

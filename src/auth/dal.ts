@@ -1,12 +1,16 @@
 import 'server-only';
 import { cache } from 'react';
 import { ObjectId } from 'mongodb';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { SessionService } from './services/session.service';
 import { UserRepository } from './repositories/user.repository';
 import type { SessionDocument, UserRole, CmsPermission } from '@/types/auth';
 import { ADMIN_IMPLICIT_PERMISSIONS, ALL_CMS_PERMISSIONS } from '@/types/auth';
+import { verifySessionSignature } from './crypto/token';
+import { getEnv } from './config/env';
+import { SudoRequiredError, SessionExpiredError } from './errors/auth-errors';
+import { verifyMobileAccessToken } from './services/mobile-token.service';
 
 const sessionService = new SessionService();
 const COOKIE_NAME = 'cws_session';
@@ -18,6 +22,22 @@ const COOKIE_NAME = 'cws_session';
  * Memoized using React cache to prevent N+1 queries during a single render pass.
  */
 export const getAuthSession = cache(async (): Promise<SessionDocument | null> => {
+  const reqHeaders = await headers();
+  const authHeader = reqHeaders.get('authorization');
+
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.substring(7);
+    try {
+      const claims = await verifyMobileAccessToken(token);
+      const session = await sessionService.getSessionById(new ObjectId(claims.sid));
+      if (!session || session.platform !== 'mobile') return null;
+      return session;
+    } catch (err) {
+      console.error('Mobile token validation error in DAL:', err);
+      return null;
+    }
+  }
+
   const cookieStore = await cookies();
   const sessionCookie = cookieStore.get(COOKIE_NAME);
   
@@ -59,6 +79,10 @@ export const getAuthUser = cache(async (userId: ObjectId) => {
 export async function requireAuth(): Promise<SessionDocument> {
   const session = await getAuthSession();
   if (!session) {
+    const reqHeaders = await headers();
+    if (reqHeaders.get('authorization')) {
+      throw new SessionExpiredError();
+    }
     redirect('/dashboard/login');
   }
   return session;
@@ -77,6 +101,33 @@ export async function requireActiveSession(): Promise<SessionDocument> {
     redirect('/dashboard/change-password');
   }
   return session;
+}
+
+/**
+ * Asserts that the request is authenticated and that the authentication is recent
+ * (or that a valid sudo cookie is present). Use for sensitive operations like
+ * changing MFA preferences or passwords.
+ */
+export async function requireSudoMode(maxAgeMinutes = 15): Promise<SessionDocument> {
+  const session = await requireActiveSession();
+  const maxAgeMs = maxAgeMinutes * 60 * 1000;
+  
+  // 1. Check if the original session is fresh enough
+  if (session.lastFullAuthAt && Date.now() - session.lastFullAuthAt.getTime() < maxAgeMs) {
+    return session;
+  }
+
+  // 2. Check for a valid sudo cookie
+  const cookieStore = await cookies();
+  const sudoCookie = cookieStore.get('cws_sudo');
+  if (sudoCookie?.value) {
+    const verifiedId = verifySessionSignature(sudoCookie.value, getEnv().SESSION_SECRET);
+    if (verifiedId === session._id.toString()) {
+      return session;
+    }
+  }
+
+  throw new SudoRequiredError();
 }
 
 /**

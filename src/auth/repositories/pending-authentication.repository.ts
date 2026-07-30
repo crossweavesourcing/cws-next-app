@@ -5,7 +5,7 @@ export interface PendingAuthenticationDocument {
   _id: ObjectId;
   userId: ObjectId;
   deviceObjectId: ObjectId | null;
-  primaryAuthenticationMethod: 'password' | 'google';
+  primaryAuthenticationMethod: 'password' | 'google' | 'passkey';
   requiredAction: 'require_2fa' | 'require_strong_2fa';
   riskLevel: 'low' | 'medium' | 'high' | 'critical' | null;
   riskScore: number | null;

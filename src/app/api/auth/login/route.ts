@@ -35,6 +35,15 @@ export async function POST(request: Request) {
     return NextResponse.redirect(new URL(result.redirect, request.url), 303);
   }
   if (result?.error === 'Request blocked.') return loginRedirect(request, 'blocked');
-  if (result?.error === 'Invalid email address or password.') return loginRedirect(request, 'invalid');
-  return loginRedirect(request, result?.error ? 'system' : 'invalid');
+  if (result?.error) {
+    const errLower = result.error.toLowerCase();
+    if (errLower.includes('blocked') || errLower.includes('locked') || errLower.includes('security policy') || errLower.includes('too many')) {
+      return loginRedirect(request, 'blocked');
+    }
+    if (errLower.includes('invalid') || errLower.includes('credentials') || errLower.includes('password') || errLower.includes('email') || errLower.includes('found')) {
+      return loginRedirect(request, 'invalid');
+    }
+    return loginRedirect(request, 'system');
+  }
+  return loginRedirect(request, 'invalid');
 }

@@ -1,6 +1,21 @@
 import { ObjectId } from 'mongodb';
 import { getTotpCredentialsCollection, getWebAuthnCredentialsCollection } from '@/database';
 import type { TOTPCredentialDocument, WebAuthnCredentialDocument } from '@/types/auth';
+import { getEnv } from '@/auth/config/env';
+import { encryptSymmetric, decryptSymmetric } from '@/auth/lib/encryption';
+
+function encrypt(secret: string): string {
+  const key = getEnv().TOTP_ENCRYPTION_KEY;
+  if (!key) throw new Error('TOTP_ENCRYPTION_KEY is required to encrypt TOTP secrets.');
+  return encryptSymmetric(secret, key);
+}
+
+function decrypt(payload: string): string {
+  if (!payload.startsWith('v1:')) return payload; // Legacy plaintext
+  const key = getEnv().TOTP_ENCRYPTION_KEY;
+  if (!key) throw new Error('TOTP_ENCRYPTION_KEY is required to decrypt this secret.');
+  return decryptSymmetric(payload, key);
+}
 
 export class MfaRepository {
   async saveTotpSecret(userId: ObjectId, secret: string): Promise<void> {
@@ -10,7 +25,7 @@ export class MfaRepository {
       { userId },
       {
         $set: {
-          secret,
+          secret: encrypt(secret),
           verifiedAt: now,
           // A newly enrolled secret starts a new replay-prevention sequence.
           lastAcceptedTimeStep: null,
@@ -28,12 +43,16 @@ export class MfaRepository {
   async getTotpSecret(userId: ObjectId): Promise<string | null> {
     const coll = await getTotpCredentialsCollection();
     const doc = await coll.findOne({ userId });
-    return doc?.secret ?? null;
+    return doc?.secret ? decrypt(doc.secret) : null;
   }
 
   async getTotpCredential(userId: ObjectId): Promise<TOTPCredentialDocument | null> {
     const coll = await getTotpCredentialsCollection();
-    return coll.findOne({ userId });
+    const doc = await coll.findOne({ userId });
+    if (doc?.secret) {
+      doc.secret = decrypt(doc.secret);
+    }
+    return doc;
   }
 
   async markTotpTimeStepAccepted(userId: ObjectId, timeStep: number): Promise<boolean> {
@@ -80,12 +99,28 @@ export class MfaRepository {
 
   async getWebAuthnCredentials(userId: ObjectId): Promise<WebAuthnCredentialDocument[]> {
     const coll = await getWebAuthnCredentialsCollection();
-    return coll.find({ userId }).toArray();
+    return coll.find({ userId }).sort({ createdAt: 1 }).toArray();
+  }
+
+  async getWebAuthnCredentialsForDevice(
+    userId: ObjectId,
+    deviceObjectId: ObjectId
+  ): Promise<WebAuthnCredentialDocument[]> {
+    const coll = await getWebAuthnCredentialsCollection();
+    return coll.find({ userId, deviceObjectId }).sort({ createdAt: 1 }).toArray();
   }
 
   async getWebAuthnCredentialById(credentialID: string): Promise<WebAuthnCredentialDocument | null> {
     const coll = await getWebAuthnCredentialsCollection();
     return coll.findOne({ credentialID });
+  }
+
+  async getWebAuthnCredentialByIdForDevice(
+    credentialID: string,
+    deviceObjectId: ObjectId
+  ): Promise<WebAuthnCredentialDocument | null> {
+    const coll = await getWebAuthnCredentialsCollection();
+    return coll.findOne({ credentialID, deviceObjectId });
   }
 
   async updateWebAuthnCredentialUsage(id: ObjectId, newCounter: number): Promise<void> {
@@ -100,6 +135,20 @@ export class MfaRepository {
         },
       }
     );
+  }
+
+  async renameWebAuthnCredential(id: ObjectId, userId: ObjectId, name: string | null): Promise<boolean> {
+    const coll = await getWebAuthnCredentialsCollection();
+    const result = await coll.updateOne(
+      { _id: id, userId },
+      {
+        $set: {
+          name,
+          updatedAt: new Date(),
+        },
+      }
+    );
+    return result.modifiedCount === 1;
   }
 
   async removeWebAuthnCredential(id: ObjectId, userId: ObjectId): Promise<void> {

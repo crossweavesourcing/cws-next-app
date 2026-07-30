@@ -64,7 +64,7 @@ export async function loginActionImpl(
     if (result.status === 'mfa_required') {
       const pending = result.pendingAuthToken;
       cookieStore.set('cws_2fa_pending', pending, {
-        ...sessionCookieOpts(env, { path: '/' }),
+        ...strictCookieOpts(env, { path: '/' }),
         maxAge: 5 * 60, // 5 minutes to complete 2FA
       });
       return { redirect: '/dashboard/verify-2fa' };
@@ -95,12 +95,17 @@ export async function loginActionImpl(
     }
 
     return { redirect: '/dashboard' };
-  } catch (err) {
+  } catch (err: unknown) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    console.error('=== UNHANDLED LOGIN ACTION EXCEPTION ===');
+    console.error('Error message:', error.message);
+    console.error('Error name:', error.name);
+    console.error('Error stack:', error.stack);
+    console.error('=======================================');
     if (err instanceof AuthError) {
       return { error: err.publicMessage };
     }
 
-    console.error('Unhandled login action exception:', err);
     return { error: 'An unexpected system error occurred. Please try again later.' };
   }
 }

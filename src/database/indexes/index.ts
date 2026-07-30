@@ -18,6 +18,7 @@ import { passwordHistoryIndexes }    from './password-history.indexes';
 import { recoveryCodesIndexes }       from './recovery-codes.indexes';
 import { totpCredentialsIndexes }     from './totp-credentials.indexes';
 import { webauthnCredentialsIndexes } from './webauthn-credentials.indexes';
+import { webauthnChallengesIndexes } from './webauthn-challenges.indexes';
 import { mobileAuthChallengesIndexes } from './mobile-auth-challenges.indexes';
 import { pendingAuthenticationsIndexes } from './pending-authentications.indexes';
 import { categoriesIndexes } from './categories.indexes';
@@ -48,6 +49,7 @@ export const ALL_INDEXES: Record<CollectionName, IndexDescription[]> = {
   [COLLECTION_NAMES.RECOVERY_CODES]:      recoveryCodesIndexes,
   [COLLECTION_NAMES.TOTP_CREDENTIALS]:    totpCredentialsIndexes,
   [COLLECTION_NAMES.WEBAUTHN_CREDENTIALS]: webauthnCredentialsIndexes,
+  [COLLECTION_NAMES.WEBAUTHN_CHALLENGES]: webauthnChallengesIndexes,
   [COLLECTION_NAMES.MOBILE_AUTH_CHALLENGES]: mobileAuthChallengesIndexes,
   [COLLECTION_NAMES.PENDING_AUTHENTICATIONS]: pendingAuthenticationsIndexes,
   [COLLECTION_NAMES.CATEGORIES]: categoriesIndexes,
@@ -74,6 +76,7 @@ export {
   recoveryCodesIndexes,
   totpCredentialsIndexes,
   webauthnCredentialsIndexes,
+  webauthnChallengesIndexes,
   mobileAuthChallengesIndexes,
   pendingAuthenticationsIndexes,
   categoriesIndexes,

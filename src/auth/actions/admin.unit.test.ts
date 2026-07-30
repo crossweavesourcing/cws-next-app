@@ -26,6 +26,7 @@ vi.mock('server-only', () => ({}));
 // happy path is reached, and let the mocked session service resolve to
 // `state.session` (covering both the authenticated and null cases).
 vi.mock('next/headers', () => ({
+  headers: async () => new Headers(),
   cookies: async () => ({
     get: () => ({ name: 'cws_session', value: 'dummy-session-cookie' }),
     delete: () => {},
@@ -179,6 +180,7 @@ describe('RBAC — requireRole', () => {
     process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
     process.env.SESSION_SECRET = 'test-session-secret-at-least-thirty-two-chars!!';
     process.env.APP_URL = 'http://localhost:3000';
+    process.env.TOTP_ENCRYPTION_KEY = '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
   });
 
   beforeEach(() => {
@@ -272,7 +274,7 @@ describe('Admin forced/batch logout actions — RBAC + audit', () => {
 
     const auditEntry = state.audit.find((a) => a.action === 'auth.session.revoked');
     expect(auditEntry).toBeDefined();
-    expect((auditEntry!.actor as { type: string }).type).toBe('super_admin');
+    expect((auditEntry!.actor as { type: string }).type).toBe('admin');
   });
 
   it('adminRevokeUserSessionsAction: an admin cannot force-logout themselves', async () => {
@@ -309,7 +311,7 @@ describe('Admin forced/batch logout actions — RBAC + audit', () => {
 
     const auditEntry = state.audit.find((a) => a.action === 'auth.session.revoked_all');
     expect(auditEntry).toBeDefined();
-    expect((auditEntry!.actor as { type: string }).type).toBe('super_admin');
+    expect((auditEntry!.actor as { type: string }).type).toBe('admin');
   });
 
   it('adminRevokeUserSessionsAction: returns an error for a malformed userId (before RBAC)', async () => {

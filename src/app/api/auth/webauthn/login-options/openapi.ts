@@ -3,6 +3,13 @@ import { createSchema } from 'zod-openapi';
 import { ErrorSchema } from '@/lib/api/errors';
 import { TAGS } from '@/lib/api/tags';
 
+export const WebAuthnLoginOptionsRequestSchema = z.object({
+  email: z.string().email().meta({
+    description: 'Account email for email-first passkey login',
+    example: 'admin@example.com',
+  }),
+});
+
 export const WebAuthnLoginOptionsResponseSchema = z.object({
   challenge: z.string().meta({
     description: 'WebAuthn challenge string',
@@ -31,10 +38,17 @@ export const webauthnLoginOptionsPath = {
       operationId: 'webauthnLoginOptions',
       summary: 'Get WebAuthn login options',
       description:
-        'Generates WebAuthn authentication options for the pending MFA challenge. ' +
-        'Requires a valid cws_2fa_pending or cws_stepup_pending cookie.',
+        'Generates passwordless passkey authentication options for this enrolled device.',
       tags: [TAGS.AUTH],
-      security: [{ pendingSession: [] }],
+      security: [],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: createSchema(WebAuthnLoginOptionsRequestSchema).schema,
+          },
+        },
+      },
       responses: {
         '200': {
           description: 'WebAuthn options generated successfully',
@@ -45,7 +59,7 @@ export const webauthnLoginOptionsPath = {
           },
         },
         '401': {
-          description: 'Session expired or invalid pending cookie',
+          description: 'Passkey is not available for this device',
           content: {
             'application/json': {
               schema: createSchema(ErrorSchema).schema,

@@ -8,10 +8,13 @@ export function generateToken(byteLength = 32): string {
 }
 
 /**
- * Returns a SHA-256 hash of a plaintext token for secure DB storage.
+ * Returns an HMAC-SHA256 hash of a plaintext token using SESSION_SECRET for secure DB storage.
+ * HMAC keying prevents offline brute-force attacks on low-entropy tokens (like 6-digit OTPs)
+ * in the event of a database leak.
  */
 export function hashToken(token: string): string {
-  return crypto.createHash('sha256').update(token).digest('hex');
+  const secret = process.env.SESSION_SECRET || 'dev-fallback-pepper-secret-key-32chars!';
+  return crypto.createHmac('sha256', secret).update(token).digest('hex');
 }
 
 /**

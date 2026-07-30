@@ -12,7 +12,9 @@ import type {
 import { ObjectId } from 'mongodb';
 import { MfaRepository } from '../repositories/mfa.repository';
 import { UserRepository } from '../repositories/user.repository';
+import { DeviceRepository } from '../repositories/device.repository';
 import { getWebAuthnConfig } from '../config/env';
+import type { DeviceDocument, WebAuthnCredentialDocument } from '@/types/auth';
 
 const rpName = 'CWS Next App';
 
@@ -22,6 +24,46 @@ const totp = new TOTP({
 });
 
 const TOTP_PERIOD_SECONDS = 30;
+
+export interface PasskeySummary {
+  id: string;
+  name: string | null;
+  credentialDeviceType: string | null;
+  credentialBackedUp: boolean | null;
+  transports: string[];
+  deviceObjectId: string | null;
+  deviceName: string | null;
+  deviceType: string | null;
+  browser: string | null;
+  operatingSystem: string | null;
+  trusted: boolean | null;
+  blocked: boolean | null;
+  lastUsedAt: string | null;
+  createdAt: string;
+}
+
+function webAuthnUserId(userId: ObjectId): string {
+  return Buffer.from(new TextEncoder().encode(userId.toString())).toString('base64url');
+}
+
+function toPasskeySummary(passkey: WebAuthnCredentialDocument, device: DeviceDocument | null = null): PasskeySummary {
+  return {
+    id: passkey._id.toHexString(),
+    name: passkey.name,
+    credentialDeviceType: passkey.credentialDeviceType,
+    credentialBackedUp: passkey.credentialBackedUp,
+    transports: passkey.transports,
+    deviceObjectId: passkey.deviceObjectId?.toHexString() ?? null,
+    deviceName: device?.name ?? null,
+    deviceType: device?.type ?? null,
+    browser: device?.browser ?? null,
+    operatingSystem: device?.operatingSystem ?? null,
+    trusted: device?.trusted ?? null,
+    blocked: device?.blocked ?? null,
+    lastUsedAt: passkey.lastUsedAt?.toISOString() ?? null,
+    createdAt: passkey.createdAt.toISOString(),
+  };
+}
 
 export class MfaService {
   private mfaRepo = new MfaRepository();
@@ -72,12 +114,8 @@ export class MfaService {
 
   async disableTotp(userId: ObjectId): Promise<void> {
     await this.mfaRepo.removeTotpSecret(userId);
-    
-    // Check if webauthn is still enabled to determine if mfaEnabled should remain true
-    const user = await this.userRepo.findById(userId);
-    const webAuthnEnabled = user?.security?.webAuthnEnabled ?? false;
-    
-    await this.userRepo.updateSecurity(userId, { totpEnabled: false, mfaEnabled: webAuthnEnabled });
+
+    await this.userRepo.updateSecurity(userId, { totpEnabled: false, mfaEnabled: false });
   }
 
   // ─── WEBAUTHN ────────────────────────────────────────────────────────
@@ -106,6 +144,7 @@ export class MfaService {
       excludeCredentials: userPasskeys.map((passkey) => ({
         id: passkey.credentialID,
         type: 'public-key',
+        transports: passkey.transports as AuthenticatorTransportFuture[],
       })),
     };
 
@@ -118,8 +157,10 @@ export class MfaService {
   async verifyWebAuthnRegistration(
     userId: ObjectId,
     body: RegistrationResponseJSON,
-    expectedChallenge: string
+    expectedChallenge: string,
+    deviceObjectId: ObjectId | null
   ): Promise<boolean> {
+    if (!deviceObjectId) return false;
     const webAuthn = getWebAuthnConfig();
     let verification: VerifiedRegistrationResponse;
     try {
@@ -128,9 +169,10 @@ export class MfaService {
         expectedChallenge,
         expectedOrigin: webAuthn.origin,
         expectedRPID: webAuthn.rpID,
+        requireUserVerification: false,
       });
     } catch (error) {
-      console.error('WebAuthn registration verification failed:', error);
+      console.error('WebAuthn registration verification failed:', error instanceof Error ? error.name : 'UnknownError');
       return false;
     }
 
@@ -142,12 +184,16 @@ export class MfaService {
       await this.mfaRepo.saveWebAuthnCredential(userId, {
         credentialID,
         credentialPublicKey: Buffer.from(credentialPublicKey).toString('base64url'),
+        webauthnUserID: webAuthnUserId(userId),
+        deviceObjectId,
         counter,
+        credentialDeviceType,
+        credentialBackedUp: registrationInfo.credentialBackedUp,
         transports: body.response.transports || [],
         name: `${credentialDeviceType} passkey`,
       });
 
-      await this.userRepo.updateSecurity(userId, { webAuthnEnabled: true, mfaEnabled: true });
+      await this.userRepo.updateSecurity(userId, { webAuthnEnabled: true });
       return true;
     }
     return false;
@@ -162,6 +208,7 @@ export class MfaService {
 
     const options: GenerateAuthenticationOptionsOpts = {
       rpID: webAuthn.rpID,
+      userVerification: 'preferred',
       allowCredentials: userPasskeys.map((passkey) => ({
         id: passkey.credentialID,
         type: 'public-key',
@@ -178,10 +225,15 @@ export class MfaService {
   async verifyWebAuthnAuthentication(
     userId: ObjectId,
     body: AuthenticationResponseJSON,
-    expectedChallenge: string
+    expectedChallenge: string,
+    deviceObjectId: ObjectId | null
   ): Promise<boolean> {
+    if (!deviceObjectId) return false;
     const passkey = await this.mfaRepo.getWebAuthnCredentialById(body.id);
     if (!passkey || !passkey.userId.equals(userId)) return false;
+    if (!passkey.deviceObjectId || !passkey.deviceObjectId.equals(deviceObjectId)) {
+      return false;
+    }
     const webAuthn = getWebAuthnConfig();
 
     let verification: VerifiedAuthenticationResponse;
@@ -197,9 +249,10 @@ export class MfaService {
           counter: passkey.counter,
           transports: passkey.transports as AuthenticatorTransportFuture[],
         },
+        requireUserVerification: false,
       });
     } catch (error) {
-      console.error('WebAuthn authentication verification failed:', error);
+      console.error('WebAuthn authentication verification failed:', error instanceof Error ? error.name : 'UnknownError');
       return false;
     }
 
@@ -211,6 +264,79 @@ export class MfaService {
     return false;
   }
 
+  async generateWebAuthnPasswordlessOptions(userId: ObjectId, deviceObjectId: ObjectId) {
+    const userPasskeys = await this.mfaRepo.getWebAuthnCredentialsForDevice(userId, deviceObjectId);
+    if (userPasskeys.length === 0) return null;
+    const webAuthn = getWebAuthnConfig();
+    return generateAuthenticationOptions({
+      rpID: webAuthn.rpID,
+      userVerification: 'required',
+      allowCredentials: userPasskeys.map((passkey) => ({
+        id: passkey.credentialID,
+        type: 'public-key',
+        transports: passkey.transports as AuthenticatorTransportFuture[],
+      })),
+    });
+  }
+
+  async verifyWebAuthnPasswordlessAuthentication(
+    body: AuthenticationResponseJSON,
+    expectedChallenge: string,
+    deviceObjectId: ObjectId | null,
+    expectedUserId?: ObjectId
+  ): Promise<{ userId: ObjectId } | { error: 'device_mismatch' } | null> {
+    if (!deviceObjectId) return { error: 'device_mismatch' };
+    const passkey = await this.mfaRepo.getWebAuthnCredentialById(body.id);
+    if (!passkey) return null;
+    if (expectedUserId && !passkey.userId.equals(expectedUserId)) return null;
+    if (!passkey.deviceObjectId || !passkey.deviceObjectId.equals(deviceObjectId)) {
+      return { error: 'device_mismatch' };
+    }
+    const webAuthn = getWebAuthnConfig();
+
+    let verification: VerifiedAuthenticationResponse;
+    try {
+      verification = await verifyAuthenticationResponse({
+        response: body,
+        expectedChallenge,
+        expectedOrigin: webAuthn.origin,
+        expectedRPID: webAuthn.rpID,
+        credential: {
+          id: passkey.credentialID,
+          publicKey: Buffer.from(passkey.credentialPublicKey, 'base64url'),
+          counter: passkey.counter,
+          transports: passkey.transports as AuthenticatorTransportFuture[],
+        },
+        requireUserVerification: true,
+      });
+    } catch (error) {
+      console.error('WebAuthn authentication verification failed:', error instanceof Error ? error.name : 'UnknownError');
+      return null;
+    }
+
+    const { verified, authenticationInfo } = verification;
+    if (!verified || !authenticationInfo) return null;
+    await this.mfaRepo.updateWebAuthnCredentialUsage(passkey._id, authenticationInfo.newCounter);
+    return { userId: passkey.userId };
+  }
+
+  async listWebAuthnCredentials(userId: ObjectId): Promise<PasskeySummary[]> {
+    const passkeys = await this.mfaRepo.getWebAuthnCredentials(userId);
+    const deviceRepo = new DeviceRepository();
+    const summaries = await Promise.all(passkeys.map(async (passkey) => {
+      const device = passkey.deviceObjectId
+        ? await deviceRepo.findByServerDeviceId(passkey.deviceObjectId, userId)
+        : null;
+      return toPasskeySummary(passkey, device);
+    }));
+    return summaries;
+  }
+
+  async renameWebAuthnCredential(userId: ObjectId, credentialDbId: ObjectId, name: string | null): Promise<boolean> {
+    const normalized = name?.trim() ? name.trim().slice(0, 80) : null;
+    return this.mfaRepo.renameWebAuthnCredential(credentialDbId, userId, normalized);
+  }
+
   async removeWebAuthnCredential(userId: ObjectId, credentialDbId: ObjectId): Promise<void> {
     await this.mfaRepo.removeWebAuthnCredential(credentialDbId, userId);
     
@@ -218,7 +344,10 @@ export class MfaService {
     if (remaining.length === 0) {
       const user = await this.userRepo.findById(userId);
       const totpEnabled = user?.security?.totpEnabled ?? false;
-      await this.userRepo.updateSecurity(userId, { webAuthnEnabled: false, mfaEnabled: totpEnabled });
+      await this.userRepo.updateSecurity(userId, {
+        webAuthnEnabled: false,
+        mfaEnabled: totpEnabled,
+      });
     }
   }
 }

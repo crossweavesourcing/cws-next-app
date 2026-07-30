@@ -1,42 +1,52 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { headers } from 'next/headers';
 import { MfaService } from '@/auth/services/mfa.service';
-import { PendingAuthenticationRepository } from '@/auth/repositories/pending-authentication.repository';
-import * as crypto from 'crypto';
-import { isSecureCookies } from '@/auth/lib/cookies';
+import { UserRepository } from '@/auth/repositories/user.repository';
+import { WebAuthnChallengeRepository } from '@/auth/repositories/webauthn-challenge.repository';
+import { assertSameOriginStrict, CsrfError, getClientIp } from '@/auth/lib/request';
+import { getDeviceId } from '@/auth/lib/device';
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const pending = cookieStore.get('cws_2fa_pending');
-    
-    if (!pending?.value) {
-      return NextResponse.json({ error: 'Session expired' }, { status: 401 });
-    }
-
-    const tokenHash = crypto.createHash('sha256').update(pending.value).digest('hex');
-    const pendingRepo = new PendingAuthenticationRepository();
-    const pendingAuth = await pendingRepo.findByTokenHash(tokenHash);
-
-    if (!pendingAuth || pendingAuth.consumedAt || pendingAuth.expiresAt.getTime() < Date.now()) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
-    }
-
+    await assertSameOriginStrict();
     const mfaService = new MfaService();
-    const options = await mfaService.generateWebAuthnAuthenticationOptions(pendingAuth.userId);
-    
-    // Store challenge in cookie for verification step
-    cookieStore.set('cws_webauthn_challenge', options.challenge, {
-      httpOnly: true,
-      secure: isSecureCookies(),
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 5 * 60, // 5 minutes
-    });
+    const device = await getDeviceId();
+    const body = await request.json().catch(() => null) as { email?: unknown } | null;
+    const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '';
+    if (!email) {
+      return NextResponse.json({ error: 'Enter your email before using a passkey.' }, { status: 400 });
+    }
 
+    if (!device?.serverDeviceId) {
+      return NextResponse.json(
+        { error: 'This passkey is saved for another device. Add a passkey on this device or sign in with email and password.' },
+        { status: 401 }
+      );
+    }
+
+    const user = await new UserRepository().findByEmail(email);
+    if (!user || user.status !== 'active') {
+      return NextResponse.json({ error: 'No passkey is available for this email on this device.' }, { status: 404 });
+    }
+
+    const options = await mfaService.generateWebAuthnPasswordlessOptions(user._id, device.serverDeviceId);
+    if (!options) {
+      return NextResponse.json({ error: 'No passkey is available for this email on this device.' }, { status: 404 });
+    }
+
+    await new WebAuthnChallengeRepository().create({
+      challenge: options.challenge,
+      purpose: 'passwordless_login',
+      userId: user._id,
+      deviceObjectId: device.serverDeviceId,
+      platform: 'web',
+      ipAddress: await getClientIp(),
+      userAgent: (await headers()).get('user-agent'),
+    });
     return NextResponse.json(options);
   } catch (err) {
-    console.error('WebAuthn options error:', err);
+    if (err instanceof CsrfError) return NextResponse.json({ error: 'Request blocked.' }, { status: 403 });
+    console.error('WebAuthn options error:', err instanceof Error ? err.name : 'UnknownError');
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

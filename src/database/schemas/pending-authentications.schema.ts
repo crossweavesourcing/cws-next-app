@@ -8,7 +8,7 @@ export const pendingAuthenticationsSchema: Document = {
   properties: {
     _id: { bsonType: 'objectId' },
     userId: { bsonType: 'objectId' },
-    primaryAuthenticationMethod: { bsonType: 'string', enum: ['password', 'google'] },
+    primaryAuthenticationMethod: { bsonType: 'string', enum: ['password', 'google', 'passkey'] },
     requiredAction: { bsonType: 'string', enum: ['require_2fa', 'require_strong_2fa'] },
     deviceObjectId: { bsonType: ['objectId', 'null'] },
     riskLevel: { bsonType: ['string', 'null'], enum: ['low', 'medium', 'high', 'critical', null] },

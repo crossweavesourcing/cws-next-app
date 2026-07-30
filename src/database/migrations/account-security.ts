@@ -1,13 +1,16 @@
-import { getPasswordPoliciesCollection, getUsersCollection } from '@/database';
+import { getPasswordPoliciesCollection, getUsersCollection, getWebAuthnCredentialsCollection } from '@/database';
 import { getDb } from '@/database/client';
 import { COLLECTION_NAMES } from '@/database/constants';
 import { usersSchema } from '@/database/schemas/users.schema';
+import { webauthnCredentialsSchema } from '@/database/schemas/webauthn-credentials.schema';
 import { DEFAULT_PASSWORD_POLICY } from '@/auth/validation/password-policy';
 import { ObjectId } from 'mongodb';
 
 export interface AccountSecurityMigrationReport {
   usersMissingStrengthMetadata: number;
   usersBackfilled: number;
+  webAuthnCredentialsMissingMetadata: number;
+  webAuthnCredentialsBackfilled: number;
   policyUpdated: boolean;
   dryRun: boolean;
 }
@@ -15,11 +18,21 @@ export interface AccountSecurityMigrationReport {
 export async function migrateAccountSecurity(options: { dryRun: boolean }): Promise<AccountSecurityMigrationReport> {
   const users = await getUsersCollection();
   const policies = await getPasswordPoliciesCollection();
+  const passkeys = await getWebAuthnCredentialsCollection();
   const missingFilter = { 'security.passwordStrengthCategory': { $exists: false } };
   const usersMissingStrengthMetadata = await users.countDocuments(missingFilter);
+  const passkeyMissingFilter = { webauthnUserID: { $exists: false } };
+  const webAuthnCredentialsMissingMetadata = await passkeys.countDocuments(passkeyMissingFilter);
 
   if (options.dryRun) {
-    return { usersMissingStrengthMetadata, usersBackfilled: 0, policyUpdated: false, dryRun: true };
+    return {
+      usersMissingStrengthMetadata,
+      usersBackfilled: 0,
+      webAuthnCredentialsMissingMetadata,
+      webAuthnCredentialsBackfilled: 0,
+      policyUpdated: false,
+      dryRun: true,
+    };
   }
 
   // Install the compatible validator before writing the newly declared fields.
@@ -38,6 +51,30 @@ export async function migrateAccountSecurity(options: { dryRun: boolean }): Prom
       'security.passwordStrengthEvaluatedAt': null,
       'security.passwordStrengthEvaluatorVersion': null,
     },
+  });
+  const passkeyResult = await passkeys.updateMany(passkeyMissingFilter, [
+    {
+      $set: {
+        webauthnUserID: { $toString: '$userId' },
+        deviceObjectId: { $ifNull: ['$deviceObjectId', null] },
+        credentialDeviceType: null,
+        credentialBackedUp: null,
+        transports: { $ifNull: ['$transports', []] },
+        name: { $ifNull: ['$name', 'Passkey'] },
+        lastUsedAt: { $ifNull: ['$lastUsedAt', null] },
+        updatedAt: new Date(),
+      },
+    },
+  ]);
+  await users.updateMany(
+    { 'security.defaultTwoFaMethod': 'webauthn' },
+    { $set: { 'security.defaultTwoFaMethod': 'email' } }
+  );
+  await db.command({
+    collMod: COLLECTION_NAMES.WEBAUTHN_CREDENTIALS,
+    validator: { $jsonSchema: webauthnCredentialsSchema },
+    validationLevel: 'strict',
+    validationAction: 'error',
   });
   const now = new Date();
   const policyValues = {
@@ -66,6 +103,8 @@ export async function migrateAccountSecurity(options: { dryRun: boolean }): Prom
   return {
     usersMissingStrengthMetadata,
     usersBackfilled: result.modifiedCount,
+    webAuthnCredentialsMissingMetadata,
+    webAuthnCredentialsBackfilled: passkeyResult.modifiedCount,
     policyUpdated: true,
     dryRun: false,
   };

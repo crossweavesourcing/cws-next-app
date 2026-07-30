@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { cookies } from 'next/headers';
-import { SessionService } from '@/auth/services';
+import { SessionService, RateLimitService } from '@/auth/services';
 import { RefreshTokenRepository } from '@/auth/repositories';
 import { hashToken } from '@/auth/crypto/token';
 import { getClientIp, assertSameOriginStrict } from '@/auth/lib/request';
 import { getEnv } from '@/auth/config/env';
 import { AuditLogRepository } from '@/auth/repositories';
 import { clearingCookieOpts, isSecureCookies } from '@/auth/lib/cookies';
+import { RateLimitError } from '@/auth/errors/auth-errors';
 
 const SESSION_COOKIE = 'cws_session';
 const REFRESH_COOKIE = 'cws_refresh';
@@ -38,6 +39,17 @@ export async function POST(request: NextRequest) {
 
   const ipAddress = await getClientIp();
   const userAgent = request.headers.get('user-agent') || null;
+  const rateLimitService = new RateLimitService();
+
+  try {
+    await rateLimitService.checkIpRateLimit(ipAddress);
+  } catch (err) {
+    if (err instanceof RateLimitError) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+
   const tokenHash = hashToken(refreshCookie.value);
 
   const sessionService = new SessionService();
@@ -54,7 +66,9 @@ export async function POST(request: NextRequest) {
     const expired = result && 'expired' in result;
 
     if (!expired) {
-      // Unknown / reused / revoked token.
+      // Unknown / reused / revoked token. Record an IP failure to block brute force/DoS.
+      await rateLimitService.recordIpFailure(ipAddress, userAgent);
+      
       const prior = await refreshRepo.findByHash(tokenHash);
       if (prior) {
         await auditRepo.log({

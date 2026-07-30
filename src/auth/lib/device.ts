@@ -50,29 +50,33 @@ export interface DeviceIdentity {
  * Must be called inside a Request scope (Server Component / Action / Route).
  */
 export async function ensureDeviceId(): Promise<DeviceIdentity> {
-  const cookieStore = await cookies();
+  try {
+    const cookieStore = await cookies();
 
-  const clientDeviceId = readClientDeviceId(cookieStore);
+    const clientDeviceId = readClientDeviceId(cookieStore);
 
-  const token = cookieStore.get(DEVICE_TOKEN_COOKIE)?.value;
-  if (token) {
-    const recordId = verifyServerDeviceToken(token);
-    if (recordId) {
-      return { serverDeviceId: recordId, clientDeviceId, hasServerToken: true };
+    const token = cookieStore.get(DEVICE_TOKEN_COOKIE)?.value;
+    if (token) {
+      const recordId = verifyServerDeviceToken(token);
+      if (recordId) {
+        return { serverDeviceId: recordId, clientDeviceId, hasServerToken: true };
+      }
     }
+
+    // No valid server token → mint a fresh server device record id and issue the
+    // signed cookie. The devices collection row is created lazily on first login
+    // (see SessionService), keyed by this record id.
+    const recordId = new ObjectId();
+    const signed = signServerDeviceToken(recordId);
+    cookieStore.set(DEVICE_TOKEN_COOKIE, signed, {
+      ...sessionCookieOpts(getEnv(), { path: '/' }),
+      maxAge: DEVICE_TOKEN_MAX_AGE,
+    });
+
+    return { serverDeviceId: recordId, clientDeviceId, hasServerToken: false };
+  } catch {
+    return { serverDeviceId: null, clientDeviceId: null, hasServerToken: false };
   }
-
-  // No valid server token → mint a fresh server device record id and issue the
-  // signed cookie. The devices collection row is created lazily on first login
-  // (see SessionService), keyed by this record id.
-  const recordId = new ObjectId();
-  const signed = signServerDeviceToken(recordId);
-  cookieStore.set(DEVICE_TOKEN_COOKIE, signed, {
-    ...sessionCookieOpts(getEnv(), { path: '/' }),
-    maxAge: DEVICE_TOKEN_MAX_AGE,
-  });
-
-  return { serverDeviceId: recordId, clientDeviceId, hasServerToken: false };
 }
 
 /**
@@ -81,15 +85,19 @@ export async function ensureDeviceId(): Promise<DeviceIdentity> {
  * Returns null when the client lacks a valid signed token.
  */
 export async function getDeviceId(): Promise<DeviceIdentity | null> {
-  const cookieStore = await cookies();
-  const clientDeviceId = readClientDeviceId(cookieStore);
-  const token = cookieStore.get(DEVICE_TOKEN_COOKIE)?.value;
-  if (!token) return null;
+  try {
+    const cookieStore = await cookies();
+    const clientDeviceId = readClientDeviceId(cookieStore);
+    const token = cookieStore.get(DEVICE_TOKEN_COOKIE)?.value;
+    if (!token) return null;
 
-  const recordId = verifyServerDeviceToken(token);
-  if (!recordId) return null;
+    const recordId = verifyServerDeviceToken(token);
+    if (!recordId) return null;
 
-  return { serverDeviceId: recordId, clientDeviceId, hasServerToken: true };
+    return { serverDeviceId: recordId, clientDeviceId, hasServerToken: true };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -107,19 +115,27 @@ export async function setServerDeviceToken(
   recordId: ObjectId,
   opts: { rotate?: boolean; nonce?: string } = {}
 ): Promise<void> {
-  const cookieStore = await cookies();
-  const nonce = opts.rotate ? opts.nonce ?? randomNonce() : undefined;
-  const signed = signServerDeviceToken(recordId, nonce);
-  cookieStore.set(DEVICE_TOKEN_COOKIE, signed, {
-    ...sessionCookieOpts(getEnv(), { path: '/' }),
-    maxAge: DEVICE_TOKEN_MAX_AGE,
-  });
+  try {
+    const cookieStore = await cookies();
+    const nonce = opts.rotate ? opts.nonce ?? randomNonce() : undefined;
+    const signed = signServerDeviceToken(recordId, nonce);
+    cookieStore.set(DEVICE_TOKEN_COOKIE, signed, {
+      ...sessionCookieOpts(getEnv(), { path: '/' }),
+      maxAge: DEVICE_TOKEN_MAX_AGE,
+    });
+  } catch {
+    // Silent fail-open if cookies cannot be set in current context
+  }
 }
 
 /** Clears the server device token (logout / device reset). */
 export async function clearServerDeviceToken(): Promise<void> {
-  const cookieStore = await cookies();
-  cookieStore.set(DEVICE_TOKEN_COOKIE, '', clearingCookieOpts('lax', '/'));
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set(DEVICE_TOKEN_COOKIE, '', clearingCookieOpts('lax', '/'));
+  } catch {
+    // Silent fail-open
+  }
 }
 
 function signServerDeviceToken(recordId: ObjectId, nonce?: string): string {

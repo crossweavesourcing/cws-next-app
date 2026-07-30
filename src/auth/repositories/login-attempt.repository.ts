@@ -61,6 +61,22 @@ export class LoginAttemptRepository {
   }
 
   /**
+   * Counts recent TOTP verification failures for a user within a window.
+   * Used to enforce global rate limiting across all pending authentication sessions.
+   */
+  async countRecentTotpFailures(userId: ObjectId, windowMs: number): Promise<number> {
+    const attemptsColl = await getLoginAttemptsCollection();
+    const thresholdDate = new Date(Date.now() - windowMs);
+    return attemptsColl.countDocuments({
+      userId,
+      identifierType: 'EMAIL',
+      success: false,
+      failureReason: 'TOTP verification failed',
+      createdAt: { $gte: thresholdDate },
+    });
+  }
+
+  /**
    * Generic windowed counter. Counts documents matching an arbitrary filter
    * whose `createdAt` falls within `windowMs` of now. Reused by the 2FA
    * resend throttle and OAuth per-IP limit rather than adding a bespoke method
@@ -190,6 +206,28 @@ export class LoginAttemptRepository {
         sort: { lockExpiresAt: -1 },
       }
     );
-    return lastLockout?.lockExpiresAt || null;
+    if (!lastLockout?.lockExpiresAt) return null;
+    const lockDate = lastLockout.lockExpiresAt instanceof Date ? lastLockout.lockExpiresAt : new Date(lastLockout.lockExpiresAt);
+    return isNaN(lockDate.getTime()) ? null : lockDate;
+  }
+
+  /**
+   * Returns the milliseconds elapsed since the most recent failed login attempt
+   * for a given identifier, or null if no recent failures exist.
+   */
+  async getTimeSinceLastFailure(identifier: string): Promise<number | null> {
+    const attemptsColl = await getLoginAttemptsCollection();
+    const lastFailure = await attemptsColl.findOne(
+      { 
+        identifier: identifier.trim().toLowerCase(),
+        success: false
+      },
+      { sort: { createdAt: -1 } }
+    );
+    
+    if (!lastFailure?.createdAt) return null;
+    const createdTime = lastFailure.createdAt instanceof Date ? lastFailure.createdAt.getTime() : new Date(lastFailure.createdAt).getTime();
+    if (isNaN(createdTime)) return null;
+    return Date.now() - createdTime;
   }
 }

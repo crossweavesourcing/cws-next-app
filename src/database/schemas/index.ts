@@ -18,6 +18,7 @@ import { passwordPoliciesSchema }    from './password-policies.schema';
 import { passwordHistorySchema }     from './password-history.schema';
 import { totpCredentialsSchema }     from './totp-credentials.schema';
 import { webauthnCredentialsSchema } from './webauthn-credentials.schema';
+import { webauthnChallengesSchema } from './webauthn-challenges.schema';
 import { mobileAuthChallengesSchema } from './mobile-auth-challenges.schema';
 import { categoriesSchema } from './categories.schema';
 import { productsSchema } from './products.schema';
@@ -50,6 +51,7 @@ export const ALL_SCHEMAS: Record<CollectionName, Document> = {
   [COLLECTION_NAMES.PASSWORD_HISTORY]:    passwordHistorySchema,
   [COLLECTION_NAMES.TOTP_CREDENTIALS]:    totpCredentialsSchema,
   [COLLECTION_NAMES.WEBAUTHN_CREDENTIALS]: webauthnCredentialsSchema,
+  [COLLECTION_NAMES.WEBAUTHN_CHALLENGES]: webauthnChallengesSchema,
   [COLLECTION_NAMES.MOBILE_AUTH_CHALLENGES]: mobileAuthChallengesSchema,
   [COLLECTION_NAMES.CATEGORIES]:          categoriesSchema,
   [COLLECTION_NAMES.PRODUCTS]:            productsSchema,
@@ -76,6 +78,7 @@ export {
   passwordHistorySchema,
   totpCredentialsSchema,
   webauthnCredentialsSchema,
+  webauthnChallengesSchema,
   mobileAuthChallengesSchema,
   categoriesSchema,
   productsSchema,

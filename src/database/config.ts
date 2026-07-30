@@ -45,13 +45,14 @@ export function getDatabaseConfig(): DatabaseConfig {
 
   const uri    = process.env.MONGODB_URI    ?? '';
   const dbName = process.env.MONGODB_DB_NAME ?? '';
+  const webhookUrl = process.env.SECURITY_WEBHOOK_URL;
 
   // ── MONGODB_URI ────────────────────────────────────────────────────────────
   if (!uri) {
     violations.push('MONGODB_URI: environment variable is not set');
   } else if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
     violations.push(
-      `MONGODB_URI: must start with 'mongodb://' or 'mongodb+srv://' (got "${uri.slice(0, 20)}...")`
+      `MONGODB_URI: must start with 'mongodb://' or 'mongodb+srv://' (value redacted)`
     );
   }
 
@@ -62,6 +63,18 @@ export function getDatabaseConfig(): DatabaseConfig {
     violations.push(
       `MONGODB_DB_NAME: must match /^[a-zA-Z0-9_-]{1,38}$/ (got "${dbName}")`
     );
+  }
+
+  // ── SECURITY_WEBHOOK_URL ───────────────────────────────────────────────────
+  if (webhookUrl) {
+    try {
+      const parsedUrl = new URL(webhookUrl);
+      if (process.env.NODE_ENV === 'production' && parsedUrl.protocol !== 'https:') {
+        violations.push('SECURITY_WEBHOOK_URL: must use https:// in production');
+      }
+    } catch {
+      violations.push('SECURITY_WEBHOOK_URL: must be a valid URL');
+    }
   }
 
   if (violations.length > 0) {

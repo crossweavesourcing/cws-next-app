@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { ProductService } from '@/auth/services/product.service';
 import { ProductSchema } from '@/auth/validation/admin.schema';
 import { InsufficientRoleError } from '@/auth/dal';
+import { SessionExpiredError } from '@/auth/errors/auth-errors';
 
 export async function POST(req: Request) {
   try {
@@ -42,6 +43,10 @@ export async function POST(req: Request) {
     
     if (error instanceof InsufficientRoleError) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    if (error instanceof SessionExpiredError) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if ((error instanceof Error ? error.message : String(error)) === 'Main image is required' || (error instanceof Error ? error.message : String(error)).includes('Validation')) {

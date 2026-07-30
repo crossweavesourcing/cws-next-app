@@ -8,7 +8,7 @@ export const passwordPoliciesSchema: Document = {
   properties: {
     _id:                { bsonType: 'objectId' },
     name:               { bsonType: 'string', minLength: 1, maxLength: 100 },
-    minLength:          { bsonType: 'int', minimum: 8 },
+    minLength:          { bsonType: 'int', minimum: 6 },
     maxLength:          { bsonType: 'int', maximum: 128 },
     requireUppercase:   { bsonType: 'bool' },
     requireLowercase:   { bsonType: 'bool' },

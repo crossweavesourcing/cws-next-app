@@ -4,9 +4,9 @@ import { PendingAuthenticationRepository } from '@/auth/repositories/pending-aut
 import { UserRepository } from '@/auth/repositories/user.repository';
 import * as crypto from 'crypto';
 import Link from 'next/link';
+import { Mail, ShieldAlert, Smartphone } from 'lucide-react';
 import Verify2FAForm from './Verify2FAForm';
 import VerifyTotpForm from './VerifyTotpForm';
-import VerifyWebAuthnForm from './VerifyWebAuthnForm';
 
 export default async function Verify2FAPage(props: {
   searchParams: Promise<{ method?: string }>;
@@ -36,71 +36,86 @@ export default async function Verify2FAPage(props: {
 
 
   const hasTotp = user.security?.totpEnabled;
-  const hasWebAuthn = user.security?.webAuthnEnabled;
+  const isEmailOnlyPrimary = pendingAuth.primaryAuthenticationMethod === 'passkey' || pendingAuth.primaryAuthenticationMethod === 'google';
+  const primaryLabel = pendingAuth.primaryAuthenticationMethod === 'google'
+    ? 'Google sign-in'
+    : pendingAuth.primaryAuthenticationMethod === 'passkey'
+      ? 'Passkey sign-in'
+      : 'Password sign-in';
 
   const defaultMethod = user.security?.defaultTwoFaMethod || 'email';
   let method = searchParams.method || defaultMethod;
 
   // Ensure requested method is actually enabled
   if (method === 'totp' && !hasTotp) method = 'email';
-  if (method === 'webauthn' && !hasWebAuthn) method = 'email';
+  if (isEmailOnlyPrimary) method = 'email';
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-neutral-100 p-6">
-      <div className="w-full max-w-md border border-neutral-200 bg-white p-8 shadow-sm">
-        <h1 className="text-xl font-black uppercase tracking-tight text-neutral-900 mb-6">
-          Two-Factor Verification
-        </h1>
-        
-        <div className="flex flex-col gap-8">
-          {method === 'webauthn' && (
-            <div>
-              <h2 className="text-sm font-semibold uppercase text-neutral-500 mb-2">Use Passkey</h2>
-              <VerifyWebAuthnForm />
-            </div>
-          )}
+      <div className="w-full max-w-lg border border-neutral-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="mb-6 flex items-start gap-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center bg-neutral-950 text-white">
+            <ShieldAlert className="h-5 w-5" />
+          </span>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#E02424]">
+              {primaryLabel}
+            </p>
+            <h1 className="mt-2 text-xl font-black uppercase tracking-tight text-neutral-900">
+              {isEmailOnlyPrimary ? 'Email verification required' : 'Password two-factor verification'}
+            </h1>
+            <p className="mt-2 text-sm leading-6 text-neutral-600">
+              {isEmailOnlyPrimary
+                ? 'This sign-in needs an extra email code because the risk check was high. Authenticator apps are used only after password sign-ins.'
+                : 'Choose one of your password verification methods to finish signing in.'}
+            </p>
+          </div>
+        </div>
 
+        {hasTotp && !isEmailOnlyPrimary && (
+          <div className="mb-6 grid gap-3 sm:grid-cols-2">
+            <Link
+              href="?method=email"
+              aria-current={method === 'email' ? 'page' : undefined}
+              className={`border p-4 transition-colors ${method === 'email' ? 'border-[#E02424] bg-[#E02424]/5 text-neutral-950' : 'border-neutral-200 bg-neutral-50 text-neutral-700 hover:border-neutral-400'}`}
+            >
+              <Mail className="h-5 w-5 text-[#E02424]" />
+              <span className="mt-3 block text-xs font-black uppercase tracking-[0.14em]">Email code</span>
+              <span className="mt-1 block text-xs leading-5 text-neutral-500">Use the code sent to your email.</span>
+            </Link>
+            <Link
+              href="?method=totp"
+              aria-current={method === 'totp' ? 'page' : undefined}
+              className={`border p-4 transition-colors ${method === 'totp' ? 'border-[#E02424] bg-[#E02424]/5 text-neutral-950' : 'border-neutral-200 bg-neutral-50 text-neutral-700 hover:border-neutral-400'}`}
+            >
+              <Smartphone className="h-5 w-5 text-[#E02424]" />
+              <span className="mt-3 block text-xs font-black uppercase tracking-[0.14em]">Authenticator</span>
+              <span className="mt-1 block text-xs leading-5 text-neutral-500">Use your configured app code.</span>
+            </Link>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-8">
           {method === 'totp' && (
-            <div>
-              <h2 className="text-sm font-semibold uppercase text-neutral-500 mb-2">Authenticator App</h2>
+            <div className="border border-neutral-200 bg-neutral-50 p-5">
+              <h2 className="mb-2 text-sm font-black uppercase tracking-[0.1em] text-neutral-900">Authenticator app</h2>
+              <p className="text-xs leading-5 text-neutral-500">
+                Enter the 6-digit code from your authenticator app.
+              </p>
               <VerifyTotpForm />
             </div>
           )}
 
           {method === 'email' && (
-            <div>
-              <h2 className="text-sm font-semibold uppercase text-neutral-500 mb-2">Email Verification</h2>
-              <p className="mb-4 text-xs text-neutral-500">
+            <div className="border border-neutral-200 bg-neutral-50 p-5">
+              <h2 className="mb-2 text-sm font-black uppercase tracking-[0.1em] text-neutral-900">Email verification</h2>
+              <p className="text-xs leading-5 text-neutral-500">
                 Enter the 6-digit code we emailed you. It expires in 5 minutes.
               </p>
               <Verify2FAForm />
             </div>
           )}
         </div>
-
-        {/* Alternative methods */}
-        {(hasTotp || hasWebAuthn) && (
-          <div className="mt-8 border-t border-neutral-200 pt-6">
-            <h3 className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-500 mb-3">Try another way</h3>
-            <div className="flex flex-col gap-2">
-              {method !== 'email' && (
-                <Link href="?method=email" className="text-xs font-semibold text-neutral-900 underline hover:text-[#E02424]">
-                  Send code to email
-                </Link>
-              )}
-              {hasTotp && method !== 'totp' && (
-                <Link href="?method=totp" className="text-xs font-semibold text-neutral-900 underline hover:text-[#E02424]">
-                  Use Authenticator App
-                </Link>
-              )}
-              {hasWebAuthn && method !== 'webauthn' && (
-                <Link href="?method=webauthn" className="text-xs font-semibold text-neutral-900 underline hover:text-[#E02424]">
-                  Use Passkey
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </main>
   );

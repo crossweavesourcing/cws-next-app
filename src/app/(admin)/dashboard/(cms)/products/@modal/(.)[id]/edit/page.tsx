@@ -20,5 +20,22 @@ export default async function EditProductIntercept({ params }: { params: Promise
   const categoryRepo = new CategoryRepository();
   const categories = await categoryRepo.findAll();
 
-  return <EditProductClient product={product} categories={categories} />;
+  const serializedProduct = {
+    ...product,
+    _id: product._id.toString(),
+    categoryId: product.categoryId?.toString() || null,
+    createdAt: product.createdAt.toISOString(),
+    updatedAt: product.updatedAt.toISOString(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any;
+
+  const serializedCategories = categories.map(cat => ({
+    ...cat,
+    _id: cat._id.toString(),
+    createdAt: cat.createdAt.toISOString(),
+    updatedAt: cat.updatedAt.toISOString(),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  })) as any[];
+
+  return <EditProductClient product={serializedProduct} categories={serializedCategories} />;
 }

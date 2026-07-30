@@ -21,7 +21,7 @@ export class VerificationTokenRepository {
   async create(
     data: NewVerificationToken,
     ttlMs: number,
-    byteLength = 8,
+    byteLength: number,
     tokenOverride?: string
   ): Promise<string> {
     // `tokenOverride` lets callers store a hash of a value they generated

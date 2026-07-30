@@ -4,6 +4,7 @@ import { useState } from 'react';
 import QRCode from 'qrcode';
 import { generateTotpSecretAction, verifyAndEnableTotpAction, disableTotpAction } from '@/auth/actions/mfa';
 import { Smartphone, X } from 'lucide-react';
+import { SudoConfirmModal } from '@/components/ui/SudoConfirmModal';
 
 export function TotpConfigurator({ initiallyEnabled }: { initiallyEnabled: boolean }) {
   const [enabled, setEnabled] = useState(initiallyEnabled);
@@ -12,6 +13,8 @@ export function TotpConfigurator({ initiallyEnabled }: { initiallyEnabled: boole
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [sudoModalOpen, setSudoModalOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'setup' | 'verify' | 'disable' | null>(null);
 
   const startSetup = async () => {
     setLoading(true);
@@ -19,6 +22,11 @@ export function TotpConfigurator({ initiallyEnabled }: { initiallyEnabled: boole
     setModalOpen(true);
     try {
       const result = await generateTotpSecretAction();
+      if (result.requiresSudo) {
+        setPendingAction('setup');
+        setSudoModalOpen(true);
+        return;
+      }
       if (result.error) throw new Error(result.error);
       if (!result.secret || !result.otpauthUrl) throw new Error('Failed to generate TOTP secret');
       
@@ -48,6 +56,11 @@ export function TotpConfigurator({ initiallyEnabled }: { initiallyEnabled: boole
     setError(null);
     try {
       const res = await verifyAndEnableTotpAction(setupData.secret, code);
+      if (res.requiresSudo) {
+        setPendingAction('verify');
+        setSudoModalOpen(true);
+        return;
+      }
       if (res.success) {
         setEnabled(true);
         closeSetup();
@@ -65,8 +78,15 @@ export function TotpConfigurator({ initiallyEnabled }: { initiallyEnabled: boole
     setLoading(true);
     setError(null);
     try {
-      await disableTotpAction();
-      setEnabled(false);
+      const res = await disableTotpAction();
+      if (res.requiresSudo) {
+        setPendingAction('disable');
+        setSudoModalOpen(true);
+      } else if (res.success) {
+        setEnabled(false);
+      } else {
+        setError(res.error || 'Failed to disable');
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to disable');
     } finally {
@@ -184,6 +204,21 @@ export function TotpConfigurator({ initiallyEnabled }: { initiallyEnabled: boole
           </div>
         </div>
       )}
+
+      <SudoConfirmModal
+        isOpen={sudoModalOpen}
+        onClose={() => {
+          setSudoModalOpen(false);
+          setPendingAction(null);
+        }}
+        onSuccess={() => {
+          setSudoModalOpen(false);
+          if (pendingAction === 'setup') startSetup();
+          if (pendingAction === 'verify') verifyAndEnable();
+          if (pendingAction === 'disable') disable();
+          setPendingAction(null);
+        }}
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { OAuthAccountRepository } from '../repositories/oauth-account.repository
 import { UserRepository } from '../repositories/user.repository';
 import { SessionService } from './session.service';
 import { PasswordService } from './password.service';
+import { TwoFactorService } from './two-factor.service';
 import { AuditLogRepository } from '../repositories/audit-log.repository';
 import { AlertingService } from './alerting.service';
 import { getEnv, getMobileAuthConfig } from '../config/env';
@@ -130,6 +131,7 @@ export class OAuthService {
   private sessionService = new SessionService();
   private auditRepo = new AuditLogRepository();
   private alertingService = new AlertingService();
+  private twoFactorService = new TwoFactorService();
 
   /**
    * Builds the Google authorization URL and returns the PKCE/state/nonce secrets
@@ -290,6 +292,7 @@ export class OAuthService {
       userAgent,
       serverDeviceId,
       clientDeviceId,
+      hasServerToken: device?.hasServerToken ?? false,
       primaryAuthenticationMethod: 'google',
     });
 
@@ -319,6 +322,7 @@ export class OAuthService {
         consumedAt: null,
       });
 
+      await this.twoFactorService.sendCode(userId);
       return { status: 'mfa_required', userId, pendingAuthToken: token };
     }
 
@@ -472,14 +476,19 @@ export class OAuthService {
     const claims = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8')) as Record<string, unknown>;
     const now = Math.floor(Date.now() / 1000);
 
+    const clockTolerance = 60; // 60 seconds leeway for clock skew
+
     if (claims.iss !== 'https://accounts.google.com' && claims.iss !== 'accounts.google.com') {
       throw new Error('Invalid id_token iss.');
     }
     if (typeof claims.aud !== 'string' || !allowedAudiences.includes(claims.aud)) {
       throw new Error('Invalid id_token aud.');
     }
-    if (typeof claims.exp !== 'number' || claims.exp < now) {
+    if (typeof claims.exp !== 'number' || claims.exp + clockTolerance < now) {
       throw new Error('id_token expired.');
+    }
+    if (typeof claims.iat !== 'number' || claims.iat - clockTolerance > now) {
+      throw new Error('id_token issued in the future.');
     }
     if (expectedNonce !== null && claims.nonce !== expectedNonce) {
       throw new Error('id_token nonce mismatch (replay protection).');
@@ -551,11 +560,8 @@ export class OAuthService {
         consumedAt: null,
       });
 
-      const methods: string[] = [];
-      if (user.security.webAuthnEnabled) methods.push('webauthn');
-      if (user.security.totpEnabled) methods.push('totp');
-      methods.push('email');
-      return { status: 'mfa_required', userId: user._id, availableMethods: methods, pendingAuthToken: token };
+      await this.twoFactorService.sendCode(user._id);
+      return { status: 'mfa_required', userId: user._id, availableMethods: ['email'], pendingAuthToken: token };
     }
 
     if (user.security?.forcePasswordChange || (await this.passwordService.isExpired(user._id))) {

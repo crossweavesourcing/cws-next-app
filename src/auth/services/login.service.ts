@@ -21,7 +21,7 @@ import {
   AccountDeletedError,
   AccountDisabledError,
 } from '../errors/auth-errors';
-import type { Platform, UserDocument } from '@/types/auth';
+import type { LoginMethod, Platform, UserDocument } from '@/types/auth';
 
 function randomDelayMs(max = 50): number {
   return Math.floor(Math.random() * (max + 1));
@@ -124,14 +124,13 @@ export class LoginService {
       // state tells the caller whether a lock was just applied. No separate
       // `findById` reload or follow-up `lockAccount` write, so there is no
       // lost-update window (H-5).
-      const { locked } = await this.userRepo.recordFailedLoginAndMaybeLock(
+      const { locked, lockExpiresAt } = await this.userRepo.recordFailedLoginAndMaybeLock(
         userId,
         this.LOCKOUT_THRESHOLD,
         this.LOCKOUT_DURATION_MS
       );
 
-      if (locked) {
-        const lockExpiresAt = new Date(Date.now() + this.LOCKOUT_DURATION_MS);
+      if (locked && lockExpiresAt) {
         await this.recordFailure(userId, email, ipAddress, userAgent, 'Lockout triggered', lockExpiresAt);
         throw new AccountLockedError(lockExpiresAt, 'Lockout triggered on password mismatch');
       }
@@ -156,8 +155,16 @@ export class LoginService {
       userAgent,
       serverDeviceId,
       clientDeviceId,
+      hasServerToken: device?.hasServerToken ?? false,
       primaryAuthenticationMethod: 'password',
     });
+
+    console.error('=== LOGIN RISK EVALUATION ===', JSON.stringify({
+      level: riskEval.riskDecision.level,
+      score: riskEval.riskDecision.score,
+      reasons: riskEval.riskDecision.reasons,
+      action: riskEval.policyDecision.action,
+    }));
 
     if (riskEval.policyDecision.action === 'block') {
       await this.recordFailure(userId, email, ipAddress, userAgent, 'Authentication blocked by risk policy');
@@ -187,7 +194,6 @@ export class LoginService {
       });
 
       const availableMethods: string[] = [];
-      if (user.security?.webAuthnEnabled) availableMethods.push('webauthn');
       if (user.security?.totpEnabled) availableMethods.push('totp');
       availableMethods.push('email');
 
@@ -210,6 +216,79 @@ export class LoginService {
     return this.issueSession(userId, email, ipAddress, userAgent, 'password', rememberMe, options.platform);
   }
 
+  async loginWithPasskey(
+    userId: ObjectId,
+    ipAddress: string,
+    userAgent: string | null,
+    options: { platform?: Platform } = {}
+  ): Promise<
+    | { status: 'authenticated'; sessionId: string; sessionCookie: string; refreshToken: string; user: UserDocument; rememberMe: boolean }
+    | { status: 'mfa_required'; userId: ObjectId; availableMethods: ['email']; pendingAuthToken: string }
+  > {
+    const user = await this.userRepo.findById(userId);
+    if (!user) throw new InvalidCredentialsError('User record not found');
+
+    if (user.status === 'suspended') {
+      await this.recordFailure(userId, userId.toHexString(), ipAddress, userAgent, 'Account suspended');
+      throw new AccountSuspendedError();
+    }
+    if (user.status === 'deleted') {
+      await this.recordFailure(userId, userId.toHexString(), ipAddress, userAgent, 'Account deleted');
+      throw new AccountDeletedError();
+    }
+    if (user.status === 'inactive' || user.status === 'disabled') {
+      await this.recordFailure(userId, userId.toHexString(), ipAddress, userAgent, 'Account inactive/disabled');
+      throw new AccountDisabledError();
+    }
+    if (user.security.lockedUntil && user.security.lockedUntil.getTime() > Date.now()) {
+      await this.recordFailure(userId, userId.toHexString(), ipAddress, userAgent, 'Attempt on locked account');
+      throw new AccountLockedError(user.security.lockedUntil);
+    }
+
+    const device = options.platform === 'mobile' ? null : await ensureDeviceId();
+    const riskEval = await evaluateLoginRisk({
+      userId,
+      user,
+      ipAddress,
+      userAgent,
+      serverDeviceId: device?.serverDeviceId ?? null,
+      clientDeviceId: device?.clientDeviceId ?? null,
+      hasServerToken: device?.hasServerToken ?? false,
+      primaryAuthenticationMethod: 'passkey',
+    });
+
+    if (riskEval.policyDecision.action === 'block') {
+      await this.recordFailure(userId, userId.toHexString(), ipAddress, userAgent, 'Authentication blocked by risk policy');
+      throw new AccountLockedError(new Date(Date.now() + this.LOCKOUT_DURATION_MS), 'Authentication blocked by security policy');
+    }
+
+    if (riskEval.riskDecision.level === 'high') {
+      const token = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      await new PendingAuthenticationRepository().create({
+        userId,
+        primaryAuthenticationMethod: 'passkey',
+        requiredAction: 'require_2fa',
+        deviceObjectId: device?.serverDeviceId ?? null,
+        riskLevel: riskEval.riskDecision.level,
+        riskScore: riskEval.riskDecision.score,
+        riskReasonCodes: riskEval.riskDecision.reasons.map((reason) => reason.code),
+        tokenHash,
+        attemptsRemaining: 5,
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+        consumedAt: null,
+      });
+      await this.twoFactorService.sendCode(userId);
+      return { status: 'mfa_required', userId, availableMethods: ['email'], pendingAuthToken: token };
+    }
+
+    await this.userRepo.resetFailedAttempts(userId);
+    await this.userRepo.recordLastLogin(userId);
+    const email = await this.userRepo.findPrimaryEmail(userId);
+    return this.issueSession(userId, email ?? userId.toHexString(), ipAddress, userAgent, 'passkey', false, options.platform);
+  }
+
   /**
    * Creates the session + refresh token, records attempt + audit, and returns
    * the authenticated result.
@@ -219,7 +298,7 @@ export class LoginService {
     email: string,
     ipAddress: string,
     userAgent: string | null,
-    loginMethod: 'password' | 'google',
+    loginMethod: LoginMethod,
     rememberMe: boolean = false,
     platform: Platform = 'web'
   ): Promise<

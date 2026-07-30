@@ -5,7 +5,7 @@ import { resolveTwoFactorPolicy } from './policy';
 import type { AuthenticationRiskDecision, TwoFactorPolicyDecision } from './types';
 
 export interface EvaluateLoginRiskInput extends SignalCollectorInput {
-  primaryAuthenticationMethod: 'password' | 'google';
+  primaryAuthenticationMethod: 'password' | 'google' | 'passkey';
 }
 
 export interface EvaluateLoginRiskResult {
@@ -29,7 +29,7 @@ export async function evaluateLoginRisk(input: EvaluateLoginRiskInput): Promise<
 
   // 3. Resolve policy
   const accountPolicy = {
-    requireStrongTwoFactor: false, // Could be extended in user.security
+    requireStrongTwoFactor: input.user.security?.requireTwoFactor ?? false,
   };
 
   const twoFaPreference = input.user.security?.twoFaPreference ?? 'new_device_only';

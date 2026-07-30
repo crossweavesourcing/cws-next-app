@@ -16,13 +16,14 @@ export interface SignalCollectorInput {
   userAgent: string | null;
   serverDeviceId: ObjectId | null;
   clientDeviceId: string | null;
+  hasServerToken?: boolean;
 }
 
 /**
  * Collects and normalizes all signals required for risk evaluation.
  */
 export async function collectRiskSignals(input: SignalCollectorInput): Promise<RiskSignals> {
-  const { userId, user, ipAddress, serverDeviceId, clientDeviceId } = input;
+  const { userId, user, ipAddress, serverDeviceId, clientDeviceId, hasServerToken } = input;
   
   const deviceRepo = new DeviceRepository();
   const attemptRepo = new LoginAttemptRepository();
@@ -34,7 +35,7 @@ export async function collectRiskSignals(input: SignalCollectorInput): Promise<R
   if (serverDeviceId) {
     const serverDevice = await deviceRepo.findByServerDeviceId(serverDeviceId, userId);
     if (!serverDevice) {
-      trustedDeviceStatus = 'invalid'; // Presented an unknown server token
+      trustedDeviceStatus = hasServerToken ? 'invalid' : 'missing';
     } else if (serverDevice.blocked) {
       trustedDeviceStatus = 'revoked';
     } else {
@@ -84,21 +85,34 @@ export async function collectRiskSignals(input: SignalCollectorInput): Promise<R
     RECENT_FAILURES_WINDOW_MS
   );
   
-  const totalFailures = recentFailures + ipFailures;
+  const totalFailures = Math.max(recentFailures, ipFailures);
   const excessiveFailedAttempts = totalFailures > 10; // Threshold for excessive
 
   // 4. Novelty
   const isNewBrowserFamily = isNewDevice; // Can be enhanced with actual UA parsing and comparison
 
-  // 5. Security Events
+  // 5. Security Events & Velocity
   const now = Date.now();
   let recentPasswordChange = false;
-  const recentTwoFactorDisable = false;
-  // If we track exact timestamps for these in `user.security`, we can evaluate them.
-  // For the sake of this implementation, we will use hypothetical fields if they existed, or default to false.
-  // @ts-expect-error Password changed at is not yet fully modeled
-  if (user.security?.passwordChangedAt && now - user.security.passwordChangedAt.getTime() < SECURITY_EVENT_WINDOW_MS) {
-    recentPasswordChange = true;
+  if (user.passwordChangedAt) {
+    const pwdTime = user.passwordChangedAt instanceof Date ? user.passwordChangedAt.getTime() : new Date(user.passwordChangedAt).getTime();
+    if (!isNaN(pwdTime) && now - pwdTime < SECURITY_EVENT_WINDOW_MS) {
+      recentPasswordChange = true;
+    }
+  }
+
+  // Calculate Geo-Velocity (Impossible Travel)
+  let impossibleTravel = false;
+  const recentLogins = await attemptRepo.recentForUser(userId, 5);
+  const lastSuccess = recentLogins.find(l => l.success && l.country);
+  if (lastSuccess && lastSuccess.country && geo.country && lastSuccess.country !== geo.country && lastSuccess.createdAt) {
+    const lastTime = lastSuccess.createdAt instanceof Date ? lastSuccess.createdAt.getTime() : new Date(lastSuccess.createdAt).getTime();
+    if (!isNaN(lastTime)) {
+      const elapsedHours = (now - lastTime) / (1000 * 60 * 60);
+      if (elapsedHours < 2) {
+        impossibleTravel = true;
+      }
+    }
   }
 
   return {
@@ -108,13 +122,13 @@ export async function collectRiskSignals(input: SignalCollectorInput): Promise<R
     isUnusualCountry,
     isUnusualNetwork: false, // Placeholder for ASN checks
     isAnonymizingNetwork: false, // Placeholder for Tor/VPN checks
-    isMaliciousIp: false, // Placeholder for IP reputation
+    isMaliciousIp: false, // Placeholder for IP threat intel feeds
     recentFailedAttemptsCount: totalFailures,
     excessiveFailedAttempts,
-    impossibleTravel: false, // Placeholder for velocity checks
+    impossibleTravel,
     recentPasswordChange,
     recentAccountRecovery: false,
-    recentTwoFactorDisable,
+    recentTwoFactorDisable: false,
     isPrivilegedAccount: user.role === 'super_admin' || user.role === 'admin',
   };
 }

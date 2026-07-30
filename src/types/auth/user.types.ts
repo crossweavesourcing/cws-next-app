@@ -56,7 +56,8 @@ export interface UserSecurity {
   twoFaPreference?:          TwoFaPreference;
   totpEnabled?:              boolean;
   webAuthnEnabled?:          boolean;
-  defaultTwoFaMethod?:       'email' | 'totp' | 'webauthn' | null;
+  requireTwoFactor?:         boolean;
+  defaultTwoFaMethod?:       'email' | 'totp' | null;
   lastPasswordResetRequestAt: Date | null;
   forcePasswordChange:       boolean;
   accountSecurityVersion:    number;

@@ -34,3 +34,13 @@
 [DEBUG] device found: true
 [DEBUG] d.trusted: false d.blocked: false
 [DEBUG] SETTING showTrustPrompt = true
+
+
+[DEBUG] pendingAuth.deviceObjectId: 6a65ee1faf288768554dcb35
+[DEBUG] device found: true
+[DEBUG] d.trusted: true d.blocked: false
+
+
+[DEBUG] pendingAuth.deviceObjectId: 6a65ee1faf288768554dcb35
+[DEBUG] device found: true
+[DEBUG] d.trusted: true d.blocked: false

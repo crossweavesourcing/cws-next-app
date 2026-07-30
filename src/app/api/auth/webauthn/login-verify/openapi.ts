@@ -3,7 +3,7 @@ import { createSchema } from 'zod-openapi';
 import { ErrorSchema } from '@/lib/api/errors';
 import { TAGS } from '@/lib/api/tags';
 
-export const WebAuthnLoginVerifyRequestSchema = z.object({
+export const WebAuthnAuthenticationResponseSchema = z.object({
   id: z.string().meta({ description: 'Authenticator credential ID', example: 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk' }),
   rawId: z.string().meta({ description: 'Raw credential ID (base64url)' }),
   response: z.object({
@@ -16,17 +16,23 @@ export const WebAuthnLoginVerifyRequestSchema = z.object({
   clientExtensionResults: z.record(z.string(), z.unknown()).optional(),
 });
 
+export const WebAuthnLoginVerifyRequestSchema = z.object({
+  email: z.string().email().meta({
+    description: 'Account email used to start passkey login',
+    example: 'admin@example.com',
+  }),
+  response: WebAuthnAuthenticationResponseSchema,
+});
+
 export const webauthnLoginVerifyPath = {
   '/api/auth/webauthn/login-verify': {
     post: {
       operationId: 'webauthnLoginVerify',
       summary: 'Verify WebAuthn login response',
       description:
-        'Verifies the WebAuthn authentication response against the pending challenge. ' +
-        'On success, issues session and refresh cookies and clears pending cookies. ' +
-        'Requires cws_2fa_pending/cws_stepup_pending and cws_webauthn_challenge cookies.',
+        'Verifies a passwordless passkey response for this enrolled device. On success, issues dashboard session cookies or redirects to email verification for high-risk sign-ins.',
       tags: [TAGS.AUTH],
-      security: [{ pendingSession: [] }],
+      security: [],
       requestBody: {
         required: true,
         content: {
@@ -44,6 +50,7 @@ export const webauthnLoginVerifyPath = {
                 type: 'object',
                 properties: {
                   success: { type: 'boolean', example: true },
+                  redirect: { type: 'string', example: '/dashboard/verify-2fa?method=email' },
                 },
                 required: ['success'],
               },
@@ -59,7 +66,7 @@ export const webauthnLoginVerifyPath = {
           },
         },
         '401': {
-          description: 'Session expired or missing challenge cookie',
+          description: 'Passkey is not available for this device or challenge expired',
           content: {
             'application/json': {
               schema: createSchema(ErrorSchema).schema,
