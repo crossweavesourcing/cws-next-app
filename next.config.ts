@@ -61,6 +61,10 @@ const securityHeaders: Array<{ key: string; value: string }> = [
 ];
 
 const nextConfig: NextConfig = {
+  serverExternalPackages: ['pdfjs-dist', '@napi-rs/canvas'],
+  outputFileTracingIncludes: {
+    '/pdf.worker.min.mjs': ['./node_modules/pdfjs-dist/build/pdf.worker.min.mjs'],
+  },
   // output: "export", // Commented out to allow `next start`
   images: {
     unoptimized: true,

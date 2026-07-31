@@ -20,6 +20,8 @@ export const catalogDocumentsSchema: Document = {
       pageNumber: { bsonType: ['int', 'long', 'double'], minimum: 1 }, secureUrl: { bsonType: 'string' }, width: { bsonType: ['int', 'long', 'double'], minimum: 1 }, height: { bsonType: ['int', 'long', 'double'], minimum: 1 }, bytes: { bsonType: ['int', 'long', 'double', 'null'], minimum: 0 },
     } } },
     markdown: { bsonType: 'string' },
+    sceneVersion: { bsonType: ['int', 'long', 'null'] },
+    scene: { bsonType: ['object', 'null'] },
     processingError: { bsonType: ['string', 'null'] },
     publishedAt: { bsonType: ['date', 'null'] },
     createdBy: { bsonType: 'objectId' }, updatedBy: { bsonType: 'objectId' },

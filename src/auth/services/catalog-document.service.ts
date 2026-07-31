@@ -5,7 +5,7 @@ import { CatalogDocumentRepository } from '@/auth/repositories/catalog-document.
 import { CategoryRepository } from '@/auth/repositories/category.repository';
 import { ProductRepository } from '@/auth/repositories/product.repository';
 import { AuditLogRepository } from '@/auth/repositories/audit-log.repository';
-import { catalogMetadataSchema, generateCatalogMarkdown, serializeCatalog, slugifyCatalog, validateCatalogPages } from '@/lib/catalog-documents';
+import { catalogMetadataSchema, generateCatalogMarkdown, generateSemanticCatalogMarkdown, serializeCatalog, slugifyCatalog, validateCatalogPages, validateCatalogScene } from '@/lib/catalog-documents';
 import { createCatalogUploadSignature, deleteCatalogAsset, inspectAndRenderCatalogPdf } from '@/lib/catalog-cloudinary';
 import { CatalogOperationError } from '@/lib/catalog-errors';
 
@@ -32,6 +32,16 @@ export class CatalogDocumentService {
     if (category && !category.visible) return false;
     if (product && !product.visible) return false;
     return true;
+  }
+
+  private validateProcessedContent(document: CatalogDocument) {
+    validateCatalogPages(document.pages, document.asset.pages);
+    if (document.sceneVersion === 1 && document.scene) {
+      validateCatalogScene(document.scene, document.asset.pages);
+      if (generateSemanticCatalogMarkdown(document.scene) !== document.markdown) throw new CatalogValidationError('Catalog content failed validation.');
+      return;
+    }
+    if (generateCatalogMarkdown(document.pages) !== document.markdown) throw new CatalogValidationError('Catalog content failed validation.');
   }
 
   private requireAssociations(actor: CatalogActor, categoryId: string | null, productId: string | null) {
@@ -79,7 +89,7 @@ export class CatalogDocumentService {
       validateCatalogPages(processed.pages, processed.asset.pages);
       console.info(JSON.stringify({ level: 'info', event: 'catalog.operation.stage', stage: 'database.insert', referenceId: actor.operationId ?? null, pageCount: processed.pages.length }));
       const now = new Date();
-      const document: CatalogDocument = { _id: new ObjectId(), categoryId: parsed.categoryId ? new ObjectId(parsed.categoryId) : null, productId: parsed.productId ? new ObjectId(parsed.productId) : null, title: parsed.title, slug: await this.uniqueSlug(parsed.title), description: parsed.description, status: 'draft', asset: processed.asset, pages: processed.pages, markdown: generateCatalogMarkdown(processed.pages), processingError: null, publishedAt: null, createdBy: actor.userId, updatedBy: actor.userId, createdAt: now, updatedAt: now };
+      const document: CatalogDocument = { _id: new ObjectId(), categoryId: parsed.categoryId ? new ObjectId(parsed.categoryId) : null, productId: parsed.productId ? new ObjectId(parsed.productId) : null, title: parsed.title, slug: await this.uniqueSlug(parsed.title), description: parsed.description, status: 'draft', asset: processed.asset, pages: processed.pages, markdown: processed.markdown, sceneVersion: processed.scene.version, scene: processed.scene, processingError: null, publishedAt: null, createdBy: actor.userId, updatedBy: actor.userId, createdAt: now, updatedAt: now };
       await this.repo.create(document);
       await this.writeAudit(actor, 'catalog.create', document._id, { categoryId: parsed.categoryId, productId: parsed.productId, pageCount: document.pages.length });
       return serializeCatalog(document);
@@ -127,8 +137,7 @@ export class CatalogDocumentService {
     const document = await this.repo.findById(id); if (!document) throw new CatalogValidationError('Catalog not found.');
     this.requireAssociations(actor, document.categoryId?.toString() ?? null, document.productId?.toString() ?? null);
     if (published) {
-      validateCatalogPages(document.pages, document.asset.pages);
-      if (generateCatalogMarkdown(document.pages) !== document.markdown) throw new CatalogValidationError('Catalog content failed validation.');
+      this.validateProcessedContent(document);
       const { category, product } = await this.validateAssociations(document.categoryId?.toString() ?? null, document.productId?.toString() ?? null);
       if ((!category && !product) || (category && !category.visible) || (product && !product.visible)) throw new CatalogValidationError('Catalog associations must be live before publishing.');
     }
@@ -143,7 +152,7 @@ export class CatalogDocumentService {
     this.requireAssociations(actor, document.categoryId?.toString() ?? null, document.productId?.toString() ?? null);
     try {
       const processed = await inspectAndRenderCatalogPdf(publicId, actor.userId.toString()); validateCatalogPages(processed.pages, processed.asset.pages);
-      const updated = await this.repo.update(document._id, { asset: processed.asset, pages: processed.pages, markdown: generateCatalogMarkdown(processed.pages), status: 'draft', publishedAt: null, processingError: null, updatedBy: actor.userId, updatedAt: new Date() });
+      const updated = await this.repo.update(document._id, { asset: processed.asset, pages: processed.pages, markdown: processed.markdown, sceneVersion: processed.scene.version, scene: processed.scene, status: 'draft', publishedAt: null, processingError: null, updatedBy: actor.userId, updatedAt: new Date() });
       if (!updated) throw new CatalogValidationError('Catalog not found.');
       await deleteCatalogAsset(document.asset.publicId).catch((error) => console.error('Catalog replaced asset cleanup failed', error));
       await this.writeAudit(actor, 'catalog.replaced', document._id, { pageCount: processed.pages.length });

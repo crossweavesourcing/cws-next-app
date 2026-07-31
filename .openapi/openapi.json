@@ -4002,6 +4002,18 @@
                           "markdown": {
                             "type": "string"
                           },
+                          "sceneVersion": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "scene": {
+                            "type": [
+                              "object",
+                              "null"
+                            ]
+                          },
                           "processingError": {
                             "type": [
                               "string",
@@ -4274,6 +4286,18 @@
                     },
                     "markdown": {
                       "type": "string"
+                    },
+                    "sceneVersion": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "scene": {
+                      "type": [
+                        "object",
+                        "null"
+                      ]
                     },
                     "processingError": {
                       "type": [

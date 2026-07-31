@@ -1,8 +1,9 @@
 import crypto from 'crypto';
 import { cloudinary } from '@/lib/cloudinary';
 import { getPdfLimits } from '@/lib/catalog-documents';
-import type { CatalogAsset, CatalogPage } from '@/types/catalog';
+import type { CatalogPage } from '@/types/catalog';
 import { CatalogOperationError } from '@/lib/catalog-errors';
+import { parseCatalogPdf } from '@/lib/catalog-pdf-parser';
 
 type CloudinaryPdfResource = { public_id: string; resource_type: string; format: string; secure_url: string; bytes: number; pages?: number; version: number; original_filename?: string; context?: { custom?: Record<string, string> } };
 
@@ -28,7 +29,7 @@ function pngDimensions(buffer: Buffer): { width: number; height: number } {
   return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
 }
 
-export async function inspectAndRenderCatalogPdf(publicId: string, actorId: string): Promise<{ asset: CatalogAsset; pages: CatalogPage[] }> {
+export async function inspectAndRenderCatalogPdf(publicId: string, actorId: string) {
   if (!publicId.startsWith(`cws_catalogs/${actorId}/`)) throw new CatalogOperationError('UPLOAD_REJECTED', 'The uploaded catalog could not be verified.');
   const limits = getPdfLimits();
   let resource: CloudinaryPdfResource;
@@ -58,15 +59,14 @@ export async function inspectAndRenderCatalogPdf(publicId: string, actorId: stri
     resource_type: 'image', type: 'authenticated', secure: true, sign_url: true,
     version: resource.version, format: 'pdf',
   });
-  const signatureResponse = await fetch(originalUrl, { headers: { Range: 'bytes=0-4' }, cache: 'no-store' });
-  if (signatureResponse.ok) {
-    const signature = Buffer.from(await signatureResponse.arrayBuffer()).subarray(0, 5).toString();
-    if (signature !== '%PDF-') {
-      console.warn(JSON.stringify({ level: 'warn', event: 'catalog.pdf.signature_probe.unavailable', status: signatureResponse.status, contentType: signatureResponse.headers.get('content-type') }));
-    }
-  } else {
-    console.warn(JSON.stringify({ level: 'warn', event: 'catalog.pdf.signature_probe.unavailable', status: signatureResponse.status, contentType: signatureResponse.headers.get('content-type') }));
+  const downloadUrl = createCatalogDownloadUrl(publicId);
+  const sourceResponse = await fetch(downloadUrl, { cache: 'no-store' });
+  if (!sourceResponse.ok) {
+    console.warn(JSON.stringify({ level: 'warn', event: 'catalog.pdf.source_download.failed', status: sourceResponse.status }));
+    throw new CatalogOperationError('UPLOAD_REJECTED', 'The uploaded PDF source could not be retrieved.');
   }
+  const source = new Uint8Array(await sourceResponse.arrayBuffer());
+  const parsed = await parseCatalogPdf(source);
   const pages: CatalogPage[] = [];
   for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
     const secureUrl = cloudinary.url(publicId, { resource_type: 'image', type: 'authenticated', secure: true, sign_url: true, version: resource.version, page: pageNumber, density: limits.dpi, format: 'png', flags: 'rasterize' });
@@ -76,7 +76,27 @@ export async function inspectAndRenderCatalogPdf(publicId: string, actorId: stri
     const dimensions = pngDimensions(buffer);
     pages.push({ pageNumber, secureUrl, ...dimensions, bytes: buffer.length });
   }
-  return { asset: { publicId, resourceType: 'image', format: 'pdf', secureUrl: originalUrl, originalFilename: resource.original_filename ?? 'catalog.pdf', bytes: resource.bytes, pages: pageCount, version: resource.version }, pages };
+  return { asset: { publicId, resourceType: 'image' as const, format: 'pdf' as const, secureUrl: originalUrl, originalFilename: resource.original_filename ?? 'catalog.pdf', bytes: resource.bytes, pages: pageCount, version: resource.version }, pages, ...parsed };
+}
+
+export async function fetchCatalogPdfSource(secureUrl: string, range: string | null): Promise<Response> {
+  const headers = new Headers();
+  if (range) headers.set('Range', range);
+  return fetch(secureUrl, { headers, cache: 'no-store' });
+}
+
+export function createCatalogDownloadUrl(publicId: string): string {
+  if (!publicId.startsWith('cws_catalogs/')) throw new CatalogOperationError('UPLOAD_REJECTED', 'The stored PDF source is invalid.');
+  return cloudinary.utils.private_download_url(publicId, 'pdf', { type: 'authenticated', expires_at: Math.floor(Date.now() / 1000) + 300 });
+}
+
+export async function parseStoredCatalogPdf(publicId: string) {
+  const secureUrl = createCatalogDownloadUrl(publicId);
+  const downloadUrl = new URL(secureUrl);
+  if (downloadUrl.protocol !== 'https:' || !['api.cloudinary.com', 'res.cloudinary.com'].includes(downloadUrl.hostname)) throw new CatalogOperationError('UPLOAD_REJECTED', 'The stored PDF source is invalid.');
+  const response = await fetch(secureUrl, { cache: 'no-store' });
+  if (!response.ok) throw new CatalogOperationError('UPLOAD_REJECTED', 'The stored PDF source could not be retrieved.');
+  return parseCatalogPdf(new Uint8Array(await response.arrayBuffer()));
 }
 
 export async function deleteCatalogAsset(publicId: string): Promise<void> {
