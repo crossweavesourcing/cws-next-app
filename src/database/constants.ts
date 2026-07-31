@@ -29,6 +29,7 @@ export const COLLECTION_NAMES = {
   PENDING_AUTHENTICATIONS: 'pending_authentications',
   CATEGORIES:          'categories',
   PRODUCTS:            'products',
+  CATALOG_DOCUMENTS:   'catalog_documents',
   SECTIONS:            'sections',
 } as const;
 
@@ -68,5 +69,6 @@ export const COLLECTION_ORDER: readonly CollectionName[] = [
   COLLECTION_NAMES.PENDING_AUTHENTICATIONS,
   COLLECTION_NAMES.CATEGORIES,
   COLLECTION_NAMES.PRODUCTS,
+  COLLECTION_NAMES.CATALOG_DOCUMENTS,
   COLLECTION_NAMES.SECTIONS,
 ] as const;

@@ -40,8 +40,10 @@ import { adminProductUpdatePath } from '@/app/api/mobile/v1/admin/products/[id]/
 import { adminSessionsRevokePath } from '@/app/api/mobile/v1/admin/sessions/revoke/openapi';
 import { adminSectionsPath } from '@/app/api/mobile/v1/admin/sections/openapi';
 import { adminSectionUpdatePath } from '@/app/api/mobile/v1/admin/sections/[id]/openapi';
+import { adminCatalogsPaths } from '@/app/api/mobile/v1/admin/catalogs/openapi';
 
 export const EXCLUDED_ROUTES = [
+  ...['/api/mobile/v1/admin/catalogs', '/api/mobile/v1/admin/catalogs/{id}', '/api/mobile/v1/admin/catalogs/{id}/associations', '/api/mobile/v1/admin/catalogs/{id}/publication', '/api/mobile/v1/admin/catalogs/{id}/replacement'].map((path) => ({ method: 'OPTIONS', path, reason: 'CORS preflight handler', category: 'cors-preflight', securityVisibility: 'public', whyInappropriate: 'OPTIONS returns CORS headers with no user-facing response body.' })),
   {
     method: 'OPTIONS',
     path: '/api/mobile/v1/admin/sections',
@@ -275,6 +277,7 @@ export function assembleOpenApiDocument() {
     adminSessionsRevokePath as Record<string, unknown>,
     adminSectionsPath as Record<string, unknown>,
     adminSectionUpdatePath as Record<string, unknown>,
+    adminCatalogsPaths as Record<string, unknown>,
   ) as typeof doc.paths;
 
   if (!doc.components) doc.components = {};

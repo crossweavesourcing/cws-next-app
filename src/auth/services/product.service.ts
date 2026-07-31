@@ -2,6 +2,7 @@ import { ProductRepository } from '../repositories/product.repository';
 import { requireCmsPermission } from '../dal';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { ObjectId } from 'mongodb';
+import { CatalogDocumentService } from './catalog-document.service';
 
 export class ProductService {
   private productRepo = new ProductRepository();
@@ -113,6 +114,7 @@ export class ProductService {
     if (!deleted) {
       throw new Error('Product not found or could not be deleted');
     }
+    await new CatalogDocumentService().handleAssociationDeletion('productId', id);
     return true;
   }
 }

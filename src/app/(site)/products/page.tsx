@@ -22,6 +22,10 @@ export default async function ProductsPage() {
   const portfolioSection = sections.find((section) => section.sectionId === 'products-portfolio');
   const heroCopy = (key: string, fallback: string) => typeof heroSection?.content?.[key] === 'string' ? heroSection.content[key] as string : fallback;
   const heroMedia = heroSection?.media?.background;
+  const serializedPortfolioSection = portfolioSection ? {
+    paused: portfolioSection.paused,
+    content: portfolioSection.content ? { ...portfolioSection.content } : undefined,
+  } : undefined;
 
   const serializedProducts = products.map(p => ({
     ...p,
@@ -71,7 +75,7 @@ export default async function ProductsPage() {
         </div>
       </section>}
 
-      <ProductsPortfolio products={serializedProducts} categories={serializedCategories} section={portfolioSection} />
+      <ProductsPortfolio products={serializedProducts} categories={serializedCategories} section={serializedPortfolioSection} />
       <ProductFooter />
     </main>
   );

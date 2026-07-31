@@ -1,6 +1,7 @@
 import { CategoryRepository } from '../repositories/category.repository';
 import { requireCmsPermission } from '../dal';
 import { uploadToCloudinary } from '@/lib/cloudinary';
+import { CatalogDocumentService } from './catalog-document.service';
 
 export class CategoryService {
   private categoryRepo = new CategoryRepository();
@@ -83,6 +84,7 @@ export class CategoryService {
     if (!deleted) {
       throw new Error('Category not found or could not be deleted');
     }
+    await new CatalogDocumentService().handleAssociationDeletion('categoryId', id);
     return true;
   }
 }

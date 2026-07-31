@@ -32,3 +32,54 @@ export interface ProductDocument {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export type CatalogStatus = 'draft' | 'published';
+
+export interface CatalogAsset {
+  publicId: string;
+  resourceType: 'image';
+  format: 'pdf';
+  secureUrl: string;
+  originalFilename: string;
+  bytes: number;
+  pages: number;
+  version: number;
+}
+
+export interface CatalogPage {
+  pageNumber: number;
+  secureUrl: string;
+  width: number;
+  height: number;
+  bytes: number | null;
+}
+
+export interface CatalogDocument {
+  _id: ObjectId;
+  categoryId: ObjectId | null;
+  productId: ObjectId | null;
+  title: string;
+  slug: string;
+  description: string;
+  status: CatalogStatus;
+  asset: CatalogAsset;
+  pages: CatalogPage[];
+  markdown: string;
+  processingError: string | null;
+  publishedAt: Date | null;
+  createdBy: ObjectId;
+  updatedBy: ObjectId;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface SerializedCatalogDocument extends Omit<CatalogDocument, '_id' | 'categoryId' | 'productId' | 'createdBy' | 'updatedBy' | 'createdAt' | 'updatedAt' | 'publishedAt'> {
+  _id: string;
+  categoryId: string | null;
+  productId: string | null;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+}

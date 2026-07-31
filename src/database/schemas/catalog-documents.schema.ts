@@ -1,0 +1,28 @@
+import type { Document } from 'mongodb';
+
+export const catalogDocumentsSchema: Document = {
+  bsonType: 'object',
+  additionalProperties: false,
+  required: ['categoryId', 'productId', 'title', 'slug', 'description', 'status', 'asset', 'pages', 'markdown', 'processingError', 'publishedAt', 'createdBy', 'updatedBy', 'createdAt', 'updatedAt'],
+  properties: {
+    _id: { bsonType: 'objectId' },
+    categoryId: { bsonType: ['objectId', 'null'] },
+    productId: { bsonType: ['objectId', 'null'] },
+    title: { bsonType: 'string', minLength: 1, maxLength: 160 },
+    slug: { bsonType: 'string', pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$' },
+    description: { bsonType: 'string', maxLength: 1000 },
+    status: { enum: ['draft', 'published'] },
+    asset: { bsonType: 'object', additionalProperties: false, required: ['publicId', 'resourceType', 'format', 'secureUrl', 'originalFilename', 'bytes', 'pages', 'version'], properties: {
+      publicId: { bsonType: 'string' }, resourceType: { enum: ['image'] }, format: { enum: ['pdf'] }, secureUrl: { bsonType: 'string' },
+      originalFilename: { bsonType: 'string' }, bytes: { bsonType: ['int', 'long', 'double'], minimum: 1 }, pages: { bsonType: ['int', 'long', 'double'], minimum: 1 }, version: { bsonType: ['int', 'long', 'double'], minimum: 1 },
+    } },
+    pages: { bsonType: 'array', minItems: 1, items: { bsonType: 'object', additionalProperties: false, required: ['pageNumber', 'secureUrl', 'width', 'height', 'bytes'], properties: {
+      pageNumber: { bsonType: ['int', 'long', 'double'], minimum: 1 }, secureUrl: { bsonType: 'string' }, width: { bsonType: ['int', 'long', 'double'], minimum: 1 }, height: { bsonType: ['int', 'long', 'double'], minimum: 1 }, bytes: { bsonType: ['int', 'long', 'double', 'null'], minimum: 0 },
+    } } },
+    markdown: { bsonType: 'string' },
+    processingError: { bsonType: ['string', 'null'] },
+    publishedAt: { bsonType: ['date', 'null'] },
+    createdBy: { bsonType: 'objectId' }, updatedBy: { bsonType: 'objectId' },
+    createdAt: { bsonType: 'date' }, updatedAt: { bsonType: 'date' },
+  },
+};

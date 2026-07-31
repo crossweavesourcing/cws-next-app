@@ -8,6 +8,7 @@ import { ObjectId } from 'mongodb';
 vi.mock('../repositories/category.repository');
 vi.mock('../dal');
 vi.mock('@/lib/cloudinary');
+vi.mock('./catalog-document.service', () => ({ CatalogDocumentService: class { handleAssociationDeletion = vi.fn().mockResolvedValue(undefined); } }));
 
 describe('CategoryService', () => {
   let service: CategoryService;

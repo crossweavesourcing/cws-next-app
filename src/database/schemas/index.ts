@@ -22,6 +22,7 @@ import { webauthnChallengesSchema } from './webauthn-challenges.schema';
 import { mobileAuthChallengesSchema } from './mobile-auth-challenges.schema';
 import { categoriesSchema } from './categories.schema';
 import { productsSchema } from './products.schema';
+import { catalogDocumentsSchema } from './catalog-documents.schema';
 import { sectionsSchema } from './sections.schema';
 import { pendingAuthenticationsSchema } from './pending-authentications.schema';
 
@@ -55,6 +56,7 @@ export const ALL_SCHEMAS: Record<CollectionName, Document> = {
   [COLLECTION_NAMES.MOBILE_AUTH_CHALLENGES]: mobileAuthChallengesSchema,
   [COLLECTION_NAMES.CATEGORIES]:          categoriesSchema,
   [COLLECTION_NAMES.PRODUCTS]:            productsSchema,
+  [COLLECTION_NAMES.CATALOG_DOCUMENTS]:   catalogDocumentsSchema,
   [COLLECTION_NAMES.SECTIONS]:            sectionsSchema,
   [COLLECTION_NAMES.PENDING_AUTHENTICATIONS]: pendingAuthenticationsSchema,
 } as const;
@@ -82,6 +84,7 @@ export {
   mobileAuthChallengesSchema,
   categoriesSchema,
   productsSchema,
+  catalogDocumentsSchema,
   sectionsSchema,
   pendingAuthenticationsSchema,
 };

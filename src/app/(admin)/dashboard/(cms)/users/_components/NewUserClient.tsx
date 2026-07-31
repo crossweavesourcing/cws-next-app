@@ -92,8 +92,8 @@ export function NewUserClient({
   }
 
   const content = (
-    <form action={formAction} className="flex max-h-full flex-col bg-white text-neutral-950">
-      <div className="border-b border-neutral-200 bg-[#101010] p-6 text-white md:p-7">
+    <form action={formAction} className="flex h-full min-h-0 flex-col bg-white text-neutral-950">
+      <div className="shrink-0 border-b border-neutral-200 bg-[#101010] p-6 text-white md:p-7">
         <div className="flex items-start gap-4">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-white/15 bg-white/10">
             <UserPlus className="h-5 w-5 text-[#E02424]" />
@@ -112,7 +112,7 @@ export function NewUserClient({
         </div>
       </div>
 
-      <div className="flex-1 space-y-6 overflow-y-auto p-5 md:p-7">
+      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 md:space-y-6 md:p-7">
         {state.error && (
           <div className="border border-red-500/25 bg-red-500/5 px-4 py-3 text-xs font-bold uppercase tracking-[0.14em] text-red-600">
             {state.error}
@@ -250,7 +250,7 @@ export function NewUserClient({
         )}
       </div>
 
-      <div className="flex flex-col-reverse gap-3 border-t border-neutral-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between md:p-6">
+      <div className="shrink-0 flex flex-col-reverse gap-3 border-t border-neutral-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between md:p-6">
         <button
           type="button"
           onClick={close}
@@ -275,7 +275,7 @@ export function NewUserClient({
     return (
       <div
         ref={overlayRef}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm sm:p-6"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm sm:p-6"
         onMouseDown={(event) => {
           if (event.target === overlayRef.current) {
             close();
@@ -286,7 +286,7 @@ export function NewUserClient({
           role="dialog"
           aria-modal="true"
           aria-label="Add user"
-          className="relative max-h-[92vh] w-full max-w-3xl overflow-hidden border border-neutral-800 bg-white shadow-2xl"
+          className="relative flex h-[min(92vh,860px)] min-h-0 w-full max-w-3xl flex-col overflow-hidden border border-neutral-800 bg-white shadow-2xl"
         >
           <button
             type="button"

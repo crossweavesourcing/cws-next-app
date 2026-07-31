@@ -67,6 +67,7 @@ export {
   getWebAuthnCredentialsCollection,
   getWebAuthnChallengesCollection,
   getMobileAuthChallengesCollection,
+  getCatalogDocumentsCollection,
 }                                                   from './collections';
 
 export { ALL_SCHEMAS }                              from './schemas';

@@ -2,12 +2,13 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Mail } from 'lucide-react';
+import { ArrowLeft, BookOpen, Mail } from 'lucide-react';
 import ProductFooter from '@/components/ProductFooter';
 import ProductImageGallery from '@/components/ProductImageGallery';
 import { ProductRepository } from '@/auth/repositories/product.repository';
 import { CategoryRepository } from '@/auth/repositories/category.repository';
 import { SectionService } from '@/auth/services/section.service';
+import { CatalogDocumentService } from '@/auth/services/catalog-document.service';
 
 type ProductDetailsPageProps = {
   params: Promise<{
@@ -71,6 +72,7 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
 
   const productImages = product.images?.length ? product.images : (product.image ? [product.image] : []);
   const sections = await new SectionService().getPublicSections();
+  const catalogs = await new CatalogDocumentService().listPublicByProduct(product._id.toString());
   const section = (id: string) => sections.find((item) => item.sectionId === id);
   const copy = (id: string, key: string, fallback: string) => {
     const value = section(id)?.content?.[key];
@@ -248,6 +250,8 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
           </div>
         </div>
       </section>}
+
+      {catalogs.length > 0 && <section className="border-t border-neutral-200 bg-[#F7F7F7] py-12 sm:py-16"><div className="mx-auto max-w-7xl px-6 md:px-12"><span className="text-xs font-bold uppercase text-[#E02424]">Product documents</span><h2 className="mt-3 text-2xl font-black uppercase text-neutral-950 sm:text-3xl">Catalogs</h2><div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{catalogs.map((catalog) => <Link key={catalog._id} href={`/catalogs/${catalog.slug}`} scroll={false} className="group flex items-center justify-between border border-neutral-200 bg-white p-5 transition-colors hover:border-[#E02424]"><div><h3 className="font-bold uppercase text-neutral-950">{catalog.title}</h3><p className="mt-1 text-xs text-neutral-500">{catalog.pages.length} pages · PDF catalog</p></div><BookOpen className="h-5 w-5 text-[#E02424]" /></Link>)}</div></div></section>}
 
       {!section('detail-cta')?.paused && <section id="contact" className="py-16 md:py-24 bg-[#101010] text-white">
         <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">

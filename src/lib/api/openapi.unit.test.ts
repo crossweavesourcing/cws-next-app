@@ -49,6 +49,14 @@ const EXPECTED_DOCUMENTED_OPERATIONS = [
   { method: 'POST', path: '/api/mobile/v1/admin/sessions/revoke', operationId: 'revokeSessionsMobile' },
   { method: 'GET', path: '/api/mobile/v1/admin/sections', operationId: 'getSectionsMobile' },
   { method: 'PATCH', path: '/api/mobile/v1/admin/sections/{id}', operationId: 'updateSectionMobile' },
+  { method: 'GET', path: '/api/mobile/v1/admin/catalogs', operationId: 'listCatalogsMobile' },
+  { method: 'POST', path: '/api/mobile/v1/admin/catalogs', operationId: 'createCatalogMobile' },
+  { method: 'GET', path: '/api/mobile/v1/admin/catalogs/{id}', operationId: 'getCatalogMobile' },
+  { method: 'PATCH', path: '/api/mobile/v1/admin/catalogs/{id}', operationId: 'updateCatalogMobile' },
+  { method: 'DELETE', path: '/api/mobile/v1/admin/catalogs/{id}', operationId: 'deleteCatalogMobile' },
+  { method: 'PATCH', path: '/api/mobile/v1/admin/catalogs/{id}/associations', operationId: 'updateCatalogAssociationsMobile' },
+  { method: 'POST', path: '/api/mobile/v1/admin/catalogs/{id}/publication', operationId: 'setCatalogPublicationMobile' },
+  { method: 'POST', path: '/api/mobile/v1/admin/catalogs/{id}/replacement', operationId: 'replaceCatalogPdfMobile' },
 ];
 
 describe('OpenAPI Document Assembly', () => {
@@ -110,7 +118,7 @@ describe('OpenAPI Document Assembly', () => {
     }
   });
 
-  it('has 29 documented operations matching the expected count', () => {
+  it('has the expected documented operation count', () => {
     let count = 0;
     for (const pathItem of Object.values(doc.paths ?? {})) {
       for (const method of ['get', 'post', 'put', 'patch', 'delete']) {

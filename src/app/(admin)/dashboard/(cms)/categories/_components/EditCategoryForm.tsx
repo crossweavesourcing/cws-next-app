@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { UploadCloud, X } from 'lucide-react';
 import { updateCategory } from '@/auth/actions/category.actions';
 import type { CategoryDocument } from '@/types/catalog';
+import { CatalogManager } from '../../_components/CatalogManager';
 
 export function EditCategoryForm({ category, onSuccess, onCancel }: { category: CategoryDocument, onSuccess?: () => void, onCancel?: () => void }) {
   const [pending, setPending] = useState(false);
@@ -85,7 +86,7 @@ export function EditCategoryForm({ category, onSuccess, onCancel }: { category: 
   }
 
   return (
-    <form onSubmit={handleUpdate} className="space-y-4">
+    <><form onSubmit={handleUpdate} className="space-y-4">
       <span className="break-words text-[10px] font-bold uppercase tracking-[0.16em] text-[#E02424]">
         Edit Category
       </span>
@@ -170,6 +171,6 @@ export function EditCategoryForm({ category, onSuccess, onCancel }: { category: 
           Cancel
         </button>
       )}
-    </form>
+    </form><CatalogManager locked={{ kind: 'category', id: category._id.toString(), name: category.name }} /></>
   );
 }

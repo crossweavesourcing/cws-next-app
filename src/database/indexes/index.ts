@@ -23,6 +23,7 @@ import { mobileAuthChallengesIndexes } from './mobile-auth-challenges.indexes';
 import { pendingAuthenticationsIndexes } from './pending-authentications.indexes';
 import { categoriesIndexes } from './categories.indexes';
 import { productsIndexes } from './products.indexes';
+import { catalogDocumentsIndexes } from './catalog-documents.indexes';
 import { sectionsIndexes } from './sections.indexes';
 
 /**
@@ -54,6 +55,7 @@ export const ALL_INDEXES: Record<CollectionName, IndexDescription[]> = {
   [COLLECTION_NAMES.PENDING_AUTHENTICATIONS]: pendingAuthenticationsIndexes,
   [COLLECTION_NAMES.CATEGORIES]: categoriesIndexes,
   [COLLECTION_NAMES.PRODUCTS]: productsIndexes,
+  [COLLECTION_NAMES.CATALOG_DOCUMENTS]: catalogDocumentsIndexes,
   [COLLECTION_NAMES.SECTIONS]: sectionsIndexes,
 };
 
@@ -81,5 +83,6 @@ export {
   pendingAuthenticationsIndexes,
   categoriesIndexes,
   productsIndexes,
+  catalogDocumentsIndexes,
   sectionsIndexes,
 };

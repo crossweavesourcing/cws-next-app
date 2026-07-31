@@ -21,7 +21,7 @@ import type {
   WebAuthnChallengeDocument,
   MobileAuthChallengeDocument,
 } from '@/types/auth';
-import type { CategoryDocument, ProductDocument } from '@/types/catalog';
+import type { CatalogDocument, CategoryDocument, ProductDocument } from '@/types/catalog';
 import type { SectionDocument } from '@/types/section';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -112,6 +112,10 @@ export const getCategoriesCollection =
 export const getProductsCollection =
   (): Promise<Collection<ProductDocument>> =>
     getDb().then(db => db.collection<ProductDocument>(COLLECTION_NAMES.PRODUCTS));
+
+export const getCatalogDocumentsCollection =
+  (): Promise<Collection<CatalogDocument>> =>
+    getDb().then(db => db.collection<CatalogDocument>(COLLECTION_NAMES.CATALOG_DOCUMENTS));
 
 export const getSectionsCollection =
   (): Promise<Collection<SectionDocument>> =>
