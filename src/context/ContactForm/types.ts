@@ -2,8 +2,11 @@
 export interface FormData {
   name: string;
   email: string;
+  company?: string;
   subject: string;
   message: string;
+  honeypot?: string;
+  idempotencyKey?: string;
 }
 
 export interface FormState {

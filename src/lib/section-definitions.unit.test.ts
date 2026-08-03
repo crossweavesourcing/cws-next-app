@@ -20,9 +20,16 @@ describe('section definitions', () => {
       content: { eyebrow: 'A new eyebrow' },
       media: {},
     });
+    const def = SECTION_DEFINITIONS.find((s) => s.id === 'home-hero')!;
     expect(merged.content?.eyebrow).toBe('A new eyebrow');
-    expect(merged.content?.rotatingWords).toEqual(['Source', 'Craft', 'Deliver']);
-    expect(merged.media?.background).toEqual({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((merged.content as any)?.rotatingWords).toEqual(['Source', 'Craft', 'Deliver']);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((def.defaultContent as any).rotatingWords).toBeDefined();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((defaultMediaFor(def) as any).background).toBeDefined();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((merged.media as any)?.background).toEqual({
       url: '/assets/images/cws_hero_image.png',
       kind: 'image',
       isDefault: true,

@@ -26,7 +26,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
 
     const imageFile = formData.get('image') as File | null;
+    const imageAltText = (formData.get('imageAltText') as string) || '';
     const galleryFiles = formData.getAll('images') as File[];
+    const imagesAltText = JSON.parse((formData.get('imagesAltText') as string) || '[]');
     const featuredMediaUrl = formData.get('featuredMediaUrl') as string | null;
     const existingGalleryUrls = JSON.parse((formData.get('existingGalleryUrls') as string) || '[]');
 
@@ -37,7 +39,9 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       featuredMediaUrl,
       existingGalleryUrls,
       imageFile,
+      imageAltText,
       galleryFiles,
+      imagesAltText,
       manufacturing,
       features,
       specifications

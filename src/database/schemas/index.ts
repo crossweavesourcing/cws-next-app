@@ -25,6 +25,8 @@ import { productsSchema } from './products.schema';
 import { catalogDocumentsSchema } from './catalog-documents.schema';
 import { sectionsSchema } from './sections.schema';
 import { pendingAuthenticationsSchema } from './pending-authentications.schema';
+import { globalSettingsSchema } from './global-settings.schema';
+import { redirectsSchema } from './redirects.schema';
 
 /**
  * Map of every collection name → its $jsonSchema body.
@@ -59,6 +61,8 @@ export const ALL_SCHEMAS: Record<CollectionName, Document> = {
   [COLLECTION_NAMES.CATALOG_DOCUMENTS]:   catalogDocumentsSchema,
   [COLLECTION_NAMES.SECTIONS]:            sectionsSchema,
   [COLLECTION_NAMES.PENDING_AUTHENTICATIONS]: pendingAuthenticationsSchema,
+  [COLLECTION_NAMES.GLOBAL_SETTINGS]:     globalSettingsSchema,
+  [COLLECTION_NAMES.REDIRECTS]:           redirectsSchema,
 } as const;
 
 // Named re-exports for direct import
@@ -87,4 +91,6 @@ export {
   catalogDocumentsSchema,
   sectionsSchema,
   pendingAuthenticationsSchema,
+  globalSettingsSchema,
+  redirectsSchema,
 };

@@ -1,9 +1,9 @@
 "use client"
 import Link from "next/link"
 import Image from "next/image"
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { X, Menu, Moon, Sun } from "lucide-react";
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
 type ThemeMode = 'light' | 'dark';
 
@@ -16,6 +16,30 @@ interface Props {
 export default function Header({ theme = 'light', onToggleTheme }: Props) {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const isDarkTheme = theme === 'dark';
+    const menuRef = useRef<HTMLDivElement>(null);
+    const buttonRef = useRef<HTMLButtonElement>(null);
+
+    useEffect(() => {
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape' && mobileMenuOpen) {
+          setMobileMenuOpen(false);
+          buttonRef.current?.focus();
+        }
+      };
+
+      if (mobileMenuOpen) {
+        document.addEventListener('keydown', handleEscape);
+        // Prevent scrolling on body when menu is open
+        document.body.style.overflow = 'hidden';
+      } else {
+        document.body.style.overflow = '';
+      }
+
+      return () => {
+        document.removeEventListener('keydown', handleEscape);
+        document.body.style.overflow = '';
+      };
+    }, [mobileMenuOpen]);
     return (
               <header className=" sticky top-0 z-50 bg-[#000000]/95 backdrop-blur-md border-b border-neutral-900 text-white">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
@@ -67,24 +91,37 @@ export default function Header({ theme = 'light', onToggleTheme }: Props) {
                       </button>
                     )}
                     <button
+                      ref={buttonRef}
                       onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                      className="p-2 text-gray-450 hover:text-white focus:outline-none"
+                      className="p-2 text-gray-450 hover:text-white focus:outline-none focus:ring-2 focus:ring-[#E02424]/30 rounded-sm"
+                      aria-expanded={mobileMenuOpen}
+                      aria-controls="mobile-menu"
+                      aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
                     >
-                      {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+                      {mobileMenuOpen ? <X className="w-5 h-5" aria-hidden="true" /> : <Menu className="w-5 h-5" aria-hidden="true" />}
                     </button>
                   </div>
                 </div>
         
                 {/* Mobile Navigation Dropdown */}
-                {mobileMenuOpen && (
-                  <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="md:hidden bg-[#111] border-b border-neutral-900 px-4 py-6 space-y-4 text-xs uppercase tracking-wider text-gray-300">
-                    <Link href="#about" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">About Us</Link>
-                    <Link href="#what-we-do" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">What We Do</Link>
-                    <Link href="#strategy" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">Company Strategy</Link>
-                    <Link href="#brands" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">Our Brands</Link>
-                    <Link href="#responsibility" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white">Corporate Responsibility</Link>        
-                  </motion.div>
-                )}
+                <AnimatePresence>
+                  {mobileMenuOpen && (
+                    <motion.div 
+                      id="mobile-menu"
+                      ref={menuRef}
+                      initial={{ opacity: 0, y: -10 }} 
+                      animate={{ opacity: 1, y: 0 }} 
+                      exit={{ opacity: 0, y: -10 }} 
+                      className="md:hidden bg-[#111] border-b border-neutral-900 px-4 py-6 space-y-4 text-xs uppercase tracking-wider text-gray-300 shadow-xl"
+                    >
+                      <Link href="#about" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white focus:outline-none focus:text-[#E02424]">About Us</Link>
+                      <Link href="#what-we-do" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white focus:outline-none focus:text-[#E02424]">What We Do</Link>
+                      <Link href="#strategy" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white focus:outline-none focus:text-[#E02424]">Company Strategy</Link>
+                      <Link href="#products" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white focus:outline-none focus:text-[#E02424]">Products</Link>
+                      <Link href="#responsibility" onClick={() => setMobileMenuOpen(false)} className="block py-2 hover:text-white focus:outline-none focus:text-[#E02424]">Corporate Responsibility</Link>        
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </header>
     )
 }

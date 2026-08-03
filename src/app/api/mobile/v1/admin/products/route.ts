@@ -25,13 +25,17 @@ export async function POST(req: Request) {
     }
 
     const imageFile = formData.get('image') as File | null;
+    const imageAltText = (formData.get('imageAltText') as string) || '';
     const galleryFiles = formData.getAll('images') as File[];
+    const imagesAltText = JSON.parse((formData.get('imagesAltText') as string) || '[]');
 
     const productService = new ProductService();
     const newProduct = await productService.createProduct(
       { ...parsed.data, categoryId: parsed.data.categoryId ?? null },
       imageFile,
+      imageAltText,
       galleryFiles,
+      imagesAltText,
       manufacturing,
       features,
       specifications

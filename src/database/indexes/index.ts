@@ -25,6 +25,8 @@ import { categoriesIndexes } from './categories.indexes';
 import { productsIndexes } from './products.indexes';
 import { catalogDocumentsIndexes } from './catalog-documents.indexes';
 import { sectionsIndexes } from './sections.indexes';
+import { globalSettingsIndexes } from './global-settings.indexes';
+import { redirectsIndexes } from './redirects.indexes';
 
 /**
  * Map of every collection name → its IndexDescription array.
@@ -57,6 +59,8 @@ export const ALL_INDEXES: Record<CollectionName, IndexDescription[]> = {
   [COLLECTION_NAMES.PRODUCTS]: productsIndexes,
   [COLLECTION_NAMES.CATALOG_DOCUMENTS]: catalogDocumentsIndexes,
   [COLLECTION_NAMES.SECTIONS]: sectionsIndexes,
+  [COLLECTION_NAMES.GLOBAL_SETTINGS]: globalSettingsIndexes,
+  [COLLECTION_NAMES.REDIRECTS]: redirectsIndexes,
 };
 
 // Named re-exports
@@ -85,4 +89,6 @@ export {
   productsIndexes,
   catalogDocumentsIndexes,
   sectionsIndexes,
+  globalSettingsIndexes,
+  redirectsIndexes,
 };

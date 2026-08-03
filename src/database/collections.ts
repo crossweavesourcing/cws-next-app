@@ -23,6 +23,7 @@ import type {
 } from '@/types/auth';
 import type { CatalogDocument, CategoryDocument, ProductDocument } from '@/types/catalog';
 import type { SectionDocument } from '@/types/section';
+import type { GlobalSettingsDocument, RedirectDocument } from '@/types/seo';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Typed Collection Accessors — all 11 collections in one file.
@@ -120,3 +121,11 @@ export const getCatalogDocumentsCollection =
 export const getSectionsCollection =
   (): Promise<Collection<SectionDocument>> =>
     getDb().then(db => db.collection<SectionDocument>(COLLECTION_NAMES.SECTIONS));
+
+export const getGlobalSettingsCollection =
+  (): Promise<Collection<GlobalSettingsDocument>> =>
+    getDb().then(db => db.collection<GlobalSettingsDocument>(COLLECTION_NAMES.GLOBAL_SETTINGS));
+
+export const getRedirectsCollection =
+  (): Promise<Collection<RedirectDocument>> =>
+    getDb().then(db => db.collection<RedirectDocument>(COLLECTION_NAMES.REDIRECTS));

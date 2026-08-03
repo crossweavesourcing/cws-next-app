@@ -8,7 +8,9 @@ export const productsSchema: Document = {
     'shortDescription',
     'overview',
     'image',
+    'imageAltText',
     'images',
+    'imagesAltText',
     'manufacturing',
     'specifications',
     'features',
@@ -41,7 +43,18 @@ export const productsSchema: Document = {
       bsonType: 'string',
       description: 'must be a string and is required',
     },
+    imageAltText: {
+      bsonType: 'string',
+      description: 'must be a string and is required',
+    },
     images: {
+      bsonType: 'array',
+      items: {
+        bsonType: 'string',
+      },
+      description: 'must be an array of strings and is required',
+    },
+    imagesAltText: {
       bsonType: 'array',
       items: {
         bsonType: 'string',
@@ -85,5 +98,38 @@ export const productsSchema: Document = {
       bsonType: 'date',
       description: 'must be a date and is required',
     },
+    longDescription: { bsonType: 'string' },
+    materials: { bsonType: 'string' },
+    process: { bsonType: 'string' },
+    qualityControl: { bsonType: 'string' },
+    customization: { bsonType: 'string' },
+    applications: { bsonType: 'string' },
+    packaging: { bsonType: 'string' },
+    faqs: {
+      bsonType: 'array',
+      items: {
+        bsonType: 'object',
+        required: ['question', 'answer'],
+        properties: {
+          question: { bsonType: 'string' },
+          answer: { bsonType: 'string' }
+        }
+      }
+    },
+    relatedProducts: {
+      bsonType: 'array',
+      items: {
+        bsonType: 'objectId'
+      }
+    },
+    seoOverrides: {
+      bsonType: 'object',
+      properties: {
+        title: { bsonType: 'string' },
+        description: { bsonType: 'string' },
+        canonicalUrl: { bsonType: 'string' },
+        noindex: { bsonType: 'bool' }
+      }
+    }
   },
 };

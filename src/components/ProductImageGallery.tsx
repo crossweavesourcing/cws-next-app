@@ -2,15 +2,25 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import { trackEvent } from '@/lib/analytics';
 
 type ProductImageGalleryProps = {
   images: string[];
+  imageAltTexts: string[];
   productName: string;
 };
 
-export default function ProductImageGallery({ images, productName }: ProductImageGalleryProps) {
+export default function ProductImageGallery({ images, imageAltTexts, productName }: ProductImageGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const activeImage = images[activeIndex] ?? images[0];
+  const activeAltText = imageAltTexts[activeIndex] || `${productName} image ${activeIndex + 1}`;
+
+  const updateActiveIndex = (newIndex: number) => {
+    setActiveIndex(newIndex);
+    trackEvent('interaction_gallery', {
+      item_name: productName
+    });
+  };
 
   if (!activeImage) {
     return null;
@@ -18,13 +28,14 @@ export default function ProductImageGallery({ images, productName }: ProductImag
 
   return (
     <div className="space-y-4">
-      <div className="relative min-h-[360px] lg:min-h-[560px] overflow-hidden bg-neutral-900">
+      <div id="main-product-image" aria-live="polite" className="relative min-h-[360px] lg:min-h-[560px] overflow-hidden bg-neutral-900">
         <Image
           key={activeImage}
           src={activeImage}
-          alt={`${productName} primary image ${activeIndex + 1}`}
+          alt={activeAltText}
           fill
-          loading="eager"
+          priority
+          fetchPriority="high"
           sizes="(max-width: 1024px) 100vw, 50vw"
           className="object-cover opacity-85 transition-opacity duration-500"
         />
@@ -40,16 +51,17 @@ export default function ProductImageGallery({ images, productName }: ProductImag
               <button
                 key={`${image}-${index}`}
                 type="button"
-                onClick={() => setActiveIndex(index)}
-                className={`group relative aspect-[4/3] overflow-hidden border bg-neutral-900 transition-colors ${
+                onClick={() => updateActiveIndex(index)}
+                className={`group relative aspect-[4/3] overflow-hidden border bg-neutral-900 transition-colors focus:outline-none focus:ring-2 focus:ring-[#E02424] focus:ring-offset-1 ${
                   isActive ? 'border-[#E02424]' : 'border-white/10 hover:border-white/45'
                 }`}
                 aria-label={`Show ${productName} image ${index + 1}`}
-                aria-pressed={isActive}
+                aria-current={isActive ? "true" : undefined}
+                aria-controls="main-product-image"
               >
                 <Image
                   src={image}
-                  alt={`${productName} thumbnail ${index + 1}`}
+                  alt={imageAltTexts[index] || `${productName} thumbnail ${index + 1}`}
                   fill
                   sizes="(max-width: 640px) 25vw, 120px"
                   className={`object-cover transition-all duration-300 ${

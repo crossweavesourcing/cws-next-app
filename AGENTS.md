@@ -127,3 +127,10 @@ Before finishing:
 2. confirm web and mobile admin behavior uses consistent authorization and shared business rules;
 3. confirm security and authorization were not weakened;
 4. summarize changed files, commands run, blockers, and remaining risks.
+
+5. Inspect the current implementation before changing anything.
+6. Do not replace existing business behavior unnecessarily.
+7. Create a branch or checkpoint before implementation.
+8. Never invent company, product, certification, pricing, rating, review, address, phone, analytics, or legal information.
+9. Use placeholders or mark blocked tasks when real business information is unavailable.
+10. Update a central implementation tracker after every stage.

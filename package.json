@@ -13,6 +13,7 @@
     "db:migrate:sections": "tsx --env-file=.env scripts/migrate-sections.ts",
     "db:migrate:account-security": "tsx --env-file=.env scripts/migrate-account-security.ts",
     "db:migrate:catalog-scenes": "tsx --env-file=.env scripts/migrate-catalog-scenes.ts",
+    "db:migrate:alt-text": "tsx --env-file=.env scripts/migrate-product-alt-text.ts",
     "test:e2e": "playwright test",
     "test:unit": "vitest run",
     "docs:generate": "tsx scripts/generate-openapi.ts",
@@ -26,6 +27,7 @@
   "dependencies": {
     "@google/genai": "^2.4.0",
     "@napi-rs/canvas": "^1.0.3",
+    "@next/third-parties": "16.2.7",
     "@simplewebauthn/browser": "^13.3.0",
     "@simplewebauthn/server": "^13.3.2",
     "@zxcvbn-ts/core": "^4.1.2",
@@ -44,10 +46,13 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
+    "sanitize-html": "^2.17.6",
     "zod": "^4.4.3",
     "zod-openapi": "^5.4.6"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
+    "@next/bundle-analyzer": "^16.2.12",
     "@playwright/test": "^1.49.0",
     "@redocly/cli": "^2.39.0",
     "@scalar/nextjs-api-reference": "^0.11.11",
@@ -57,6 +62,8 @@
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/sanitize-html": "^2.16.1",
+    "cross-env": "^10.1.0",
     "dotenv": "^16.4.5",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",

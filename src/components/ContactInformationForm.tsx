@@ -1,8 +1,10 @@
 "use client"
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Send, CheckCircle2, XCircle, Loader2, X } from 'lucide-react';
+import Link from 'next/link';
 import { Provider as ContactFormProvider } from '@/context/ContactForm/Provider';
 import useContactForm from '@/context/ContactForm/useData';
+import { trackEvent } from '@/lib/analytics';
 
 export default function ContactInformationForm({ submitLabel = 'Contact Us' }: { submitLabel?: string }) {
   return (
@@ -21,6 +23,21 @@ function ContactInformationFormInner({ submitLabel }: { submitLabel: string }) {
   const [submittedName, setSubmittedName] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
 
+  useEffect(() => {
+    // Client-side only query param extraction
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const subjectParam = searchParams.get('subject');
+      if (subjectParam && !formData.subject) {
+        setField('subject', subjectParam);
+      }
+      if (!formData.idempotencyKey) {
+        setField('idempotencyKey', Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setSubmittedName(formData.name);
@@ -33,6 +50,10 @@ function ContactInformationFormInner({ submitLabel }: { submitLabel: string }) {
     setModalStage('sending');
     const result = await submitForm();
     if (result.success) {
+      trackEvent('generate_lead', {
+        form_id: 'contact_information_form',
+        subject_category: formData.subject || 'General Inquiry',
+      });
       setModalStage('success');
       setTimeout(() => {
         setIsModalOpen(false);
@@ -66,77 +87,118 @@ function ContactInformationFormInner({ submitLabel }: { submitLabel: string }) {
       `}</style>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        <div style={{ display: 'none' }} aria-hidden="true">
+          <label htmlFor="contact-honeypot">Leave this field empty</label>
+          <input
+            id="contact-honeypot"
+            type="text"
+            name="honeypot"
+            value={formData.honeypot || ''}
+            onChange={(e) => setField('honeypot', e.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
+          />
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <label className="block space-y-2">
+          <label htmlFor="contact-name" className="block space-y-2">
             <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500 dark:text-neutral-400">
               Name
             </span>
             <input
+              id="contact-name"
               type="text"
               name="name"
               value={formData.name}
               onChange={(e) => setField('name', e.target.value)}
               required
+              aria-required="true"
               placeholder="Your name"
               className="h-12 w-full border border-neutral-200 dark:border-neutral-800 bg-[#F9F9F9] dark:bg-neutral-900 px-4 text-sm text-neutral-900 dark:text-neutral-100 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424] focus:bg-white dark:focus:bg-black"
             />
           </label>
 
-          <label className="block space-y-2">
+          <label htmlFor="contact-email" className="block space-y-2">
             <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500 dark:text-neutral-400">
               Email Address
             </span>
             <input
+              id="contact-email"
               type="email"
               name="email"
               value={formData.email}
               onChange={(e) => setField('email', e.target.value)}
               required
+              aria-required="true"
               placeholder="you@example.com"
               className="h-12 w-full border border-neutral-200 dark:border-neutral-800 bg-[#F9F9F9] dark:bg-neutral-900 px-4 text-sm text-neutral-900 dark:text-neutral-100 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424] focus:bg-white dark:focus:bg-black"
             />
           </label>
         </div>
 
-        <label className="block space-y-2">
+        <label htmlFor="contact-company" className="block space-y-2">
           <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500 dark:text-neutral-400">
+            Company (Optional)
+          </span>
+          <input
+            id="contact-company"
+            type="text"
+            name="company"
+            value={formData.company || ''}
+            onChange={(e) => setField('company', e.target.value)}
+            placeholder="Your Company Name"
+            className="h-12 w-full border border-neutral-200 dark:border-neutral-800 bg-[#F9F9F9] dark:bg-neutral-900 px-4 text-sm text-neutral-900 dark:text-neutral-100 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424] focus:bg-white dark:focus:bg-black"
+          />
+        </label>
+
+        <label htmlFor="contact-subject" className="block space-y-2">
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500 dark:text-neutral-400">
             Subject
           </span>
           <input
+            id="contact-subject"
             type="text"
             name="subject"
             value={formData.subject}
             onChange={(e) => setField('subject', e.target.value)}
             required
+            aria-required="true"
             placeholder="Production inquiry"
             className="h-12 w-full border border-neutral-200 dark:border-neutral-800 bg-[#F9F9F9] dark:bg-neutral-900 px-4 text-sm text-neutral-900 dark:text-neutral-100 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424] focus:bg-white dark:focus:bg-black"
           />
         </label>
 
-        <label className="block space-y-2">
+        <label htmlFor="contact-message" className="block space-y-2">
           <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500 dark:text-neutral-400">
             Message
           </span>
           <textarea
+            id="contact-message"
             name="message"
             value={formData.message}
             onChange={(e) => setField('message', e.target.value)}
             required
+            aria-required="true"
             rows={6}
             placeholder="Tell us about product type, order volume, target timeline, and destination market."
             className="min-h-36 w-full resize-y border border-neutral-200 dark:border-neutral-800 bg-[#F9F9F9] dark:bg-neutral-900 px-4 py-3 text-sm leading-relaxed text-neutral-900 dark:text-neutral-100 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424] focus:bg-white dark:focus:bg-black"
           />
         </label>
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-2">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 bg-[#E02424] px-7 text-xs font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:bg-neutral-400"
-          >
-            {submitLabel}
-            <Send className="h-4 w-4" />
-          </button>
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-2">
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="inline-flex h-12 w-full sm:w-auto items-center justify-center gap-2 bg-[#E02424] px-7 text-xs font-bold uppercase tracking-[0.2em] text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:bg-neutral-400"
+            >
+              {submitLabel}
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
+          <p className="text-xs text-neutral-500 font-light leading-relaxed">
+            By submitting this form, you agree to our <Link href="/legal/privacy" className="underline hover:text-[#E02424] transition-colors">Privacy Policy</Link> and <Link href="/legal/terms" className="underline hover:text-[#E02424] transition-colors">Terms of Service</Link>. We respect your privacy and will never share your information.
+          </p>
         </div>
       </form>
 
@@ -144,7 +206,12 @@ function ContactInformationFormInner({ submitLabel }: { submitLabel: string }) {
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/75 z-50 backdrop-blur-sm flex items-center justify-center p-4 animate-modal-fade">
           {/* Modal Container */}
-          <div className="bg-[#f7f5ef] dark:bg-[#080808] border border-neutral-200 dark:border-neutral-800 p-6 md:p-8 max-w-md w-full relative shadow-2xl transform animate-modal-slide text-[#191919] dark:text-[#f5f2ea] rounded-none">
+          <div 
+            role="dialog" 
+            aria-modal="true" 
+            aria-labelledby="modal-title"
+            className="bg-[#f7f5ef] dark:bg-[#080808] border border-neutral-200 dark:border-neutral-800 p-6 md:p-8 max-w-md w-full relative shadow-2xl transform animate-modal-slide text-[#191919] dark:text-[#f5f2ea] rounded-none"
+          >
             
             {/* Close Button (only show in confirm or error stage) */}
             {(modalStage === 'confirm' || modalStage === 'error') && (
@@ -161,7 +228,7 @@ function ContactInformationFormInner({ submitLabel }: { submitLabel: string }) {
             {modalStage === 'confirm' && (
               <div className="space-y-5">
                 <div className="space-y-1.5">
-                  <h3 className="text-lg font-bold uppercase tracking-[0.1em] text-[#E02424] font-display">
+                  <h3 id="modal-title" className="text-lg font-bold uppercase tracking-[0.1em] text-[#E02424] font-display">
                     Confirm Inquiry
                   </h3>
                   <p className="text-xs text-[#5f5a54] dark:text-[#beb7aa] leading-relaxed">
@@ -212,10 +279,10 @@ function ContactInformationFormInner({ submitLabel }: { submitLabel: string }) {
 
             {/* Stage: Sending */}
             {modalStage === 'sending' && (
-              <div className="py-8 flex flex-col items-center justify-center text-center space-y-4">
-                <Loader2 className="h-10 w-10 text-[#E02424] animate-spin" />
+              <div className="py-8 flex flex-col items-center justify-center text-center space-y-4" role="status" aria-live="polite">
+                <Loader2 className="h-10 w-10 text-[#E02424] animate-spin" aria-hidden="true" />
                 <div className="space-y-1">
-                  <h4 className="font-bold uppercase tracking-[0.1em] text-sm">
+                  <h4 id="modal-title" className="font-bold uppercase tracking-[0.1em] text-sm">
                     Sending Sourcing Request
                   </h4>
                   <p className="text-xs text-[#5f5a54] dark:text-[#beb7aa]">
@@ -227,12 +294,12 @@ function ContactInformationFormInner({ submitLabel }: { submitLabel: string }) {
 
             {/* Stage: Success */}
             {modalStage === 'success' && (
-              <div className="py-6 flex flex-col items-center justify-center text-center space-y-4">
+              <div className="py-6 flex flex-col items-center justify-center text-center space-y-4" role="alert">
                 <div className="h-14 w-14 rounded-full bg-red-100 dark:bg-red-950/30 flex items-center justify-center animate-bounce">
-                  <CheckCircle2 className="h-8 w-8 text-[#E02424]" />
+                  <CheckCircle2 className="h-8 w-8 text-[#E02424]" aria-hidden="true" />
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-bold uppercase tracking-[0.1em] text-sm font-display">
+                  <h4 id="modal-title" className="font-bold uppercase tracking-[0.1em] text-sm font-display">
                     Thank You, {submittedName}!
                   </h4>
                   <p className="text-xs text-[#5f5a54] dark:text-[#beb7aa] max-w-[280px] mx-auto leading-relaxed">
@@ -244,12 +311,12 @@ function ContactInformationFormInner({ submitLabel }: { submitLabel: string }) {
 
             {/* Stage: Error */}
             {modalStage === 'error' && (
-              <div className="py-6 flex flex-col items-center justify-center text-center space-y-4">
+              <div className="py-6 flex flex-col items-center justify-center text-center space-y-4" role="alert">
                 <div className="h-14 w-14 rounded-full bg-red-100 dark:bg-red-950/30 flex items-center justify-center">
-                  <XCircle className="h-8 w-8 text-[#E02424]" />
+                  <XCircle className="h-8 w-8 text-[#E02424]" aria-hidden="true" />
                 </div>
                 <div className="space-y-2">
-                  <h4 className="font-bold uppercase tracking-[0.1em] text-sm text-[#E02424]">
+                  <h4 id="modal-title" className="font-bold uppercase tracking-[0.1em] text-sm text-[#E02424]">
                     Submission Failed
                   </h4>
                   <p className="text-xs text-[#5f5a54] dark:text-[#beb7aa] max-w-[280px] mx-auto leading-relaxed">

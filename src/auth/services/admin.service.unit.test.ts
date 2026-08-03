@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi, type Mocked } from 'vitest';
 import { AdminService } from './admin.service';
 import { SessionRepository } from '../repositories/session.repository';
 import { RefreshTokenRepository } from '../repositories/refresh-token.repository';
@@ -13,9 +13,9 @@ vi.mock('../dal');
 
 describe('AdminService', () => {
   let service: AdminService;
-  let mockSessionRepo: jest.Mocked<SessionRepository>;
-  let mockRefreshRepo: jest.Mocked<RefreshTokenRepository>;
-  let mockAuditRepo: jest.Mocked<AuditLogRepository>;
+  let mockSessionRepo: Mocked<SessionRepository>;
+  let mockRefreshRepo: Mocked<RefreshTokenRepository>;
+  let mockAuditRepo: Mocked<AuditLogRepository>;
 
   const adminUserId = new ObjectId();
   const adminSessionId = new ObjectId();
@@ -23,16 +23,16 @@ describe('AdminService', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     service = new AdminService();
-    mockSessionRepo = (service as unknown as { sessionRepo: jest.Mocked<SessionRepository> }).sessionRepo;
-    mockRefreshRepo = (service as unknown as { refreshRepo: jest.Mocked<RefreshTokenRepository> }).refreshRepo;
-    mockAuditRepo = (service as unknown as { auditRepo: jest.Mocked<AuditLogRepository> }).auditRepo;
+    mockSessionRepo = (service as unknown as { sessionRepo: Mocked<SessionRepository> }).sessionRepo;
+    mockRefreshRepo = (service as unknown as { refreshRepo: Mocked<RefreshTokenRepository> }).refreshRepo;
+    mockAuditRepo = (service as unknown as { auditRepo: Mocked<AuditLogRepository> }).auditRepo;
 
     vi.mocked(requireRole).mockResolvedValue({ 
       _id: adminSessionId,
       userId: adminUserId,
       ipAddress: '127.0.0.1',
       userAgent: 'test-agent'
-    } as unknown as ReturnType<typeof requireRole>);
+    } as unknown as Awaited<ReturnType<typeof requireRole>>);
   });
 
   describe('revokeUserSessions', () => {

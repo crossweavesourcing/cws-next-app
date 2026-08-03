@@ -11,6 +11,12 @@ const envSchema = z.object({
   TOTP_ENCRYPTION_KEY: z.string().length(64).optional(),
   APP_URL: z.string().url(),
 
+  // Public variables
+  NEXT_PUBLIC_SITE_ENV: z.string().optional(),
+  NEXT_PUBLIC_GTM_ID: z.string().optional(),
+  NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION: z.string().optional(),
+  NEXT_PUBLIC_BING_SITE_VERIFICATION: z.string().optional(),
+
   // Session / token lifetimes (milliseconds). Defaults applied when absent.
   ACCESS_SESSION_TTL_MS: z.coerce.number().int().positive().default(15 * 60 * 1000), // 15 min
   IDLE_TIMEOUT_MS: z.coerce.number().int().positive().default(30 * 60 * 1000), // 30 min

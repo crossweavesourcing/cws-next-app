@@ -27,6 +27,7 @@ async function _saveSectionAction(sectionId: string, formData: FormData) {
     revalidatePath('/');
     revalidatePath('/products');
     revalidatePath('/products/[slug]', 'page');
+    revalidatePath('/catalogs/[slug]', 'page');
     return { success: true as const };
   } catch (error: unknown) {
     const message = error instanceof SectionValidationError ? error.message : 'Unable to save this section.';

@@ -19,7 +19,9 @@ export interface ProductDocument {
   shortDescription: string;
   overview: string;
   image: string;       // Cloudinary URL or local path
+  imageAltText?: string;
   images: string[];    // Array of Cloudinary URLs or local paths
+  imagesAltText?: string[];
   manufacturing: string[];
   specifications: {
     material: string;
@@ -31,6 +33,23 @@ export interface ProductDocument {
   visible: boolean;
   createdAt: Date;
   updatedAt: Date;
+  
+  // New Optional Semantic/SEO Content Fields
+  longDescription?: string;
+  materials?: string;
+  process?: string;
+  qualityControl?: string;
+  customization?: string;
+  applications?: string;
+  packaging?: string;
+  faqs?: { question: string; answer: string }[];
+  relatedProducts?: ObjectId[];
+  seoOverrides?: {
+    title?: string;
+    description?: string;
+    canonicalUrl?: string;
+    noindex?: boolean;
+  };
 }
 
 export type CatalogStatus = 'draft' | 'published';

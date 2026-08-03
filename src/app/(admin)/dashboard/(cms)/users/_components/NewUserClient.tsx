@@ -26,6 +26,10 @@ const permissionLabels: Record<CmsPermission, { label: string; helper: string }>
     label: 'Products',
     helper: 'Manage product records, descriptions, and media.',
   },
+  seo: {
+    label: 'SEO & Redirects',
+    helper: 'Manage global marketing settings and URL redirects.',
+  },
 };
 
 export function NewUserClient({

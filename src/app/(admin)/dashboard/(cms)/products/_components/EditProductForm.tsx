@@ -9,6 +9,7 @@ export function EditProductForm({ product, categories, onSuccess, onCancel }: { 
   const [pending, setPending] = useState(false);
   const [error, setError] = useState('');
   const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+  const [faqs, setFaqs] = useState<{question: string, answer: string}[]>(product.faqs || []);
 
   useEffect(() => {
     const initialItems: MediaItem[] = [];
@@ -18,15 +19,17 @@ export function EditProductForm({ product, categories, onSuccess, onCancel }: { 
         type: 'existing',
         url: product.image,
         isFeatured: true,
+        altText: product.imageAltText || '',
       });
     }
     if (product.images && product.images.length > 0) {
-      product.images.forEach((imgUrl) => {
+      product.images.forEach((imgUrl, index) => {
         initialItems.push({
           id: 'gallery-' + Math.random().toString(36).substring(7),
           type: 'existing',
           url: imgUrl,
           isFeatured: false,
+          altText: product.imagesAltText?.[index] || '',
         });
       });
     }
@@ -48,8 +51,10 @@ export function EditProductForm({ product, categories, onSuccess, onCancel }: { 
 
     if (featured?.type === 'existing') {
       formData.set('featuredMediaUrl', featured.url!);
+      formData.set('imageAltText', featured.altText || '');
     } else if (featured?.type === 'new' && featured.file) {
       formData.set('image', featured.file);
+      formData.set('imageAltText', featured.altText || '');
     } else {
       setError('Please select a featured media item (click the star icon)');
       setPending(false);
@@ -60,6 +65,9 @@ export function EditProductForm({ product, categories, onSuccess, onCancel }: { 
     
     formData.delete('images');
     newGalleryFiles.forEach(f => formData.append('images', f));
+    
+    const galleryAlts = mediaItems.filter(m => !m.isFeatured).map(m => m.altText || '');
+    formData.set('imagesAltText', JSON.stringify(galleryAlts));
     
     const productId = product._id?.toString();
     if (!productId) {
@@ -81,6 +89,8 @@ export function EditProductForm({ product, categories, onSuccess, onCancel }: { 
       quality: formData.get('spec_quality') as string,
     };
     formData.set('specifications', JSON.stringify(specs));
+
+    formData.set('faqs', JSON.stringify(faqs));
 
     const res = await updateProduct(productId, formData);
     if (res.success) {
@@ -163,6 +173,74 @@ export function EditProductForm({ product, categories, onSuccess, onCancel }: { 
             <label className="block text-[10px] font-bold uppercase text-neutral-400 mb-1">Quality</label>
             <input name="spec_quality" defaultValue={product.specifications?.quality} required className="w-full border border-white/10 bg-black/20 p-2.5 text-sm text-white outline-none transition-colors focus:border-[#E02424] focus-visible:ring-2 focus-visible:ring-[#E02424]/30" />
           </div>
+        </div>
+      </div>
+
+      <div className="mt-4 border border-white/10 bg-white/[0.04] p-4">
+        <h4 className="mb-3 text-sm font-bold uppercase text-white">Extended Content (Optional Rich Text)</h4>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Long Description (HTML)</label>
+            <textarea name="longDescription" defaultValue={product.longDescription} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors focus:border-[#E02424] focus-visible:ring-2 focus-visible:ring-[#E02424]/30" rows={4} />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Materials (HTML)</label>
+            <textarea name="materials" defaultValue={product.materials} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors focus:border-[#E02424] focus-visible:ring-2 focus-visible:ring-[#E02424]/30" rows={3} />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Process (HTML)</label>
+            <textarea name="process" defaultValue={product.process} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors focus:border-[#E02424] focus-visible:ring-2 focus-visible:ring-[#E02424]/30" rows={3} />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Quality Control (HTML)</label>
+            <textarea name="qualityControl" defaultValue={product.qualityControl} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors focus:border-[#E02424] focus-visible:ring-2 focus-visible:ring-[#E02424]/30" rows={3} />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Customization (HTML)</label>
+            <textarea name="customization" defaultValue={product.customization} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors focus:border-[#E02424] focus-visible:ring-2 focus-visible:ring-[#E02424]/30" rows={3} />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Applications (HTML)</label>
+            <textarea name="applications" defaultValue={product.applications} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors focus:border-[#E02424] focus-visible:ring-2 focus-visible:ring-[#E02424]/30" rows={3} />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Packaging (HTML)</label>
+            <textarea name="packaging" defaultValue={product.packaging} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors focus:border-[#E02424] focus-visible:ring-2 focus-visible:ring-[#E02424]/30" rows={3} />
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 border border-white/10 bg-white/[0.04] p-4">
+        <h4 className="mb-3 text-sm font-bold uppercase text-white">FAQs</h4>
+        <div className="space-y-4">
+          {faqs.map((faq, idx) => (
+            <div key={idx} className="flex gap-2 items-start border border-white/10 p-2">
+              <div className="flex-1 space-y-2">
+                <input value={faq.question} onChange={e => { const n = [...faqs]; n[idx].question = e.target.value; setFaqs(n); }} placeholder="Question" className="w-full border border-white/10 bg-white/[0.06] p-2 text-sm text-white outline-none" />
+                <textarea value={faq.answer} onChange={e => { const n = [...faqs]; n[idx].answer = e.target.value; setFaqs(n); }} placeholder="Answer (HTML)" className="w-full border border-white/10 bg-white/[0.06] p-2 text-sm text-white outline-none" rows={2} />
+              </div>
+              <button type="button" onClick={() => setFaqs(faqs.filter((_, i) => i !== idx))} className="bg-red-500/20 text-red-500 p-2 hover:bg-red-500/40">X</button>
+            </div>
+          ))}
+          <button type="button" onClick={() => setFaqs([...faqs, {question: '', answer: ''}])} className="text-sm border border-white/20 px-3 py-1 hover:bg-white/10">+ Add FAQ</button>
+        </div>
+      </div>
+
+      <div className="mt-4 border border-white/10 bg-white/[0.04] p-4">
+        <h4 className="mb-3 text-sm font-bold uppercase text-white">SEO Overrides</h4>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Title Override</label>
+            <input name="seoOverrides.title" defaultValue={product.seoOverrides?.title} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Canonical URL Override</label>
+            <input name="seoOverrides.canonicalUrl" defaultValue={product.seoOverrides?.canonicalUrl} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" />
+          </div>
+        </div>
+        <div className="mt-4">
+          <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Description Override</label>
+          <textarea name="seoOverrides.description" defaultValue={product.seoOverrides?.description} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" rows={2} />
         </div>
       </div>
 

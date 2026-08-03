@@ -8,9 +8,15 @@ export class ProductService {
   private productRepo = new ProductRepository();
 
   async createProduct(
-    data: { categoryId: string | null; name: string; slug: string; shortDescription: string; overview: string; visible: boolean },
+    data: { 
+      categoryId: string | null; name: string; slug: string; shortDescription: string; overview: string; visible: boolean;
+      longDescription?: string; materials?: string; process?: string; qualityControl?: string; customization?: string; applications?: string; packaging?: string;
+      faqs?: { question: string; answer: string }[]; relatedProducts?: string[]; seoOverrides?: { title?: string; description?: string; canonicalUrl?: string; noindex?: boolean; };
+    },
     imageFile: File | null,
+    imageAltText: string,
     galleryFiles: File[],
+    imagesAltText: string[],
     manufacturing: unknown,
     features: unknown,
     specifications: unknown
@@ -42,11 +48,23 @@ export class ProductService {
       shortDescription: data.shortDescription,
       overview: data.overview,
       image: imageUrl,
+      imageAltText,
       images: galleryUrls,
+      imagesAltText,
       manufacturing: manufacturing as string[],
       specifications: specifications as { material: string; productionFocus: string; finishing: string; quality: string; },
       features: features as string[],
       visible: data.visible,
+      longDescription: data.longDescription,
+      materials: data.materials,
+      process: data.process,
+      qualityControl: data.qualityControl,
+      customization: data.customization,
+      applications: data.applications,
+      packaging: data.packaging,
+      faqs: data.faqs,
+      relatedProducts: data.relatedProducts?.map(id => new ObjectId(id)),
+      seoOverrides: data.seoOverrides,
     });
 
     return newProduct;
@@ -54,11 +72,17 @@ export class ProductService {
 
   async updateProduct(
     id: string,
-    data: { categoryId: string | null; name: string; slug: string; shortDescription: string; overview: string; visible: boolean },
+    data: { 
+      categoryId: string | null; name: string; slug: string; shortDescription: string; overview: string; visible: boolean;
+      longDescription?: string; materials?: string; process?: string; qualityControl?: string; customization?: string; applications?: string; packaging?: string;
+      faqs?: { question: string; answer: string }[]; relatedProducts?: string[]; seoOverrides?: { title?: string; description?: string; canonicalUrl?: string; noindex?: boolean; };
+    },
     featuredMediaUrl: string | null,
     existingGalleryUrls: string[],
     imageFile: File | null,
+    imageAltText: string,
     galleryFiles: File[],
+    imagesAltText: string[],
     manufacturing: unknown,
     features: unknown,
     specifications: unknown
@@ -94,11 +118,23 @@ export class ProductService {
       shortDescription: data.shortDescription,
       overview: data.overview,
       image: imageUrl,
+      imageAltText,
       images: galleryUrls,
+      imagesAltText,
       manufacturing: manufacturing as string[],
       features: features as string[],
       specifications: specifications as { material: string; productionFocus: string; finishing: string; quality: string; },
       visible: data.visible,
+      longDescription: data.longDescription,
+      materials: data.materials,
+      process: data.process,
+      qualityControl: data.qualityControl,
+      customization: data.customization,
+      applications: data.applications,
+      packaging: data.packaging,
+      faqs: data.faqs,
+      relatedProducts: data.relatedProducts?.map(id => new ObjectId(id)),
+      seoOverrides: data.seoOverrides,
     });
 
     if (!updated) {

@@ -1,0 +1,148 @@
+🔍 Starting codebase security scan...
+📁 Target: /Users/User/Documents/projects/cws-proj/cws-next-app
+
+📊 Progress: 100/100 files scanned
+📊 Progress: 200/200 files scanned
+⚡ MEDIUM: src/auth/services/oauth.service.unit.test.ts (Score: 8)
+📊 Progress: 300/300 files scanned
+📊 Progress: 400/400 files scanned
+
+📄 JSON report saved: security-scan-results/scan-report.json
+📄 Text report saved: security-scan-results/scan-summary.txt
+📄 HTML report saved: security-scan-results/scan-report.html
+
+================================================================================
+📊 SCAN COMPLETE
+================================================================================
+⏱️  Duration: 0.21s
+📁 Files Scanned: 454
+⚠️  Files with Issues: 21
+🚨 Malicious Files: 0
+
+📈 Risk Breakdown:
+   🔴 CRITICAL: 0
+   🟠 HIGH: 0
+   🟡 MEDIUM: 1
+   🟢 LOW: 20
+================================================================================
+
+
+✅ Security Scan Passed.
+▲ Next.js 16.2.7 (Turbopack)
+- Environments: .env
+- Experiments (use with caution):
+  · serverActions
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 8.1s
+  Running TypeScript ...
+  Finished TypeScript in 5.6s ...
+  Collecting page data using 7 workers ...
+{"level":"info","event":"security.alerting.configured","sink":"console","ts":"2026-08-02T12:28:24.994Z"}
+  Generating static pages using 7 workers (0/79) ...
+  Generating static pages using 7 workers (19/79) 
+  Generating static pages using 7 workers (39/79) 
+{"level":"info","event":"security.alerting.configured","sink":"console","ts":"2026-08-02T12:28:26.083Z"}
+{"level":"info","event":"security.alerting.configured","sink":"console","ts":"2026-08-02T12:28:26.084Z"}
+  Generating static pages using 7 workers (59/79) 
+✓ Generating static pages using 7 workers (79/79) in 7.3s
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /(.)catalogs/[slug]
+├ ƒ /api-docs
+├ ƒ /api/auth/google
+├ ƒ /api/auth/google/callback
+├ ƒ /api/auth/login
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/refresh
+├ ƒ /api/auth/test-cookies
+├ ƒ /api/auth/webauthn/login-options
+├ ƒ /api/auth/webauthn/login-verify
+├ ƒ /api/auth/webauthn/register-options
+├ ƒ /api/auth/webauthn/register-verify
+├ ƒ /api/chat
+├ ƒ /api/contact
+├ ƒ /api/health
+├ ƒ /api/mobile/v1/.well-known/jwks.json
+├ ƒ /api/mobile/v1/admin/catalogs
+├ ƒ /api/mobile/v1/admin/catalogs/[id]
+├ ƒ /api/mobile/v1/admin/catalogs/[id]/associations
+├ ƒ /api/mobile/v1/admin/catalogs/[id]/publication
+├ ƒ /api/mobile/v1/admin/catalogs/[id]/replacement
+├ ƒ /api/mobile/v1/admin/categories
+├ ƒ /api/mobile/v1/admin/categories/[id]
+├ ƒ /api/mobile/v1/admin/products
+├ ƒ /api/mobile/v1/admin/products/[id]
+├ ƒ /api/mobile/v1/admin/sections
+├ ƒ /api/mobile/v1/admin/sections/[id]
+├ ƒ /api/mobile/v1/admin/sessions/revoke
+├ ƒ /api/mobile/v1/auth/google
+├ ƒ /api/mobile/v1/auth/logout
+├ ƒ /api/mobile/v1/auth/me
+├ ƒ /api/mobile/v1/auth/mfa/email
+├ ƒ /api/mobile/v1/auth/mfa/totp
+├ ƒ /api/mobile/v1/auth/mfa/webauthn/options
+├ ƒ /api/mobile/v1/auth/mfa/webauthn/verify
+├ ƒ /api/mobile/v1/auth/passkeys
+├ ƒ /api/mobile/v1/auth/passkeys/[id]
+├ ƒ /api/mobile/v1/auth/passkeys/login/options
+├ ƒ /api/mobile/v1/auth/passkeys/login/verify
+├ ƒ /api/mobile/v1/auth/passkeys/register/options
+├ ƒ /api/mobile/v1/auth/passkeys/register/verify
+├ ƒ /api/mobile/v1/auth/password
+├ ƒ /api/mobile/v1/auth/refresh
+├ ƒ /api/mobile/v1/users/[id]
+├ ○ /apple-icon.png
+├ ƒ /catalogs/[slug]
+├ ƒ /catalogs/[slug]/source
+├ ƒ /dashboard
+├ ƒ /dashboard/account-security
+├ ƒ /dashboard/catalogs/[id]/preview
+├ ƒ /dashboard/catalogs/[id]/preview/source
+├ ƒ /dashboard/categories
+├ ƒ /dashboard/categories/(.)[id]/edit
+├ ƒ /dashboard/categories/(.)new
+├ ƒ /dashboard/categories/[id]/edit
+├ ƒ /dashboard/categories/new
+├ ƒ /dashboard/change-password
+├ ƒ /dashboard/design
+├ ○ /dashboard/forgot-password
+├ ƒ /dashboard/login
+├ ƒ /dashboard/media
+├ ƒ /dashboard/navigation
+├ ƒ /dashboard/page-content
+├ ƒ /dashboard/products
+├ ƒ /dashboard/products/(.)[id]/edit
+├ ƒ /dashboard/products/(.)new
+├ ƒ /dashboard/products/[id]/edit
+├ ƒ /dashboard/products/new
+├ ƒ /dashboard/reset-password
+├ ƒ /dashboard/security
+├ ƒ /dashboard/sessions
+├ ƒ /dashboard/users
+├ ƒ /dashboard/users/(.)new
+├ ƒ /dashboard/users/new
+├ ƒ /dashboard/verify-2fa
+├ ƒ /dashboard/visibility
+├ ○ /icon.png
+├ ƒ /openapi.json
+├ ƒ /pdf.worker.min.mjs
+├ ○ /products
+├ ● /products/[slug]
+│ ├ /products/canvas-utility-tote
+│ ├ /products/cotton-blend-cardigan
+│ ├ /products/heavy-gauge-pullover
+│ └ [+10 more paths]
+├ ○ /robots.txt
+└ ○ /sitemap.xml
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+

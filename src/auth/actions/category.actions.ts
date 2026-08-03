@@ -21,6 +21,8 @@ export async function createCategory(formData: FormData) {
     const newCategory = await categoryService.createCategory(parsed.data, imageFile);
 
     revalidatePath('/dashboard/categories');
+    revalidatePath('/');
+    revalidatePath('/products');
     return { success: true, categoryId: newCategory._id.toString() };
   } catch (error: unknown) {
     console.error('Error creating category:', error);
@@ -45,6 +47,8 @@ export async function updateCategory(id: string, formData: FormData) {
     await categoryService.updateCategory(id, parsed.data, imageFile);
 
     revalidatePath('/dashboard/categories');
+    revalidatePath('/');
+    revalidatePath('/products');
     return { success: true };
   } catch (error: unknown) {
     console.error('Error updating category:', error);
@@ -58,6 +62,8 @@ export async function deleteCategory(id: string) {
     await categoryService.deleteCategory(id);
 
     revalidatePath('/dashboard/categories');
+    revalidatePath('/');
+    revalidatePath('/products');
     return { success: true };
   } catch (error: unknown) {
     console.error('Error deleting category:', error);

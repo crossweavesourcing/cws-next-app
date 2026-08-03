@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowUpRight, Search } from 'lucide-react';
 import type { ProductDocument, CategoryDocument } from '@/types/catalog';
 import type { SectionContent } from '@/lib/section-definitions';
+import { trackEvent } from '@/lib/analytics';
 
 type ProductsPortfolioProps = {
   initialCategory?: string;
@@ -76,10 +77,11 @@ export default function ProductsPortfolio({ initialCategory = 'All', products, c
             </h2>
           </div>
           <div className="lg:col-span-7 grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
-            <label className="relative block">
+            <label htmlFor="products-search" className="relative block">
               <span className="sr-only">Search products</span>
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" aria-hidden="true" />
               <input
+                id="products-search"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder={copy('searchPlaceholder', 'Search products')}
@@ -99,11 +101,12 @@ export default function ProductsPortfolio({ initialCategory = 'All', products, c
               window.history.replaceState(null, '', '/products');
               window.dispatchEvent(new Event('cws-products-category-change'));
             }}
-            className={`h-10 border px-4 text-[11px] font-bold uppercase tracking-[0.18em] transition-colors ${
+            className={`h-10 border px-4 text-[11px] font-bold uppercase tracking-[0.18em] transition-colors focus:outline-none focus:ring-2 focus:ring-[#E02424] focus:ring-offset-1 ${
               activeCategoryName === 'All'
                 ? 'border-[#E02424] bg-[#E02424] text-white'
                 : 'border-neutral-200 bg-white text-neutral-700 hover:border-[#E02424]/50 hover:text-[#E02424]'
             }`}
+            aria-pressed={activeCategoryName === 'All'}
           >
             All
           </button>
@@ -116,11 +119,12 @@ export default function ProductsPortfolio({ initialCategory = 'All', products, c
                 window.history.replaceState(null, '', nextUrl);
                 window.dispatchEvent(new Event('cws-products-category-change'));
               }}
-              className={`h-10 border px-4 text-[11px] font-bold uppercase tracking-[0.18em] transition-colors ${
+              className={`h-10 border px-4 text-[11px] font-bold uppercase tracking-[0.18em] transition-colors focus:outline-none focus:ring-2 focus:ring-[#E02424] focus:ring-offset-1 ${
                 activeCategoryName === category.name
                   ? 'border-[#E02424] bg-[#E02424] text-white'
                   : 'border-neutral-200 bg-white text-neutral-700 hover:border-[#E02424]/50 hover:text-[#E02424]'
               }`}
+              aria-pressed={activeCategoryName === category.name}
             >
               {category.name}
             </button>
@@ -132,18 +136,27 @@ export default function ProductsPortfolio({ initialCategory = 'All', products, c
             const category = categories.find(c => c._id?.toString() === product.categoryId?.toString());
             const categoryName = category?.name || 'Unknown';
             const images = product.images?.length ? product.images : (product.image ? [product.image] : []);
+            const mainAlt = product.images?.length 
+              ? (product.imagesAltText?.[0] || product.name)
+              : (product.imageAltText || product.name);
             
             return (
               <Link
                 key={product.slug}
                 href={`/products/${product.slug}`}
+                onClick={() => {
+                  trackEvent('select_item', {
+                    item_name: product.name,
+                    item_category: categoryName
+                  });
+                }}
                 className="group bg-[#F9F9F9] border border-neutral-100 transition-colors hover:border-[#E02424]/30 hover:bg-white"
               >
                 <div className="relative h-72 overflow-hidden bg-neutral-200">
                   {images[0] && (
                     <Image
                       src={images[0]}
-                      alt={product.name}
+                      alt={mainAlt}
                       fill
                       sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -153,7 +166,7 @@ export default function ProductsPortfolio({ initialCategory = 'All', products, c
                 </div>
                 <article className="p-6 sm:p-8 space-y-5">
                   <div className="flex items-center justify-between gap-4 border-b border-neutral-200 pb-4">
-                    <span className="text-[10px] font-sans font-bold uppercase tracking-[0.24em] text-[#E02424]">
+                    <span className="text-[10px] font-sans font-bold uppercase tracking-[0.24em] text-[#CC1E1E]">
                       {categoryName}
                     </span>
                     <ArrowUpRight className="h-4 w-4 text-neutral-400 transition-colors group-hover:text-[#E02424]" />

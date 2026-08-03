@@ -31,6 +31,8 @@ export const COLLECTION_NAMES = {
   PRODUCTS:            'products',
   CATALOG_DOCUMENTS:   'catalog_documents',
   SECTIONS:            'sections',
+  GLOBAL_SETTINGS:     'global_settings',
+  REDIRECTS:           'redirects',
 } as const;
 
 /**
@@ -71,4 +73,6 @@ export const COLLECTION_ORDER: readonly CollectionName[] = [
   COLLECTION_NAMES.PRODUCTS,
   COLLECTION_NAMES.CATALOG_DOCUMENTS,
   COLLECTION_NAMES.SECTIONS,
+  COLLECTION_NAMES.GLOBAL_SETTINGS,
+  COLLECTION_NAMES.REDIRECTS,
 ] as const;

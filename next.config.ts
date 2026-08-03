@@ -58,6 +58,20 @@ const securityHeaders: Array<{ key: string; value: string }> = [
     value:
       "default-src 'self'; img-src 'self' data: https:; connect-src 'self' https://api.cloudinary.com; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
   },
+  // Ensure non-public routes matching this header block are never indexed or crawled
+  { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+];
+
+const publicSecurityHeaders: Array<{ key: string; value: string }> = [
+  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' }, // Allows Analytics to see sources
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  {
+    key: 'Content-Security-Policy',
+    value:
+      "default-src 'self'; img-src 'self' data: https: https://res.cloudinary.com; connect-src 'self' https://api.cloudinary.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com; font-src 'self' data: https://fonts.gstatic.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+  },
 ];
 
 const nextConfig: NextConfig = {
@@ -67,7 +81,12 @@ const nextConfig: NextConfig = {
   },
   // output: "export", // Commented out to allow `next start`
   images: {
-    unoptimized: true,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      },
+    ],
   },
   experimental: {
     serverActions: {
@@ -80,9 +99,20 @@ const nextConfig: NextConfig = {
   },
   allowedDevOrigins: ['192.168.0.247'],
   async headers() {
+    const isStaging = process.env.NEXT_PUBLIC_SITE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview';
+    
+    const basePublicHeaders = [...publicSecurityHeaders];
+    if (isStaging) {
+      basePublicHeaders.push({ key: 'X-Robots-Tag', value: 'noindex, nofollow' });
+    }
+
     // Scope the strict set to the high-value admin surface (dashboard) and the
-    // JSON API. Public marketing routes are low-risk and intentionally excluded.
+    // JSON API. Public marketing routes use the more relaxed publicSecurityHeaders.
     return [
+      {
+        source: '/(.*)',
+        headers: basePublicHeaders,
+      },
       {
         source: '/dashboard/:path*',
         headers: securityHeaders,

@@ -10,6 +10,7 @@ export type MediaItem = {
   url?: string;
   file?: File;
   isFeatured: boolean;
+  altText?: string;
 };
 
 interface MediaUploaderProps {
@@ -51,9 +52,16 @@ export function MediaUploader({ mediaItems, setMediaItems }: MediaUploaderProps)
       file,
       url: URL.createObjectURL(file),
       isFeatured: false,
+      altText: '',
     }));
 
     setMediaItems([...mediaItems, ...newItems]);
+  };
+
+  const updateAltText = (id: string, altText: string) => {
+    setMediaItems(
+      mediaItems.map((m) => m.id === id ? { ...m, altText } : m)
+    );
   };
 
   const removeMedia = (id: string) => {
@@ -106,39 +114,50 @@ export function MediaUploader({ mediaItems, setMediaItems }: MediaUploaderProps)
           {mediaItems.map((item) => {
             const isVideo = item.file?.type.startsWith('video/') || item.url?.match(/\.(mp4|webm|mov)$/i);
             return (
-              <div key={item.id} className={`relative group aspect-square overflow-hidden border-2 transition-colors ${item.isFeatured ? 'border-[#E02424]' : 'border-white/10'}`}>
-                {isVideo ? (
-                  <video src={item.url} className="h-full w-full object-cover" muted playsInline />
-                ) : (
-                  <Image src={item.url!} alt="Preview" fill className="object-cover" />
-                )}
-                
-                {/* Overlay Controls */}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
-                  <div className="flex justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setFeatured(item.id)}
-                      className={`rounded-full p-1.5 transition-colors ${item.isFeatured ? 'bg-[#E02424] text-white' : 'bg-black/70 text-neutral-300 hover:bg-white/20 hover:text-white'}`}
-                      title="Set as Featured"
-                    >
-                      <Star className={`w-4 h-4 ${item.isFeatured ? 'fill-current' : ''}`} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => removeMedia(item.id)}
-                      className="rounded-full bg-black/70 p-1.5 text-white transition-colors hover:bg-red-500"
-                      title="Remove"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                  {item.isFeatured && (
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-white text-center bg-[#E02424]/80 py-1 rounded">
-                      Featured
-                    </span>
+              <div key={item.id} className="space-y-2">
+                <div className={`relative group aspect-square overflow-hidden border-2 transition-colors ${item.isFeatured ? 'border-[#E02424]' : 'border-white/10'}`}>
+                  {isVideo ? (
+                    <video src={item.url} className="h-full w-full object-cover" muted playsInline />
+                  ) : (
+                    <Image src={item.url!} alt={item.altText || "Preview"} fill className="object-cover" />
                   )}
+                  
+                  {/* Overlay Controls */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-2">
+                    <div className="flex justify-between">
+                      <button
+                        type="button"
+                        onClick={() => setFeatured(item.id)}
+                        className={`rounded-full p-1.5 transition-colors ${item.isFeatured ? 'bg-[#E02424] text-white' : 'bg-black/70 text-neutral-300 hover:bg-white/20 hover:text-white'}`}
+                        title="Set as Featured"
+                      >
+                        <Star className={`w-4 h-4 ${item.isFeatured ? 'fill-current' : ''}`} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeMedia(item.id)}
+                        className="rounded-full bg-black/70 p-1.5 text-white transition-colors hover:bg-red-500"
+                        title="Remove"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                    {item.isFeatured && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-white text-center bg-[#E02424]/80 py-1 rounded">
+                        Featured
+                      </span>
+                    )}
+                  </div>
                 </div>
+                {!isVideo && (
+                  <input
+                    type="text"
+                    placeholder="Alt text (describe image)"
+                    value={item.altText || ''}
+                    onChange={(e) => updateAltText(item.id, e.target.value)}
+                    className="w-full border border-white/10 bg-black/20 p-1.5 text-[10px] text-white outline-none transition-colors focus:border-[#E02424] placeholder:text-neutral-500"
+                  />
+                )}
               </div>
             );
           })}

@@ -1,4 +1,13 @@
 import { NextResponse } from 'next/server';
+import { getClientIp } from '@/auth/lib/request';
+import { UNTRUSTED_IP_SENTINEL } from '@/auth/lib/ip';
+
+// In-memory caches for basic abuse prevention
+const idempotencyCache = new Set<string>();
+const ipRateLimit = new Map<string, { count: number, resetAt: number }>();
+
+const MAX_REQUESTS_PER_IP = 5;
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
 // Simple HTML/script tag stripping helper
 function sanitizeInput(str: string): string {
@@ -14,7 +23,48 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, subject, message } = body;
+    const { name, email, company, subject, message, honeypot, idempotencyKey } = body;
+
+    // Honeypot check
+    if (honeypot) {
+      return NextResponse.json({ success: true }); // pretend success for bots
+    }
+
+    // Idempotency check
+    if (idempotencyKey) {
+      if (idempotencyCache.has(idempotencyKey)) {
+        return NextResponse.json({ success: true }); // already processed
+      }
+      idempotencyCache.add(idempotencyKey);
+      // Clean up cache periodically (prevent memory leak)
+      if (idempotencyCache.size > 1000) {
+        const iterator = idempotencyCache.values();
+        idempotencyCache.delete(iterator.next().value!);
+      }
+    }
+
+    // IP Rate Limiting
+    const ip = await getClientIp();
+    if (ip !== UNTRUSTED_IP_SENTINEL) {
+      const now = Date.now();
+      const record = ipRateLimit.get(ip) || { count: 0, resetAt: now + RATE_LIMIT_WINDOW_MS };
+      
+      if (now > record.resetAt) {
+        record.count = 1;
+        record.resetAt = now + RATE_LIMIT_WINDOW_MS;
+      } else {
+        record.count++;
+      }
+      
+      ipRateLimit.set(ip, record);
+
+      if (record.count > MAX_REQUESTS_PER_IP) {
+        return NextResponse.json(
+          { success: false, error: "Too many requests. Please try again later." },
+          { status: 429 }
+        );
+      }
+    }
 
     const targetUrl = process.env.GOOGLE_SCRIPT_URL;
     if (!targetUrl) {
@@ -28,6 +78,7 @@ export async function POST(request: Request) {
     // 1. Sanitize inputs
     const sanitizedName = sanitizeInput(name);
     const sanitizedEmail = sanitizeInput(email);
+    const sanitizedCompany = sanitizeInput(company || '');
     const sanitizedSubject = sanitizeInput(subject);
     const sanitizedMessage = sanitizeInput(message);
 
@@ -71,6 +122,7 @@ export async function POST(request: Request) {
     const sanitizedData = {
       name: sanitizedName,
       email: sanitizedEmail,
+      company: sanitizedCompany,
       subject: sanitizedSubject,
       message: sanitizedMessage,
     };

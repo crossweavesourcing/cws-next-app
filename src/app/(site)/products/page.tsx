@@ -2,9 +2,10 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import ProductFooter from '@/components/ProductFooter';
 import ProductsPortfolio from '@/components/ProductsPortfolio';
-import { ProductRepository } from '@/auth/repositories/product.repository';
-import { CategoryRepository } from '@/auth/repositories/category.repository';
+import { getCachedProducts, getCachedCategories } from '@/lib/data/cache';
 import { SectionService } from '@/auth/services/section.service';
+
+export const revalidate = 3600; // ISR baseline revalidation: 1 hour
 
 export const metadata: Metadata = {
   title: 'Products | Cross Weave Sourcing',
@@ -12,11 +13,8 @@ export const metadata: Metadata = {
 };
 
 export default async function ProductsPage() {
-  const productRepo = new ProductRepository();
-  const products = await productRepo.findAll();
-
-  const categoryRepo = new CategoryRepository();
-  const categories = await categoryRepo.findAll();
+  const products = await getCachedProducts();
+  const categories = await getCachedCategories();
   const sections = await new SectionService().getPublicSections();
   const heroSection = sections.find((section) => section.sectionId === 'products-hero');
   const portfolioSection = sections.find((section) => section.sectionId === 'products-portfolio');

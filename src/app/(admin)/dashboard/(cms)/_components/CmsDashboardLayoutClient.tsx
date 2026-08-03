@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   CheckCircle2,
   ChevronRight,
+  Globe,
   LogOut,
   Monitor,
   FileText,
@@ -40,6 +41,7 @@ const ALL_WORKSPACE_ITEMS: Array<{
   { href: '/dashboard/visibility', label: 'Visibility', helper: 'Pause section controls', icon: Pause, permissionKey: 'super_admin_only' },
   { href: '/dashboard/media', label: 'Media Library', helper: 'Images and video slots', icon: ImageIcon, permissionKey: 'super_admin_only' },
   { href: '/dashboard/design', label: 'Design System', helper: 'Tokens and UI rules', icon: Palette, permissionKey: 'super_admin_only' },
+  { href: '/dashboard/seo', label: 'SEO & Redirects', helper: 'Global meta and routing', icon: Globe, permissionKey: 'seo' },
   { href: '/dashboard/users', label: 'Users', helper: 'Manage CMS access', icon: Users, permissionKey: 'users' },
   { href: '/dashboard/account-security', label: 'Account & Security', helper: 'Profile, password and 2FA', icon: ShieldCheck, permissionKey: 'always' },
 ];
