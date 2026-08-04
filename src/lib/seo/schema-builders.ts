@@ -1,37 +1,44 @@
-import type { ProductDocument } from '@/types/catalog';
-import type { SectionContent } from '@/lib/section-definitions';
+import type { CategoryDocument, ProductDocument } from '@/types/catalog';
+import type { GlobalSettingsDocument } from '@/types/seo';
 
 /**
  * Builds the global Organization schema.
  */
-export function buildOrganizationSchema(appUrl: string, footerContent?: SectionContent) {
-  // Try to parse the address. In a real system, you'd use structured fields.
-  // We extract them safely based on what we found in `global-footer`.
-  const orgName = 'Cross Weave Sourcing';
+export function buildOrganizationSchema(appUrl: string, settings: GlobalSettingsDocument | null) {
+  const orgName = settings?.organizationName || settings?.brandName || settings?.siteName || 'Cross Weave Sourcing';
   
   const organization: Record<string, unknown> = {
     '@context': 'https://schema.org',
     '@type': 'Organization',
     '@id': `${appUrl}/#organization`,
     name: orgName,
-    url: appUrl,
-    logo: `${appUrl}/icon.png`,
+    url: settings?.organizationUrl || appUrl,
+    logo: settings?.organizationLogo || `${appUrl}/icon.png`,
   };
 
-  const addressString = typeof footerContent?.bangladeshAddress === 'string' 
-    ? footerContent.bangladeshAddress 
-    : undefined;
-
-  if (addressString) {
-    organization.address = {
-      '@type': 'PostalAddress',
-      streetAddress: addressString,
-      addressCountry: 'BD',
-    };
+  if (settings?.organizationLegalName) {
+    organization.legalName = settings.organizationLegalName;
   }
 
-  // We explicitly omit phone numbers, email, and social profiles because they are not cleanly provided
-  // as verified database primitives. We do not invent them.
+  if (settings?.contactEmail) {
+    organization.email = settings.contactEmail;
+  }
+
+  if (settings?.contactPhone) {
+    organization.telephone = settings.contactPhone;
+  }
+
+  if (settings?.socialLinks && settings.socialLinks.length > 0) {
+    organization.sameAs = settings.socialLinks;
+  }
+
+  if (settings?.contactAddress) {
+    organization.address = {
+      '@type': 'PostalAddress',
+      streetAddress: settings.contactAddress,
+      // For a truly global config we would split this out, but we provide it as a single string
+    };
+  }
 
   return organization;
 }
@@ -39,13 +46,13 @@ export function buildOrganizationSchema(appUrl: string, footerContent?: SectionC
 /**
  * Builds the global WebSite schema.
  */
-export function buildWebSiteSchema(appUrl: string) {
+export function buildWebSiteSchema(appUrl: string, settings: GlobalSettingsDocument | null) {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     '@id': `${appUrl}/#website`,
     url: appUrl,
-    name: 'Cross Weave Sourcing',
+    name: settings?.siteName || settings?.brandName || 'Cross Weave Sourcing',
     publisher: {
       '@id': `${appUrl}/#organization`,
     },
@@ -77,12 +84,13 @@ export function buildWebPageSchema(appUrl: string, urlPath: string, name: string
 /**
  * Builds the Product schema, mapping exact UI content and omitting missing fields.
  */
-export function buildProductSchema(product: ProductDocument, categoryName: string, appUrl: string) {
+export function buildProductSchema(product: ProductDocument, categoryName: string, appUrl: string, settings: GlobalSettingsDocument | null) {
   const productUrl = `${appUrl}/products/${product.slug}`;
   const images = product.images?.length ? product.images : (product.image ? [product.image] : []);
   
   // Filter out any non-absolute URLs (we'll ensure they are absolute just in case, but they usually are from Cloudinary)
   const validImages = images.map((img: string) => img.startsWith('http') ? img : `${appUrl}${img}`);
+  const brandName = settings?.brandName || settings?.organizationName || 'Cross Weave Sourcing';
 
   const schema: Record<string, unknown> = {
     '@context': 'https://schema.org',
@@ -96,6 +104,10 @@ export function buildProductSchema(product: ProductDocument, categoryName: strin
     manufacturer: {
       '@id': `${appUrl}/#organization`,
     },
+    brand: {
+      '@type': 'Brand',
+      name: brandName,
+    }
   };
 
   // We add material if it's explicitly available in specifications.
@@ -128,6 +140,43 @@ export function buildBreadcrumbSchema(items: { name: string; url: string }[]) {
       },
     })),
   };
+}
+
+export function buildCategoryCollectionSchema(category: CategoryDocument, products: ProductDocument[], appUrl: string) {
+  const categoryUrl = `${appUrl}/categories/${category.slug}`;
+  const schema: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    '@id': `${categoryUrl}#webpage`,
+    url: categoryUrl,
+    name: category.seoOverrides?.title || category.name,
+    description: category.seoOverrides?.description || category.description,
+    isPartOf: {
+      '@id': `${appUrl}/#website`,
+    },
+  };
+
+  if (category.image) {
+    schema.primaryImageOfPage = {
+      '@type': 'ImageObject',
+      url: category.image.startsWith('http') ? category.image : `${appUrl}${category.image}`,
+      caption: category.name,
+    };
+  }
+
+  if (products.length > 0) {
+    schema.mainEntity = {
+      '@type': 'ItemList',
+      itemListElement: products.map((product, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        url: `${appUrl}/products/${product.slug}`,
+        name: product.name,
+      })),
+    };
+  }
+
+  return schema;
 }
 
 /**

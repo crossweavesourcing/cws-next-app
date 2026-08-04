@@ -4,13 +4,26 @@ import ProductFooter from '@/components/ProductFooter';
 import ProductsPortfolio from '@/components/ProductsPortfolio';
 import { getCachedProducts, getCachedCategories } from '@/lib/data/cache';
 import { SectionService } from '@/auth/services/section.service';
+import { getEnv } from '@/auth/config/env';
+import { buildBreadcrumbSchema, serializeJsonLd } from '@/lib/seo/schema-builders';
+
+import { SeoService } from '@/auth/services/seo.service';
+import { constructMetadata } from '@/lib/seo/metadata';
 
 export const revalidate = 3600; // ISR baseline revalidation: 1 hour
 
-export const metadata: Metadata = {
-  title: 'Products | Cross Weave Sourcing',
-  description: 'Explore the Cross Weave Sourcing manufacturing portfolio across knit, woven, sweater, bag, wallet and hat categories.',
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const seoService = new SeoService();
+  const globalSettings = await seoService.getGlobalSettings().catch(() => null);
+  const pageSeo = await seoService.getPageSeoByPath('/products').catch(() => null);
+
+  return constructMetadata(globalSettings, {
+    title: pageSeo?.title || 'Products',
+    description: pageSeo?.description || 'Explore the Cross Weave Sourcing manufacturing portfolio across knit, woven, sweater, bag, wallet and hat categories.',
+    canonicalUrl: pageSeo?.canonicalUrl || '/products',
+    noindex: pageSeo?.noindex,
+  });
+}
 
 export default async function ProductsPage() {
   const products = await getCachedProducts();
@@ -42,8 +55,16 @@ export default async function ProductsPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   })) as any[];
 
+  const env = getEnv();
+  const breadcrumbItems = [
+    { name: 'Home', url: `${env.APP_URL}` },
+    { name: 'Products', url: `${env.APP_URL}/products` },
+  ];
+  const breadcrumbSchema = buildBreadcrumbSchema(breadcrumbItems);
+
   return (
     <main className="product-site-shell bg-white text-[#1E1E1E] min-h-screen font-sans antialiased selection:bg-[#E02424]/10 selection:text-[#E02424]">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(breadcrumbSchema) }} />
       {/* <ProductHeader /> */}
 
       {!heroSection?.paused && <section className="relative h-[420px] sm:h-[520px] bg-[#070707] overflow-hidden flex items-end">

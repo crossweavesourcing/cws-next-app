@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Pencil, Trash2 } from 'lucide-react';
 import { Panel } from '../../_components/DashboardComponents';
 import { ConfirmDeleteModal } from '../../_components/ConfirmDeleteModal';
@@ -14,25 +15,28 @@ interface SerializedRedirect {
   _id: string;
   source: string;
   destination: string;
-  statusCode: 301 | 302 | 307 | 308;
+  statusCode: 301 | 302;
   active: boolean;
+  reason?: string;
+  notes?: string;
+  startsAt?: string | null;
+  endsAt?: string | null;
   createdAt: string;
   createdBy: string | null;
   updatedAt: string;
   updatedBy: string | null;
 }
 
-const STATUS_CODES = [301, 302, 307, 308] as const;
+const STATUS_CODES = [301, 302] as const;
 
 const STATUS_LABELS: Record<number, string> = {
   301: '301 — Permanent',
   302: '302 — Temporary (Found)',
-  307: '307 — Temporary (Preserve method)',
-  308: '308 — Permanent (Preserve method)',
 };
 
 export function RedirectsManager({ redirects: initial }: { redirects: SerializedRedirect[] }) {
-  const [redirects] = useState(initial);
+  const router = useRouter();
+  const redirects = initial;
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
@@ -41,8 +45,12 @@ export function RedirectsManager({ redirects: initial }: { redirects: Serialized
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formSource, setFormSource] = useState('');
   const [formDestination, setFormDestination] = useState('');
-  const [formStatusCode, setFormStatusCode] = useState<301 | 302 | 307 | 308>(301);
+  const [formStatusCode, setFormStatusCode] = useState<301 | 302>(301);
   const [formActive, setFormActive] = useState(true);
+  const [formReason, setFormReason] = useState('');
+  const [formNotes, setFormNotes] = useState('');
+  const [formStartsAt, setFormStartsAt] = useState('');
+  const [formEndsAt, setFormEndsAt] = useState('');
 
   // Delete modal state
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -55,6 +63,10 @@ export function RedirectsManager({ redirects: initial }: { redirects: Serialized
     setFormDestination('');
     setFormStatusCode(301);
     setFormActive(true);
+    setFormReason('');
+    setFormNotes('');
+    setFormStartsAt('');
+    setFormEndsAt('');
   }
 
   function startEdit(redirect: SerializedRedirect) {
@@ -63,6 +75,10 @@ export function RedirectsManager({ redirects: initial }: { redirects: Serialized
     setFormDestination(redirect.destination);
     setFormStatusCode(redirect.statusCode);
     setFormActive(redirect.active);
+    setFormReason(redirect.reason ?? '');
+    setFormNotes(redirect.notes ?? '');
+    setFormStartsAt(redirect.startsAt ? redirect.startsAt.slice(0, 16) : '');
+    setFormEndsAt(redirect.endsAt ? redirect.endsAt.slice(0, 16) : '');
     setShowForm(true);
   }
 
@@ -76,6 +92,10 @@ export function RedirectsManager({ redirects: initial }: { redirects: Serialized
     formData.set('destination', formDestination);
     formData.set('statusCode', String(formStatusCode));
     formData.set('active', String(formActive));
+    formData.set('reason', formReason);
+    formData.set('notes', formNotes);
+    formData.set('startsAt', formStartsAt);
+    formData.set('endsAt', formEndsAt);
 
     let res;
     if (editingId) {
@@ -92,6 +112,7 @@ export function RedirectsManager({ redirects: initial }: { redirects: Serialized
         message: editingId ? 'Redirect updated successfully.' : 'Redirect created successfully.',
       });
       resetForm();
+      router.refresh();
     } else {
       const errorMsg = res && 'error' in res ? (res as { error?: string }).error : 'An unexpected error occurred.';
       setFeedback({ type: 'error', message: errorMsg ?? 'An unexpected error occurred.' });
@@ -109,6 +130,7 @@ export function RedirectsManager({ redirects: initial }: { redirects: Serialized
 
     if (res && 'success' in res && res.success) {
       setFeedback({ type: 'success', message: `Redirect "${deletingSource}" was deleted successfully.` });
+      router.refresh();
     } else {
       const errorMsg = res && 'error' in res ? (res as { error?: string }).error : 'Failed to delete redirect.';
       setFeedback({ type: 'error', message: errorMsg ?? 'Failed to delete redirect.' });
@@ -182,7 +204,7 @@ export function RedirectsManager({ redirects: initial }: { redirects: Serialized
               <span className={labelClass}>Status Code</span>
               <select
                 value={formStatusCode}
-                onChange={(e) => setFormStatusCode(Number(e.target.value) as 301 | 302 | 307 | 308)}
+                onChange={(e) => setFormStatusCode(Number(e.target.value) as 301 | 302)}
                 className={inputClass}
               >
                 {STATUS_CODES.map((code) => (
@@ -201,7 +223,44 @@ export function RedirectsManager({ redirects: initial }: { redirects: Serialized
               />
               <span className="text-sm font-bold text-neutral-700">Active</span>
             </label>
+            <label className="block">
+              <span className={labelClass}>Reason</span>
+              <input
+                type="text"
+                value={formReason}
+                onChange={(e) => setFormReason(e.target.value)}
+                className={inputClass}
+                placeholder="Slug change, campaign cleanup"
+              />
+            </label>
+            <label className="block">
+              <span className={labelClass}>Starts</span>
+              <input
+                type="datetime-local"
+                value={formStartsAt}
+                onChange={(e) => setFormStartsAt(e.target.value)}
+                className={inputClass}
+              />
+            </label>
+            <label className="block">
+              <span className={labelClass}>Ends</span>
+              <input
+                type="datetime-local"
+                value={formEndsAt}
+                onChange={(e) => setFormEndsAt(e.target.value)}
+                className={inputClass}
+              />
+            </label>
           </div>
+          <label className="block">
+            <span className={labelClass}>Notes</span>
+            <textarea
+              value={formNotes}
+              onChange={(e) => setFormNotes(e.target.value)}
+              className="min-h-24 w-full border border-neutral-200 bg-white px-3 py-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424]"
+              placeholder="Internal launch notes"
+            />
+          </label>
           <div className="flex items-center gap-3">
             <button
               type="submit"

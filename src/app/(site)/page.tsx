@@ -1,6 +1,8 @@
 import { CategoryRepository } from '@/auth/repositories/category.repository';
 import { SectionService } from '@/auth/services/section.service';
 import { getEnv } from '@/auth/config/env';
+import { SeoService } from '@/auth/services/seo.service';
+import { constructMetadata } from '@/lib/seo/metadata';
 import { buildWebPageSchema, serializeJsonLd } from '@/lib/seo/schema-builders';
 import SiteFooter from '@/components/SiteFooter';
 
@@ -15,6 +17,19 @@ import type { SectionItem } from './_components/SectionHelpers';
 
 export const revalidate = 3600; // ISR baseline revalidation: 1 hour
 
+export async function generateMetadata() {
+  const seoService = new SeoService();
+  const globalSettings = await seoService.getGlobalSettings().catch(() => null);
+  const pageSeo = await seoService.getPageSeoByPath('/').catch(() => null);
+
+  return constructMetadata(globalSettings, {
+    title: pageSeo?.title || 'Cross Weave Sourcing | Export-Oriented Garments Manufacturer',
+    description: pageSeo?.description || 'Cross Weave Sourcing (CWS) is an export-oriented garments manufacturer and global sourcing partner for knit, woven and sweater products.',
+    canonicalUrl: pageSeo?.canonicalUrl || '/',
+    noindex: pageSeo?.noindex,
+  });
+}
+
 export default async function HomePage() {
   const categoryRepo = new CategoryRepository();
   const categories = await categoryRepo.findAll();
@@ -23,7 +38,7 @@ export default async function HomePage() {
   const sections = await sectionService.getPublicSections();
 
   const env = getEnv();
-  const schema = buildWebPageSchema(
+  const webPageSchema = buildWebPageSchema(
     env.APP_URL,
     '/',
     'Cross Weave Sourcing | Export-Oriented Garments Manufacturer & Buyer Agent',
@@ -43,7 +58,7 @@ export default async function HomePage() {
 
   return (
     <main id="main-content" className="text-[#1E1E1E] min-h-screen font-sans antialiased selection:bg-[#E02424]/10 selection:text-[#E02424]">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: serializeJsonLd(webPageSchema) }} />
       <HomeHeroSection section={heroSection} />
       <AboutSection section={aboutSection} />
       <ProductsSection section={productsSection} categories={categories} />

@@ -2,10 +2,12 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { SeoService } from '@/auth/services/seo.service';
+import { constructMetadata } from '@/lib/seo/metadata';
 import { ArrowLeft, BookOpen, Mail } from 'lucide-react';
 import ProductFooter from '@/components/ProductFooter';
 import ProductImageGallery from '@/components/ProductImageGallery';
-import { getCachedProductBySlug, getCachedProducts, getCachedCategories, getCachedProductsByCategoryId, getCachedCategoryById } from '@/lib/data/cache';
+import { getCachedProductBySlug, getCachedProducts, getCachedProductsByCategoryId, getCachedCategoryById } from '@/lib/data/cache';
 import { SectionService } from '@/auth/services/section.service';
 import { CatalogDocumentService } from '@/auth/services/catalog-document.service';
 import { getEnv } from '@/auth/config/env';
@@ -34,18 +36,30 @@ export async function generateMetadata({ params }: ProductDetailsPageProps): Pro
   const { slug } = await params;
   const product = await getCachedProductBySlug(slug);
 
+  const seoService = new SeoService();
+  const globalSettings = await seoService.getGlobalSettings().catch(() => null);
+
   if (!product) {
-    return {
-      title: 'Product Not Found | Cross Weave Sourcing',
-    };
+    return constructMetadata(globalSettings, {
+      title: 'Product Not Found',
+      noindex: true,
+    });
   }
 
-  return {
-    title: product.seoOverrides?.title || `${product.name} | Cross Weave Sourcing`,
+  return constructMetadata(globalSettings, {
+    title: product.seoOverrides?.title || product.name,
     description: product.seoOverrides?.description || product.shortDescription,
-    ...(product.seoOverrides?.noindex ? { robots: { index: false, follow: false } } : {}),
-    ...(product.seoOverrides?.canonicalUrl ? { alternates: { canonical: product.seoOverrides.canonicalUrl } } : {})
-  };
+    image: product.images?.[0] || product.image || undefined,
+    canonicalUrl: product.seoOverrides?.canonicalUrl,
+    noindex: product.seoOverrides?.noindex,
+    nofollow: product.seoOverrides?.nofollow,
+    socialTitle: product.seoOverrides?.socialTitle,
+    socialDescription: product.seoOverrides?.socialDescription,
+    socialImage: product.seoOverrides?.socialImage,
+    openGraph: {
+      type: 'article',
+    }
+  });
 }
 
 export default async function ProductDetailsPage({ params }: ProductDetailsPageProps) {
@@ -58,9 +72,6 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
 
   const category = product.categoryId ? await getCachedCategoryById(product.categoryId.toString()) : null;
   const categoryName = category?.name || 'Unknown Category';
-
-  const allCategories = await getCachedCategories();
-  const categoryMap = new Map(allCategories.map(c => [c._id.toString(), c]));
 
   let relatedProducts = [];
   if (product.relatedProducts && product.relatedProducts.length > 0) {
@@ -78,12 +89,15 @@ export default async function ProductDetailsPage({ params }: ProductDetailsPageP
   }
 
   const env = getEnv();
+  const seoService = new SeoService();
+  const globalSettings = await seoService.getGlobalSettings().catch(() => null);
+
   const breadcrumbItems = [
     { name: 'Home', url: `${env.APP_URL}` },
     { name: 'Products', url: `${env.APP_URL}/products` },
     { name: product.name, url: `${env.APP_URL}/products/${product.slug}` },
   ];
-  const productSchema = buildProductSchema(product, categoryName, env.APP_URL);
+  const productSchema = buildProductSchema(product, categoryName, env.APP_URL, globalSettings);
   const breadcrumbSchema = buildBreadcrumbSchema(breadcrumbItems);
   const schemaJson = serializeJsonLd([productSchema, breadcrumbSchema]);
 

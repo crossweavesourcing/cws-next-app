@@ -16,7 +16,7 @@ export default async function CatchAllPage({ params }: Props) {
   const redirectDoc = await service.getActiveRedirectBySource(path);
   
   if (redirectDoc) {
-    if (redirectDoc.statusCode === 301 || redirectDoc.statusCode === 308) {
+    if (redirectDoc.statusCode === 301) {
       permanentRedirect(redirectDoc.destination);
     } else {
       redirect(redirectDoc.destination);

@@ -3,6 +3,8 @@ import { requireCmsPermission } from '../dal';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { ObjectId } from 'mongodb';
 import { CatalogDocumentService } from './catalog-document.service';
+import type { SafeSeoOverrides } from '@/lib/seo/config';
+import { SeoService } from './seo.service';
 
 export class ProductService {
   private productRepo = new ProductRepository();
@@ -11,7 +13,7 @@ export class ProductService {
     data: { 
       categoryId: string | null; name: string; slug: string; shortDescription: string; overview: string; visible: boolean;
       longDescription?: string; materials?: string; process?: string; qualityControl?: string; customization?: string; applications?: string; packaging?: string;
-      faqs?: { question: string; answer: string }[]; relatedProducts?: string[]; seoOverrides?: { title?: string; description?: string; canonicalUrl?: string; noindex?: boolean; };
+      faqs?: { question: string; answer: string }[]; relatedProducts?: string[]; seoOverrides?: SafeSeoOverrides;
     },
     imageFile: File | null,
     imageAltText: string,
@@ -75,7 +77,7 @@ export class ProductService {
     data: { 
       categoryId: string | null; name: string; slug: string; shortDescription: string; overview: string; visible: boolean;
       longDescription?: string; materials?: string; process?: string; qualityControl?: string; customization?: string; applications?: string; packaging?: string;
-      faqs?: { question: string; answer: string }[]; relatedProducts?: string[]; seoOverrides?: { title?: string; description?: string; canonicalUrl?: string; noindex?: boolean; };
+      faqs?: { question: string; answer: string }[]; relatedProducts?: string[]; seoOverrides?: SafeSeoOverrides;
     },
     featuredMediaUrl: string | null,
     existingGalleryUrls: string[],
@@ -87,7 +89,7 @@ export class ProductService {
     features: unknown,
     specifications: unknown
   ) {
-    await requireCmsPermission('products');
+    const session = await requireCmsPermission('products');
 
     const existingProduct = await this.productRepo.findById(id);
     if (!existingProduct) {
@@ -139,6 +141,18 @@ export class ProductService {
 
     if (!updated) {
       throw new Error('Failed to update product in database');
+    }
+
+    if (existingProduct.slug !== data.slug) {
+      await new SeoService().createRedirect({
+        source: `/products/${existingProduct.slug}`,
+        destination: `/products/${data.slug}`,
+        statusCode: 301,
+        active: true,
+        reason: 'Automatic product slug change',
+      }, session.userId).catch((error) => {
+        console.warn(JSON.stringify({ level: 'warn', event: 'product.slug_redirect.skipped', productId: id, errorName: error instanceof Error ? error.name : 'UnknownError' }));
+      });
     }
 
     return true;

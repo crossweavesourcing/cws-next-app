@@ -1,5 +1,6 @@
 import { requireActiveSession } from '@/auth/dal';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { SessionRepository } from '@/auth/repositories/session.repository';
 import { Monitor, ShieldCheck } from 'lucide-react';
 import SessionsClient from './SessionsClient';
@@ -65,12 +66,12 @@ function LinkHeader() {
       <span className="inline-flex min-h-9 items-center gap-2 border border-white/15 bg-white/5 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#E02424]">
         <ShieldCheck className="h-4 w-4" /> CWS Admin Portal
       </span>
-      <a
+      <Link
         href="/dashboard"
         className="text-[11px] font-bold uppercase tracking-[0.14em] text-neutral-400 underline hover:text-white"
       >
         Back to dashboard
-      </a>
+      </Link>
     </div>
   );
 }

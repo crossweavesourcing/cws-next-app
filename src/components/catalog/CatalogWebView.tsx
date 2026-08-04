@@ -1,5 +1,6 @@
 import type { SerializedCatalogDocument } from '@/types/catalog';
 import { isAllowedCloudinaryUrl } from '@/lib/catalog-documents';
+import Image from 'next/image';
 
 export function CatalogWebView({ catalog }: { catalog: SerializedCatalogDocument; sourceUrl?: string }) {
   const pages = [...catalog.pages]
@@ -13,14 +14,16 @@ export function CatalogWebView({ catalog }: { catalog: SerializedCatalogDocument
   return (
     <div className="mx-auto w-full max-w-[1600px] bg-white leading-none">
       {pages.map((page) => (
-        <img
+        <Image
           key={page.pageNumber}
           src={page.secureUrl}
           alt={`Catalog page ${page.pageNumber}`}
           width={page.width}
           height={page.height}
-          loading={page.pageNumber === 1 ? 'eager' : 'lazy'}
+          priority={page.pageNumber === 1}
+          loading={page.pageNumber === 1 ? undefined : 'lazy'}
           className="block h-auto w-full"
+          sizes="100vw"
         />
       ))}
     </div>

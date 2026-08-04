@@ -116,10 +116,13 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
       <section className="relative h-[480px] sm:h-[600px] lg:h-[660px] bg-[#070707] overflow-hidden flex items-center">
         {/* Background photo collage exactly as shown */}
         <div className="absolute inset-0 z-0">
-          <img
+          <Image
             src="/assets/images/tko_hero_1780828164727.png"
             alt="TKO Design Workspace Collage"
-            className="w-full h-full object-cover opacity-60"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover opacity-60"
           />
           <div className="absolute inset-0 bg-black/20" />
         </div>
@@ -167,11 +170,13 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
           </div>
 
           {/* Right Column: Image */}
-          <div className="relative">
-            <img
+          <div className="relative w-full h-[400px] lg:h-full min-h-[380px] lg:min-h-[500px]">
+            <Image
               src="/assets/images/tko_workspace_1780828183652.png"
               alt="TKO Fashion Design Workspace"
-              className="w-full h-[400px] lg:h-full object-cover min-h-[380px] lg:min-h-[500px]"
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 50vw"
             />
           </div>
         </div>
@@ -181,11 +186,13 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
       <section id="strategy" className="py-16 md:py-24 bg-[#EAEAEA]">
         <div className="max-w-7xl mx-auto px-6 md:px-12 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20 items-stretch">
           {/* Left Column: Image */}
-          <div className="relative order-2 lg:order-1">
-            <img
+          <div className="relative order-2 lg:order-1 w-full h-[450px] lg:h-full min-h-[380px]">
+            <Image
               src="/assets/images/tko_collaboration_1780828202517.png"
               alt="TKO Design Team Sourcing Sourcing Sourcing"
-              className="w-full h-[450px] lg:h-full object-cover min-h-[380px]"
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 50vw"
             />
           </div>
 
@@ -216,10 +223,12 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
 
           {/* Row 1: Left Model (MountainLogs) & Right Copper & Oak Emblem */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
-            <img
+            <Image
               src="/assets/images/tko_copper_oak_model_1780828221993.png"
               alt="Copper and Oak Flannel Styling"
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           </div>
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#1E1C1A] text-white p-8 flex flex-col justify-center items-center relative text-center">
@@ -265,19 +274,23 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             </div>
           </div>
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
-            <img
+            <Image
               src="/assets/images/tko_english_laundry_model_1780828240798.png"
               alt="English Laundry Polo Fashion"
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           </div>
 
           {/* Row 3: Left Model & Right Weatherproof label card */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
-            <img
+            <Image
               src="/assets/images/tko_weatherproof_model_1780828259409.png"
               alt="Weatherproof Styling"
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           </div>
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#DDDCCB] p-8 flex flex-col justify-center items-center relative overflow-hidden">
@@ -315,19 +328,23 @@ export default function TKOPage({ theme = 'light', onToggleTheme }: TKOPageProps
             </div>
           </div>
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
-            <img
+            <Image
               src="/assets/images/tko_american_republic_1780828278114.png"
               alt="American Republic Plaid Shirts"
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           </div>
 
           {/* Row 5: Left Sweaters hangar & Right Private Label 3D Text Card */}
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] relative overflow-hidden">
-            <img
+            <Image
               src="/assets/images/tko_private_label_1780828295216.png"
               alt="Colorful Sweaters Activewear"
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
             />
           </div>
           <div className="w-full h-[380px] sm:h-[480px] lg:h-[540px] bg-[#161616] text-white p-8 flex flex-col justify-center items-center relative overflow-hidden">

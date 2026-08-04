@@ -5,9 +5,10 @@ import { CatalogDocumentRepository } from '@/auth/repositories/catalog-document.
 import { CategoryRepository } from '@/auth/repositories/category.repository';
 import { ProductRepository } from '@/auth/repositories/product.repository';
 import { AuditLogRepository } from '@/auth/repositories/audit-log.repository';
-import { catalogMetadataSchema, generateCatalogMarkdown, generateSemanticCatalogMarkdown, serializeCatalog, slugifyCatalog, validateCatalogPages, validateCatalogScene } from '@/lib/catalog-documents';
+import { catalogMetadataSchema, catalogMetadataUpdateSchema, generateCatalogMarkdown, generateSemanticCatalogMarkdown, serializeCatalog, slugifyCatalog, validateCatalogPages, validateCatalogScene } from '@/lib/catalog-documents';
 import { createCatalogUploadSignature, deleteCatalogAsset, inspectAndRenderCatalogPdf } from '@/lib/catalog-cloudinary';
 import { CatalogOperationError } from '@/lib/catalog-errors';
+import { SeoService } from './seo.service';
 
 export type CatalogActor = { userId: ObjectId; sessionId: ObjectId | null; permissions: CmsPermission[]; source: 'web' | 'mobile'; operationId?: string };
 
@@ -89,7 +90,7 @@ export class CatalogDocumentService {
       validateCatalogPages(processed.pages, processed.asset.pages);
       console.info(JSON.stringify({ level: 'info', event: 'catalog.operation.stage', stage: 'database.insert', referenceId: actor.operationId ?? null, pageCount: processed.pages.length }));
       const now = new Date();
-      const document: CatalogDocument = { _id: new ObjectId(), categoryId: parsed.categoryId ? new ObjectId(parsed.categoryId) : null, productId: parsed.productId ? new ObjectId(parsed.productId) : null, title: parsed.title, slug: await this.uniqueSlug(parsed.title), description: parsed.description, status: 'draft', asset: processed.asset, pages: processed.pages, markdown: processed.markdown, sceneVersion: processed.scene.version, scene: processed.scene, processingError: null, publishedAt: null, createdBy: actor.userId, updatedBy: actor.userId, createdAt: now, updatedAt: now };
+      const document: CatalogDocument = { _id: new ObjectId(), categoryId: parsed.categoryId ? new ObjectId(parsed.categoryId) : null, productId: parsed.productId ? new ObjectId(parsed.productId) : null, title: parsed.title, slug: await this.uniqueSlug(parsed.title), description: parsed.description, status: 'draft', asset: processed.asset, pages: processed.pages, markdown: processed.markdown, sceneVersion: processed.scene.version, scene: processed.scene, processingError: null, publishedAt: null, createdBy: actor.userId, updatedBy: actor.userId, createdAt: now, updatedAt: now, seoOverrides: parsed.seoOverrides };
       await this.repo.create(document);
       await this.writeAudit(actor, 'catalog.create', document._id, { categoryId: parsed.categoryId, productId: parsed.productId, pageCount: document.pages.length });
       return serializeCatalog(document);
@@ -115,10 +116,22 @@ export class CatalogDocumentService {
   async updateMetadata(actor: CatalogActor, id: string, input: unknown) {
     const document = await this.repo.findById(id); if (!document) throw new CatalogValidationError('Catalog not found.');
     this.requireAssociations(actor, document.categoryId?.toString() ?? null, document.productId?.toString() ?? null);
-    const parsed = catalogMetadataSchema.pick({ title: true, description: true }).parse(input);
-    const updated = await this.repo.update(document._id, { ...parsed, slug: parsed.title === document.title ? document.slug : await this.uniqueSlug(parsed.title, document._id), updatedBy: actor.userId, updatedAt: new Date(), processingError: null });
+    const parsed = catalogMetadataUpdateSchema.parse(input);
+    const nextSlug = parsed.slug ?? (parsed.title === document.title ? document.slug : await this.uniqueSlug(parsed.title, document._id));
+    const updated = await this.repo.update(document._id, { ...parsed, slug: nextSlug, updatedBy: actor.userId, updatedAt: new Date(), processingError: null });
     if (!updated) throw new CatalogValidationError('Catalog not found.');
-    await this.writeAudit(actor, 'catalog.metadata.updated', document._id);
+    if (nextSlug !== document.slug) {
+      await new SeoService().createRedirect({
+        source: `/catalogs/${document.slug}`,
+        destination: `/catalogs/${nextSlug}`,
+        statusCode: 301,
+        active: true,
+        reason: 'Automatic catalog slug change',
+      }, actor.userId).catch((error) => {
+        console.warn(JSON.stringify({ level: 'warn', event: 'catalog.slug_redirect.skipped', catalogId: id, errorName: error instanceof Error ? error.name : 'UnknownError' }));
+      });
+    }
+    await this.writeAudit(actor, 'catalog.metadata.updated', document._id, { seoFieldsUpdated: Boolean(parsed.seoOverrides), slugChanged: nextSlug !== document.slug });
     return serializeCatalog(updated);
   }
 

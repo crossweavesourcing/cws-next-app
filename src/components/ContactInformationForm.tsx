@@ -40,6 +40,12 @@ function ContactInformationFormInner({ submitLabel }: { submitLabel: string }) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    trackEvent('contact_form_start', {
+      event_id: `contact-start-${formData.idempotencyKey || 'unknown'}`,
+      form_id: 'contact_information_form',
+      form_type: 'contact',
+      page_path: typeof window !== 'undefined' ? window.location.pathname : undefined,
+    });
     setSubmittedName(formData.name);
     setErrorMessage('');
     setModalStage('confirm');
@@ -51,8 +57,11 @@ function ContactInformationFormInner({ submitLabel }: { submitLabel: string }) {
     const result = await submitForm();
     if (result.success) {
       trackEvent('generate_lead', {
+        event_id: `lead-${formData.idempotencyKey || Date.now()}`,
         form_id: 'contact_information_form',
-        subject_category: formData.subject || 'General Inquiry',
+        subject_category: 'contact',
+        form_type: 'contact',
+        page_path: typeof window !== 'undefined' ? window.location.pathname : undefined,
       });
       setModalStage('success');
       setTimeout(() => {
@@ -60,6 +69,11 @@ function ContactInformationFormInner({ submitLabel }: { submitLabel: string }) {
         setModalStage('confirm');
       }, 3000);
     } else {
+      trackEvent('contact_form_error', {
+        event_id: `contact-error-${formData.idempotencyKey || Date.now()}`,
+        form_id: 'contact_information_form',
+        error_category: result.error ? 'server_rejected' : 'unknown',
+      });
       setErrorMessage(result.error || 'Something went wrong. Please try again.');
       setModalStage('error');
     }

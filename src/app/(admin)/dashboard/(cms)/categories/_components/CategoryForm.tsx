@@ -143,6 +143,59 @@ export function CategoryForm({ onSuccess, onCancel }: { onSuccess?: () => void, 
         </div>
       </div>
 
+      <div className="mt-4 border border-white/10 bg-white/[0.04] p-4">
+        <h4 className="mb-3 text-sm font-bold uppercase text-white">SEO Overrides</h4>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Title Override</label>
+            <input name="seoOverrides.title" className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Canonical URL Override</label>
+            <input name="seoOverrides.canonicalUrl" className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" />
+          </div>
+        </div>
+        <div className="mt-4">
+          <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Description Override</label>
+          <textarea name="seoOverrides.description" className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" rows={2} />
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Social Title</label>
+            <input name="seoOverrides.socialTitle" className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Social Image URL</label>
+            <input name="seoOverrides.socialImage" className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" />
+          </div>
+        </div>
+        <div className="mt-4">
+          <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Social Description</label>
+          <textarea name="seoOverrides.socialDescription" className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" rows={2} />
+        </div>
+        <div className="mt-4">
+          <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Breadcrumb Label</label>
+          <input name="seoOverrides.breadcrumbLabel" className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" />
+        </div>
+        <div className="mt-4 space-y-3">
+          <label className="flex items-center gap-2 text-xs font-bold uppercase text-neutral-300">
+            <input type="hidden" name="seoOverrides.noindex" value="false" />
+            <input type="checkbox" name="seoOverrides.noindex" value="true" className="h-4 w-4 accent-[#E02424]" />
+            No Index (Hide from search)
+          </label>
+          <label className="flex items-center gap-2 text-xs font-bold uppercase text-neutral-300">
+            <input type="hidden" name="seoOverrides.nofollow" value="false" />
+            <input type="checkbox" name="seoOverrides.nofollow" value="true" className="h-4 w-4 accent-[#E02424]" />
+            No Follow
+          </label>
+          <label className="flex items-center gap-2 text-xs font-bold uppercase text-neutral-300">
+            <input type="hidden" name="seoOverrides.includeInSitemap" value="false" />
+            <input type="checkbox" name="seoOverrides.includeInSitemap" value="true" defaultChecked className="h-4 w-4 accent-[#E02424]" />
+            Include in sitemap
+          </label>
+        </div>
+      </div>
+
       <div className="flex items-center gap-2 mt-4">
         <input type="hidden" name="visible" value="false" />
         <input type="checkbox" name="visible" value="true" defaultChecked className="mt-1" />

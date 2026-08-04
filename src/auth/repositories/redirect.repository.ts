@@ -10,7 +10,15 @@ export class RedirectRepository {
 
   async findActiveBySource(source: string): Promise<RedirectDocument | null> {
     const collection = await getRedirectsCollection();
-    return collection.findOne({ source, active: true });
+    const now = new Date();
+    return collection.findOne({
+      source,
+      active: true,
+      $and: [
+        { $or: [{ startsAt: { $exists: false } }, { startsAt: null }, { startsAt: { $lte: now } }] },
+        { $or: [{ endsAt: { $exists: false } }, { endsAt: null }, { endsAt: { $gt: now } }] },
+      ],
+    });
   }
 
   async findBySource(source: string): Promise<RedirectDocument | null> {

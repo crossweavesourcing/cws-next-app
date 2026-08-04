@@ -2,12 +2,14 @@ import { CategoryRepository } from '../repositories/category.repository';
 import { requireCmsPermission } from '../dal';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 import { CatalogDocumentService } from './catalog-document.service';
+import type { SafeSeoOverrides } from '@/lib/seo/config';
+import { SeoService } from './seo.service';
 
 export class CategoryService {
   private categoryRepo = new CategoryRepository();
 
   async createCategory(
-    data: { name: string; slug: string; description: string; visible: boolean },
+    data: { name: string; slug: string; description: string; visible: boolean; seoOverrides?: SafeSeoOverrides },
     imageFile: File | null
   ) {
     await requireCmsPermission('categories');
@@ -38,6 +40,7 @@ export class CategoryService {
       description: data.description,
       image: imageUrl,
       visible: data.visible,
+      seoOverrides: data.seoOverrides,
     });
 
     return newCategory;
@@ -45,10 +48,10 @@ export class CategoryService {
 
   async updateCategory(
     id: string,
-    data: { name: string; slug: string; description: string; visible: boolean },
+    data: { name: string; slug: string; description: string; visible: boolean; seoOverrides?: SafeSeoOverrides },
     imageFile: File | null
   ) {
-    await requireCmsPermission('categories');
+    const session = await requireCmsPermission('categories');
 
     const existingCategory = await this.categoryRepo.findById(id);
     if (!existingCategory) {
@@ -69,10 +72,23 @@ export class CategoryService {
       description: data.description,
       image: imageUrl,
       visible: data.visible,
+      seoOverrides: data.seoOverrides,
     });
 
     if (!updated) {
       throw new Error('Failed to update category in database');
+    }
+
+    if (existingCategory.slug !== data.slug) {
+      await new SeoService().createRedirect({
+        source: `/categories/${existingCategory.slug}`,
+        destination: `/categories/${data.slug}`,
+        statusCode: 301,
+        active: true,
+        reason: 'Automatic category slug change',
+      }, session.userId).catch((error) => {
+        console.warn(JSON.stringify({ level: 'warn', event: 'category.slug_redirect.skipped', categoryId: id, errorName: error instanceof Error ? error.name : 'UnknownError' }));
+      });
     }
 
     return true;

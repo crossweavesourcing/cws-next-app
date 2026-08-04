@@ -4,6 +4,11 @@ import { ProductService } from '@/auth/services/product.service';
 import { ProductSchema } from '@/auth/validation/admin.schema';
 import { revalidatePath } from 'next/cache';
 import { sanitizeRichText } from '@/lib/sanitization';
+import { normalizeSeoOverrides } from '@/lib/seo/config';
+
+function checked(formData: FormData, name: string) {
+  return formData.getAll(name).includes('true');
+}
 
 export async function createProduct(formData: FormData) {
   try {
@@ -12,7 +17,7 @@ export async function createProduct(formData: FormData) {
     const slug = formData.get('slug') as string;
     const shortDescription = formData.get('shortDescription') as string;
     const overview = formData.get('overview') as string;
-    const visible = formData.get('visible') === 'true';
+    const visible = checked(formData, 'visible');
 
     const manufacturing = JSON.parse((formData.get('manufacturing') as string) || '[]');
     const features = JSON.parse((formData.get('features') as string) || '[]');
@@ -28,7 +33,7 @@ export async function createProduct(formData: FormData) {
 
     const faqs = JSON.parse((formData.get('faqs') as string) || '[]');
     const relatedProducts = JSON.parse((formData.get('relatedProducts') as string) || '[]');
-    const seoOverrides = JSON.parse((formData.get('seoOverrides') as string) || '{}');
+    const seoOverrides = normalizeSeoOverrides(JSON.parse((formData.get('seoOverrides') as string) || '{}'));
 
     const parsed = ProductSchema.safeParse({ 
       categoryId, name, slug, shortDescription, overview, visible,
@@ -74,6 +79,7 @@ export async function createProduct(formData: FormData) {
     revalidatePath('/dashboard/products');
     revalidatePath('/');
     revalidatePath('/products');
+    revalidatePath('/sitemap.xml');
     revalidatePath(`/products/${parsed.data.slug}`);
     return { success: true, productId: newProduct._id.toString() };
   } catch (error: unknown) {
@@ -89,7 +95,7 @@ export async function updateProduct(id: string, formData: FormData) {
     const slug = formData.get('slug') as string;
     const shortDescription = formData.get('shortDescription') as string;
     const overview = formData.get('overview') as string;
-    const visible = formData.get('visible') === 'true';
+    const visible = checked(formData, 'visible');
 
     const manufacturing = JSON.parse((formData.get('manufacturing') as string) || '[]');
     const features = JSON.parse((formData.get('features') as string) || '[]');
@@ -105,7 +111,7 @@ export async function updateProduct(id: string, formData: FormData) {
 
     const faqs = JSON.parse((formData.get('faqs') as string) || '[]');
     const relatedProducts = JSON.parse((formData.get('relatedProducts') as string) || '[]');
-    const seoOverrides = JSON.parse((formData.get('seoOverrides') as string) || '{}');
+    const seoOverrides = normalizeSeoOverrides(JSON.parse((formData.get('seoOverrides') as string) || '{}'));
 
     const parsed = ProductSchema.safeParse({ 
       categoryId: categoryId || null, name, slug, shortDescription, overview, visible,
@@ -157,6 +163,7 @@ export async function updateProduct(id: string, formData: FormData) {
     revalidatePath('/');
     revalidatePath('/products');
     revalidatePath(`/products/${parsed.data.slug}`);
+    revalidatePath('/sitemap.xml');
     return { success: true };
   } catch (error: unknown) {
     console.error('Error updating product:', error);
@@ -173,6 +180,7 @@ export async function deleteProduct(id: string) {
     revalidatePath('/');
     revalidatePath('/products');
     revalidatePath('/products/[slug]', 'page');
+    revalidatePath('/sitemap.xml');
     return { success: true };
   } catch (error: unknown) {
     console.error('Error deleting product:', error);

@@ -14,6 +14,7 @@ const envSchema = z.object({
   // Public variables
   NEXT_PUBLIC_SITE_ENV: z.string().optional(),
   NEXT_PUBLIC_GTM_ID: z.string().optional(),
+  NEXT_PUBLIC_GA4_MEASUREMENT_ID: z.string().regex(/^G-[A-Z0-9]+$/).optional(),
   NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION: z.string().optional(),
   NEXT_PUBLIC_BING_SITE_VERIFICATION: z.string().optional(),
 

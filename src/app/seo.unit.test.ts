@@ -65,11 +65,17 @@ describe('SEO Metadata - sitemap.ts', () => {
     
     const mockCatalogs = [
       { slug: 'published-catalog', status: 'published', updatedAt: new Date('2026-01-03') },
+      { slug: 'noindex-catalog', status: 'published', updatedAt: new Date('2026-01-04'), seoOverrides: { noindex: true } },
+    ];
+
+    const mockCategories = [
+      { slug: 'visible-category', visible: true, updatedAt: new Date('2026-01-05') },
+      { slug: 'hidden-category', visible: false, updatedAt: new Date('2026-01-06') },
     ];
 
     ProductRepository.prototype.findAll = vi.fn().mockResolvedValue(mockProducts);
     CatalogDocumentRepository.prototype.findAll = vi.fn().mockResolvedValue(mockCatalogs);
-    CategoryRepository.prototype.findAll = vi.fn().mockResolvedValue([]);
+    CategoryRepository.prototype.findAll = vi.fn().mockResolvedValue(mockCategories);
 
     const result = await sitemap();
 
@@ -80,7 +86,10 @@ describe('SEO Metadata - sitemap.ts', () => {
 
     // Verify dynamic routes include only published ones
     expect(urls).toContain('https://example.com/products/published-product');
+    expect(urls).toContain('https://example.com/categories/visible-category');
     expect(urls).toContain('https://example.com/catalogs/published-catalog');
+    expect(urls).not.toContain('https://example.com/categories/hidden-category');
+    expect(urls).not.toContain('https://example.com/catalogs/noindex-catalog');
     
     // Verify exclusions of unpublished items
     expect(urls).not.toContain('https://example.com/products/hidden-product');

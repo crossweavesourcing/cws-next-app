@@ -1,21 +1,33 @@
-# Audit Findings Reconciliation
+# Implementation Tracker
 
-This document reconciles all previously generated audit findings against the explicit instruction to verify the actual codebase, classifying them by status.
+- [x] Phase 0: Verify the audit and establish a baseline
+- [x] Phase 1: Crawlability, indexation, and route protection
+- [x] Phase 2: Global and dynamic metadata
+- [x] Phase 3: Structured data and machine-readable entities
+- [x] Phase 4: Image delivery and Core Web Vitals foundation
+- [x] Phase 5: Server Components, JavaScript reduction, caching, and ISR
+- [x] Phase 6: Content architecture, semantic HTML, and product depth
+- [x] Phase 7: Accessibility production gate
+- [x] Phase 8: Analytics, attribution, consent, and conversion measurement
+- [ ] Phase 9: Conversion experience, trust, and marketing content
+- [ ] Phase 10: Security, privacy, reliability, and deployment verification
+- [ ] Phase 11: Final launch qualification
 
-| Finding | Category | Status | Notes |
-|---|---|---|---|
-| Missing `robots.txt` and `sitemap.xml` | Critical | **Fixed** | Dynamic `robots.ts` and `sitemap.ts` implemented |
-| Missing Structured Data (JSON-LD) | Critical | **Fixed** | Implemented on all public pages. |
-| Image Optimization Disabled | Critical | **Fixed** | Removed `unoptimized: true` from `next.config.ts`. |
-| Missing Global Metadata (OG/Twitter) | Critical | **Confirmed** | only title/description in root `layout.tsx`. |
-| Zero Analytics or Conversion Tracking | High | **Confirmed** | verified via source inspection. |
-| Heavy CSR on Homepage | High | **Fixed** | Migrated `HomePageClient.tsx` to Server Components and added ISR. |
-| No Canonical URLs on Dynamic Routes | High | **Fixed** | Handled along with Structured Data update. |
-| Missing Hreflang & International tags | High | **Confirmed** | absent from `layout.tsx` metadata. |
-| Missing ARIA Labels / Accessible Names | Medium | **Fixed** | Implemented ARIA labels, focus traps, semantic HTML, and contrast fixes across all public routes. |
-| Incomplete next/image attributes | Medium | **Fixed** | hero image uses `loading="eager"` and `fetchPriority="high"` via `<Image priority fetchPriority="high">`. |
-| Thin Content on Product Pages | Medium | **Blocked by missing business info** | requires actual marketing copy to evaluate properly; currently using placeholder/short strings. (Non-blocking for launch). |
-| Lack of Pre-connect/Pre-fetch Hints | Low | **Confirmed** | no explicit `<link rel="preconnect">` found. |
-| Unoptimized Heading Hierarchies | Low | **Fixed** | decorative text correctly avoids `<hN>` tags; H1-H6 hierarchy optimized. |
-| Security Headers Implemented | Security | **Fixed** | robust CSP and headers found in `next.config.ts` and `src/proxy.ts`. Rate limiting and Idempotency keys added. |
-| Lack of Edge HSTS | Security | **Production-only** | intentionally delegated to Vercel/Netlify per code comments. |
+Latest implementation pass:
+
+- Added dedicated category landing pages and category sitemap behavior.
+- Completed catalog SEO override persistence.
+- Hardened internal-only redirect management.
+- Moved runtime analytics container loading to environment-controlled IDs.
+- Added contact and catalog engagement events with PII stripping.
+- Added SEO Health dashboard module.
+- Fixed checkbox-backed dashboard SEO controls so visible/index/follow/sitemap values persist from checked UI state.
+- Added final readiness documentation in `docs/final-marketing-readiness/`.
+- Final verification completed: `pnpm test:unit`, `pnpm lint`, `pnpm docs:check`, `pnpm test:api-contract`, `pnpm test:e2e`, `pnpm build`, and `git diff --check`.
+
+Remaining blockers for unconditional GO:
+
+- Production `GEOIP_LOOKUP_URL` verification.
+- Production dashboard-to-public runtime checks.
+- Production performance regression execution.
+- Trust-content and reusable FAQ/bulk SEO modules require approved data/modeling before publication.

@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   buildOrganizationSchema,
   buildWebSiteSchema,
-  buildWebPageSchema,
   buildProductSchema,
   buildBreadcrumbSchema,
   serializeJsonLd,
@@ -13,12 +12,16 @@ describe('Schema Builders', () => {
   const APP_URL = 'https://example.com';
 
   it('builds Organization schema without inventing missing data', () => {
-    const sectionContent = {
-      bangladeshAddress: '123 Fake St, BD',
+    const settings = {
+      _id: new ObjectId().toString(),
+      brandName: 'Cross Weave Sourcing',
+      contactAddress: '123 Fake St, BD',
+      updatedAt: null,
+      updatedBy: null,
     };
     
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const org: any = buildOrganizationSchema(APP_URL, sectionContent as any);
+    const org: any = buildOrganizationSchema(APP_URL, settings as any);
     expect(org['@type']).toBe('Organization');
     expect(org.name).toBe('Cross Weave Sourcing');
     expect(org.address).toBeDefined();
@@ -31,7 +34,7 @@ describe('Schema Builders', () => {
 
   it('builds WebSite schema without SearchAction', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const site: any = buildWebSiteSchema(APP_URL);
+    const site: any = buildWebSiteSchema(APP_URL, null);
     expect(site['@type']).toBe('WebSite');
     expect(site.url).toBe(APP_URL);
     expect(site.potentialAction).toBeUndefined(); // No SearchAction
@@ -61,7 +64,7 @@ describe('Schema Builders', () => {
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const product: any = buildProductSchema(mockProduct, 'Shirts', APP_URL);
+    const product: any = buildProductSchema(mockProduct, 'Shirts', APP_URL, null);
     
     expect(product['@type']).toBe('Product');
     expect(product.name).toBe('Test Product');

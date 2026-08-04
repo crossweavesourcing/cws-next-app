@@ -4,23 +4,25 @@ import "./globals.css";
 
 import { GoogleTagManager } from '@next/third-parties/google';
 
-export const metadata: Metadata = {
-  title: 'Cross Weave Sourcing | Export-Oriented Garments Manufacturer & Buyer Agent',
-  description: 'Cross Weave Sourcing (CWS) is an export-oriented garments manufacturer and global sourcing partner for knit, woven and sweater products, supporting brands with development, sampling, bulk production and shipment.',
-  verification: {
-    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
-    other: {
-      'msvalidate.01': process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION ? [process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION] : [],
-    },
-  },
-};
+import { SeoService } from '@/auth/services/seo.service';
+import { getEnv } from '@/auth/config/env';
+import { constructMetadata } from '@/lib/seo/metadata';
 
-export default function RootLayout({
+export async function generateMetadata(): Promise<Metadata> {
+  const seoService = new SeoService();
+  const globalSettings = await seoService.getGlobalSettings().catch(() => null);
+
+  return constructMetadata(globalSettings);
+}
+
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const gtmId = process.env.NEXT_PUBLIC_GTM_ID;
+  const env = getEnv();
+  const siteEnv = env.NEXT_PUBLIC_SITE_ENV ?? process.env.VERCEL_ENV ?? 'development';
+  const analyticsEnabled = siteEnv === 'production' && Boolean(env.NEXT_PUBLIC_GTM_ID);
   return (
     <html lang="en" className="dark scroll-smooth tko-page  tko-page-light" data-scroll-behavior="smooth">
       <head>
@@ -41,7 +43,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         {children}
-        {gtmId && <GoogleTagManager gtmId={gtmId} />}
+        {analyticsEnabled && env.NEXT_PUBLIC_GTM_ID && <GoogleTagManager gtmId={env.NEXT_PUBLIC_GTM_ID} />}
       </body>
     </html>
   );

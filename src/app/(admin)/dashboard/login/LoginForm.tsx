@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import {
   ArrowRight,
   CheckCircle2,
@@ -122,12 +123,12 @@ export default function LoginForm({ initialError }: { initialError?: string }) {
       </section>
 
       <div className="text-center">
-        <a
+        <Link
           href="/dashboard/forgot-password"
           className="text-[11px] font-bold uppercase tracking-[0.14em] text-neutral-500 underline hover:text-neutral-900"
         >
           Forgot password?
-        </a>
+        </Link>
       </div>
 
       <div className="relative py-2 text-center">
@@ -139,6 +140,7 @@ export default function LoginForm({ initialError }: { initialError?: string }) {
 
       <PasskeyLoginButton email={email} />
 
+      {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
       <a
         href="/api/auth/google"
         className="inline-flex min-h-12 w-full items-center justify-center gap-3 border border-neutral-300 bg-white px-5 py-3 text-center text-xs font-bold uppercase tracking-[0.18em] text-neutral-800 transition-colors hover:bg-neutral-50"

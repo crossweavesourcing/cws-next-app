@@ -1,0 +1,242 @@
+$ node security-scan.js && next build
+🔍 Starting codebase security scan...
+📁 Target: /Users/User/Documents/projects/cws-proj/cws-next-app
+
+📊 Progress: 100/100 files scanned
+📊 Progress: 200/200 files scanned
+📊 Progress: 300/300 files scanned
+⚡ MEDIUM: src/auth/services/oauth.service.unit.test.ts (Score: 8)
+📊 Progress: 400/400 files scanned
+
+📄 JSON report saved: security-scan-results/scan-report.json
+📄 Text report saved: security-scan-results/scan-summary.txt
+📄 HTML report saved: security-scan-results/scan-report.html
+
+================================================================================
+📊 SCAN COMPLETE
+================================================================================
+⏱️  Duration: 0.14s
+📁 Files Scanned: 491
+⚠️  Files with Issues: 21
+🚨 Malicious Files: 0
+
+📈 Risk Breakdown:
+   🔴 CRITICAL: 0
+   🟠 HIGH: 0
+   🟡 MEDIUM: 1
+   🟢 LOW: 20
+================================================================================
+
+
+✅ Security Scan Passed.
+▲ Next.js 16.2.7 (Turbopack)
+- Environments: .env
+- Experiments (use with caution):
+  · serverActions
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 10.5s
+  Running TypeScript ...
+  Finished TypeScript in 7.3s ...
+  Collecting page data using 7 workers ...
+{"level":"info","event":"security.alerting.configured","sink":"console","ts":"2026-08-04T16:07:45.573Z"}
+  Generating static pages using 7 workers (0/84) ...
+⚠️  SECURITY: STEP_UP_ENABLED is on but GEOIP_LOOKUP_URL is not set. Geo resolution is fail-open (null on miss), so the country-change branch of step-up MFA will NOT trigger — only NEW-DEVICE logins will be challenged. Configure GEOIP_LOOKUP_URL in production to enable country-change step-up.
+  Generating static pages using 7 workers (21/84) 
+⚠️  SECURITY: STEP_UP_ENABLED is on but GEOIP_LOOKUP_URL is not set. Geo resolution is fail-open (null on miss), so the country-change branch of step-up MFA will NOT trigger — only NEW-DEVICE logins will be challenged. Configure GEOIP_LOOKUP_URL in production to enable country-change step-up.
+{"level":"info","event":"security.alerting.configured","sink":"console","ts":"2026-08-04T16:07:46.548Z"}
+⚠️  SECURITY: STEP_UP_ENABLED is on but GEOIP_LOOKUP_URL is not set. Geo resolution is fail-open (null on miss), so the country-change branch of step-up MFA will NOT trigger — only NEW-DEVICE logins will be challenged. Configure GEOIP_LOOKUP_URL in production to enable country-change step-up.
+{"level":"info","event":"security.alerting.configured","sink":"console","ts":"2026-08-04T16:07:46.559Z"}
+  Generating static pages using 7 workers (42/84) 
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":394,"requestId":24,"timestamp":"2026-08-04T16:07:47.823Z","ts":"2026-08-04T16:07:47.823Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":299,"requestId":26,"timestamp":"2026-08-04T16:07:48.145Z","ts":"2026-08-04T16:07:48.145Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":309,"requestId":28,"timestamp":"2026-08-04T16:07:48.157Z","ts":"2026-08-04T16:07:48.157Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":336,"requestId":29,"timestamp":"2026-08-04T16:07:48.482Z","ts":"2026-08-04T16:07:48.482Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":326,"requestId":30,"timestamp":"2026-08-04T16:07:48.484Z","ts":"2026-08-04T16:07:48.484Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":721,"requestId":27,"timestamp":"2026-08-04T16:07:48.569Z","ts":"2026-08-04T16:07:48.569Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":225,"requestId":32,"timestamp":"2026-08-04T16:07:48.708Z","ts":"2026-08-04T16:07:48.709Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":226,"requestId":33,"timestamp":"2026-08-04T16:07:48.711Z","ts":"2026-08-04T16:07:48.711Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":244,"requestId":34,"timestamp":"2026-08-04T16:07:48.814Z","ts":"2026-08-04T16:07:48.814Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":228,"requestId":36,"timestamp":"2026-08-04T16:07:48.937Z","ts":"2026-08-04T16:07:48.937Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":264,"requestId":37,"timestamp":"2026-08-04T16:07:48.976Z","ts":"2026-08-04T16:07:48.976Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":237,"requestId":38,"timestamp":"2026-08-04T16:07:49.052Z","ts":"2026-08-04T16:07:49.052Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":240,"requestId":40,"timestamp":"2026-08-04T16:07:49.178Z","ts":"2026-08-04T16:07:49.178Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":213,"requestId":41,"timestamp":"2026-08-04T16:07:49.190Z","ts":"2026-08-04T16:07:49.190Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":246,"requestId":42,"timestamp":"2026-08-04T16:07:49.300Z","ts":"2026-08-04T16:07:49.300Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":235,"requestId":43,"timestamp":"2026-08-04T16:07:49.414Z","ts":"2026-08-04T16:07:49.414Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":242,"requestId":44,"timestamp":"2026-08-04T16:07:49.434Z","ts":"2026-08-04T16:07:49.434Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":220,"requestId":45,"timestamp":"2026-08-04T16:07:49.523Z","ts":"2026-08-04T16:07:49.523Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":233,"requestId":46,"timestamp":"2026-08-04T16:07:49.648Z","ts":"2026-08-04T16:07:49.648Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":240,"requestId":47,"timestamp":"2026-08-04T16:07:49.674Z","ts":"2026-08-04T16:07:49.674Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":245,"requestId":48,"timestamp":"2026-08-04T16:07:49.772Z","ts":"2026-08-04T16:07:49.772Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":237,"requestId":50,"timestamp":"2026-08-04T16:07:49.886Z","ts":"2026-08-04T16:07:49.886Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":236,"requestId":52,"timestamp":"2026-08-04T16:07:49.911Z","ts":"2026-08-04T16:07:49.911Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":231,"requestId":53,"timestamp":"2026-08-04T16:07:50.005Z","ts":"2026-08-04T16:07:50.005Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":231,"requestId":56,"timestamp":"2026-08-04T16:07:50.117Z","ts":"2026-08-04T16:07:50.117Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":235,"requestId":58,"timestamp":"2026-08-04T16:07:50.146Z","ts":"2026-08-04T16:07:50.146Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":239,"requestId":59,"timestamp":"2026-08-04T16:07:50.245Z","ts":"2026-08-04T16:07:50.245Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":229,"requestId":62,"timestamp":"2026-08-04T16:07:50.347Z","ts":"2026-08-04T16:07:50.347Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":244,"requestId":64,"timestamp":"2026-08-04T16:07:50.392Z","ts":"2026-08-04T16:07:50.392Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":233,"requestId":65,"timestamp":"2026-08-04T16:07:50.480Z","ts":"2026-08-04T16:07:50.480Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":235,"requestId":67,"timestamp":"2026-08-04T16:07:50.578Z","ts":"2026-08-04T16:07:50.578Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":253,"requestId":68,"timestamp":"2026-08-04T16:07:50.602Z","ts":"2026-08-04T16:07:50.602Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":275,"requestId":69,"timestamp":"2026-08-04T16:07:50.635Z","ts":"2026-08-04T16:07:50.635Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":298,"requestId":70,"timestamp":"2026-08-04T16:07:50.692Z","ts":"2026-08-04T16:07:50.692Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":328,"requestId":71,"timestamp":"2026-08-04T16:07:50.809Z","ts":"2026-08-04T16:07:50.809Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":312,"requestId":72,"timestamp":"2026-08-04T16:07:50.891Z","ts":"2026-08-04T16:07:50.891Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"catalog_documents","durationMs":321,"requestId":74,"timestamp":"2026-08-04T16:07:51.013Z","ts":"2026-08-04T16:07:51.013Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"catalog_documents","durationMs":292,"requestId":75,"timestamp":"2026-08-04T16:07:51.101Z","ts":"2026-08-04T16:07:51.101Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":293,"requestId":76,"timestamp":"2026-08-04T16:07:51.185Z","ts":"2026-08-04T16:07:51.185Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":347,"requestId":80,"timestamp":"2026-08-04T16:07:51.368Z","ts":"2026-08-04T16:07:51.368Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":355,"requestId":79,"timestamp":"2026-08-04T16:07:51.376Z","ts":"2026-08-04T16:07:51.376Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":349,"requestId":81,"timestamp":"2026-08-04T16:07:51.454Z","ts":"2026-08-04T16:07:51.454Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":377,"requestId":82,"timestamp":"2026-08-04T16:07:51.564Z","ts":"2026-08-04T16:07:51.564Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":383,"requestId":85,"timestamp":"2026-08-04T16:07:51.751Z","ts":"2026-08-04T16:07:51.751Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":339,"requestId":88,"timestamp":"2026-08-04T16:07:52.090Z","ts":"2026-08-04T16:07:52.090Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":389,"requestId":89,"timestamp":"2026-08-04T16:07:52.445Z","ts":"2026-08-04T16:07:52.446Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":442,"requestId":91,"timestamp":"2026-08-04T16:07:52.539Z","ts":"2026-08-04T16:07:52.539Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"catalog_documents","durationMs":5253,"requestId":73,"timestamp":"2026-08-04T16:07:55.856Z","ts":"2026-08-04T16:07:55.856Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":446,"requestId":94,"timestamp":"2026-08-04T16:07:56.329Z","ts":"2026-08-04T16:07:56.329Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":632,"requestId":96,"timestamp":"2026-08-04T16:07:56.963Z","ts":"2026-08-04T16:07:56.963Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":633,"requestId":95,"timestamp":"2026-08-04T16:07:56.964Z","ts":"2026-08-04T16:07:56.964Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"catalog_documents","durationMs":4906,"requestId":90,"timestamp":"2026-08-04T16:07:56.997Z","ts":"2026-08-04T16:07:56.997Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":419,"requestId":97,"timestamp":"2026-08-04T16:07:57.422Z","ts":"2026-08-04T16:07:57.422Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":528,"requestId":99,"timestamp":"2026-08-04T16:07:57.955Z","ts":"2026-08-04T16:07:57.955Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":530,"requestId":98,"timestamp":"2026-08-04T16:07:57.957Z","ts":"2026-08-04T16:07:57.957Z"}
+  Generating static pages using 7 workers (63/84) 
+{"level":"warn","event":"db.slow_query","command":"find","collection":"catalog_documents","durationMs":8379,"requestId":93,"timestamp":"2026-08-04T16:08:00.920Z","ts":"2026-08-04T16:08:00.920Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":1611,"requestId":103,"timestamp":"2026-08-04T16:08:02.545Z","ts":"2026-08-04T16:08:02.545Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":261,"requestId":104,"timestamp":"2026-08-04T16:08:02.808Z","ts":"2026-08-04T16:08:02.808Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":250,"requestId":106,"timestamp":"2026-08-04T16:08:03.064Z","ts":"2026-08-04T16:08:03.064Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":289,"requestId":105,"timestamp":"2026-08-04T16:08:03.103Z","ts":"2026-08-04T16:08:03.103Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"catalog_documents","durationMs":35937,"requestId":92,"timestamp":"2026-08-04T16:08:28.384Z","ts":"2026-08-04T16:08:28.384Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":110,"requestId":126,"timestamp":"2026-08-04T16:08:28.637Z","ts":"2026-08-04T16:08:28.637Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":129,"requestId":127,"timestamp":"2026-08-04T16:08:28.656Z","ts":"2026-08-04T16:08:28.656Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":127,"requestId":128,"timestamp":"2026-08-04T16:08:28.800Z","ts":"2026-08-04T16:08:28.800Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":111,"requestId":154,"timestamp":"2026-08-04T16:08:29.164Z","ts":"2026-08-04T16:08:29.164Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":133,"requestId":156,"timestamp":"2026-08-04T16:08:29.225Z","ts":"2026-08-04T16:08:29.225Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":165,"requestId":157,"timestamp":"2026-08-04T16:08:29.263Z","ts":"2026-08-04T16:08:29.263Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"catalog_documents","durationMs":147,"requestId":158,"timestamp":"2026-08-04T16:08:29.267Z","ts":"2026-08-04T16:08:29.267Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"catalog_documents","durationMs":141,"requestId":159,"timestamp":"2026-08-04T16:08:29.306Z","ts":"2026-08-04T16:08:29.306Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":191,"requestId":160,"timestamp":"2026-08-04T16:08:29.417Z","ts":"2026-08-04T16:08:29.417Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"catalog_documents","durationMs":154,"requestId":161,"timestamp":"2026-08-04T16:08:29.418Z","ts":"2026-08-04T16:08:29.418Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":150,"requestId":162,"timestamp":"2026-08-04T16:08:29.422Z","ts":"2026-08-04T16:08:29.422Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":151,"requestId":163,"timestamp":"2026-08-04T16:08:29.423Z","ts":"2026-08-04T16:08:29.423Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":112,"requestId":165,"timestamp":"2026-08-04T16:08:29.433Z","ts":"2026-08-04T16:08:29.433Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":145,"requestId":169,"timestamp":"2026-08-04T16:08:29.570Z","ts":"2026-08-04T16:08:29.570Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":200,"requestId":171,"timestamp":"2026-08-04T16:08:29.714Z","ts":"2026-08-04T16:08:29.714Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"catalog_documents","durationMs":130,"requestId":173,"timestamp":"2026-08-04T16:08:29.883Z","ts":"2026-08-04T16:08:29.883Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":158,"requestId":174,"timestamp":"2026-08-04T16:08:29.979Z","ts":"2026-08-04T16:08:29.979Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"categories","durationMs":199,"requestId":176,"timestamp":"2026-08-04T16:08:30.084Z","ts":"2026-08-04T16:08:30.084Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":244,"requestId":177,"timestamp":"2026-08-04T16:08:30.129Z","ts":"2026-08-04T16:08:30.129Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"products","durationMs":477,"requestId":179,"timestamp":"2026-08-04T16:08:30.458Z","ts":"2026-08-04T16:08:30.458Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":164,"requestId":182,"timestamp":"2026-08-04T16:08:30.486Z","ts":"2026-08-04T16:08:30.486Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"sections","durationMs":109,"requestId":186,"timestamp":"2026-08-04T16:08:30.721Z","ts":"2026-08-04T16:08:30.721Z"}
+{"level":"warn","event":"db.slow_query","command":"find","collection":"catalog_documents","durationMs":49340,"requestId":46,"timestamp":"2026-08-04T16:08:36.147Z","ts":"2026-08-04T16:08:36.147Z"}
+✓ Generating static pages using 7 workers (84/84) in 50s
+  Finalizing page optimization ...
+
+Route (app)                                          Revalidate  Expire
+┌ ○ /                                                        1h      1y
+├ ○ /_not-found
+├ ƒ /(.)catalogs/[slug]
+├ ƒ /[...catchAll]
+├ ƒ /api-docs
+├ ƒ /api/auth/google
+├ ƒ /api/auth/google/callback
+├ ƒ /api/auth/login
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/refresh
+├ ƒ /api/auth/test-cookies
+├ ƒ /api/auth/webauthn/login-options
+├ ƒ /api/auth/webauthn/login-verify
+├ ƒ /api/auth/webauthn/register-options
+├ ƒ /api/auth/webauthn/register-verify
+├ ƒ /api/chat
+├ ƒ /api/contact
+├ ƒ /api/health
+├ ƒ /api/mobile/v1/.well-known/jwks.json
+├ ƒ /api/mobile/v1/admin/catalogs
+├ ƒ /api/mobile/v1/admin/catalogs/[id]
+├ ƒ /api/mobile/v1/admin/catalogs/[id]/associations
+├ ƒ /api/mobile/v1/admin/catalogs/[id]/publication
+├ ƒ /api/mobile/v1/admin/catalogs/[id]/replacement
+├ ƒ /api/mobile/v1/admin/categories
+├ ƒ /api/mobile/v1/admin/categories/[id]
+├ ƒ /api/mobile/v1/admin/products
+├ ƒ /api/mobile/v1/admin/products/[id]
+├ ƒ /api/mobile/v1/admin/sections
+├ ƒ /api/mobile/v1/admin/sections/[id]
+├ ƒ /api/mobile/v1/admin/sessions/revoke
+├ ƒ /api/mobile/v1/auth/google
+├ ƒ /api/mobile/v1/auth/logout
+├ ƒ /api/mobile/v1/auth/me
+├ ƒ /api/mobile/v1/auth/mfa/email
+├ ƒ /api/mobile/v1/auth/mfa/totp
+├ ƒ /api/mobile/v1/auth/mfa/webauthn/options
+├ ƒ /api/mobile/v1/auth/mfa/webauthn/verify
+├ ƒ /api/mobile/v1/auth/passkeys
+├ ƒ /api/mobile/v1/auth/passkeys/[id]
+├ ƒ /api/mobile/v1/auth/passkeys/login/options
+├ ƒ /api/mobile/v1/auth/passkeys/login/verify
+├ ƒ /api/mobile/v1/auth/passkeys/register/options
+├ ƒ /api/mobile/v1/auth/passkeys/register/verify
+├ ƒ /api/mobile/v1/auth/password
+├ ƒ /api/mobile/v1/auth/refresh
+├ ƒ /api/mobile/v1/users/[id]
+├ ○ /apple-icon.png
+├ ƒ /catalogs/[slug]
+├ ƒ /catalogs/[slug]/source
+├ ƒ /dashboard
+├ ƒ /dashboard/account-security
+├ ƒ /dashboard/catalogs/[id]/preview
+├ ƒ /dashboard/catalogs/[id]/preview/source
+├ ƒ /dashboard/categories
+├ ƒ /dashboard/categories/(.)[id]/edit
+├ ƒ /dashboard/categories/(.)new
+├ ƒ /dashboard/categories/[id]/edit
+├ ƒ /dashboard/categories/new
+├ ƒ /dashboard/change-password
+├ ƒ /dashboard/design
+├ ○ /dashboard/forgot-password
+├ ƒ /dashboard/login
+├ ƒ /dashboard/media
+├ ƒ /dashboard/navigation
+├ ƒ /dashboard/page-content
+├ ƒ /dashboard/products
+├ ƒ /dashboard/products/(.)[id]/edit
+├ ƒ /dashboard/products/(.)new
+├ ƒ /dashboard/products/[id]/edit
+├ ƒ /dashboard/products/new
+├ ƒ /dashboard/reset-password
+├ ƒ /dashboard/security
+├ ƒ /dashboard/seo
+├ ƒ /dashboard/sessions
+├ ƒ /dashboard/users
+├ ƒ /dashboard/users/(.)new
+├ ƒ /dashboard/users/new
+├ ƒ /dashboard/verify-2fa
+├ ƒ /dashboard/visibility
+├ ○ /icon.png
+├ ○ /legal/accessibility
+├ ○ /legal/cookie-policy
+├ ○ /legal/privacy
+├ ○ /legal/terms
+├ ƒ /openapi.json
+├ ƒ /pdf.worker.min.mjs
+├ ○ /products                                                1h      1y
+├ ● /products/[slug]                                         1h      1y
+│ ├ /products/canvas-utility-tote                            1h      1y
+│ ├ /products/cotton-blend-cardigan                          1h      1y
+│ ├ /products/heavy-gauge-pullover                           1h      1y
+│ └ [+10 more paths]
+├ ○ /robots.txt
+└ ○ /sitemap.xml
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+

@@ -1,8 +1,14 @@
 export type EventName = 
+  | 'contact_form_start'
+  | 'contact_form_error'
   | 'generate_lead'
+  | 'request_quote'
   | 'view_item'
   | 'select_item'
   | 'view_catalog'
+  | 'catalog_view'
+  | 'catalog_download'
+  | 'catalog_external_open'
   | 'interaction_gallery';
 
 export interface BaseEventParams {
@@ -12,7 +18,14 @@ export interface BaseEventParams {
 
 export interface GenerateLeadParams extends BaseEventParams {
   form_id: string;
-  subject_category: string;
+  subject_category?: string;
+  form_type?: string;
+  page_path?: string;
+}
+
+export interface ContactFormErrorParams extends BaseEventParams {
+  form_id: string;
+  error_category: string;
 }
 
 export interface ViewItemParams extends BaseEventParams {
@@ -26,8 +39,12 @@ export interface SelectItemParams extends BaseEventParams {
 }
 
 export interface ViewCatalogParams extends BaseEventParams {
+  catalog_slug?: string;
   catalog_title: string;
-  page_count: number;
+  page_count?: number;
+  page_path?: string;
+  product_context?: string;
+  category_context?: string;
 }
 
 export interface InteractionGalleryParams extends BaseEventParams {
@@ -35,10 +52,16 @@ export interface InteractionGalleryParams extends BaseEventParams {
 }
 
 export type EventParams<T extends EventName> = 
+  T extends 'contact_form_start' ? GenerateLeadParams :
+  T extends 'contact_form_error' ? ContactFormErrorParams :
   T extends 'generate_lead' ? GenerateLeadParams :
+  T extends 'request_quote' ? GenerateLeadParams :
   T extends 'view_item' ? ViewItemParams :
   T extends 'select_item' ? SelectItemParams :
   T extends 'view_catalog' ? ViewCatalogParams :
+  T extends 'catalog_view' ? ViewCatalogParams :
+  T extends 'catalog_download' ? ViewCatalogParams :
+  T extends 'catalog_external_open' ? ViewCatalogParams :
   T extends 'interaction_gallery' ? InteractionGalleryParams :
   BaseEventParams;
 
@@ -50,7 +73,7 @@ const processedEventIds = new Set<string>();
  */
 function stripPII(params: Record<string, unknown>): Record<string, unknown> {
   const safeParams = { ...params };
-  const blockedKeys = ['email', 'name', 'phone', 'message', 'firstName', 'lastName'];
+  const blockedKeys = ['email', 'name', 'phone', 'message', 'firstName', 'lastName', 'company', 'file', 'filename', 'session', 'token', 'auth'];
   
   for (const key of Object.keys(safeParams)) {
     if (blockedKeys.some(blocked => key.toLowerCase().includes(blocked.toLowerCase()))) {
@@ -65,6 +88,9 @@ function stripPII(params: Record<string, unknown>): Record<string, unknown> {
  */
 export function trackEvent<T extends EventName>(eventName: T, params: EventParams<T>) {
   if (typeof window === 'undefined') return;
+  const siteEnv = process.env.NEXT_PUBLIC_SITE_ENV ?? process.env.NODE_ENV;
+  const analyticsAllowed = siteEnv === 'production' && Boolean(process.env.NEXT_PUBLIC_GTM_ID);
+  if (!analyticsAllowed && process.env.NODE_ENV === 'production') return;
   
   // Deduplication check
   if (params.event_id) {

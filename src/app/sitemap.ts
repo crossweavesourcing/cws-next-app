@@ -22,6 +22,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       priority: 0.9,
     },
+    {
+      url: `${baseUrl}/legal/privacy`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.3,
+    },
+    {
+      url: `${baseUrl}/legal/terms`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.3,
+    },
+    {
+      url: `${baseUrl}/legal/cookie-policy`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.3,
+    },
+    {
+      url: `${baseUrl}/legal/accessibility`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.3,
+    },
   ];
 
   // 2. Dynamic published content
@@ -31,12 +55,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const [products, categories, catalogs] = await Promise.all([
     productRepo.findAll(), // Custom filter below
-    categoryRepo.findAll(), // Custom filter below
+    categoryRepo.findAll(),
     catalogRepo.findAll({ publishedOnly: true }),
   ]);
 
   const productUrls: MetadataRoute.Sitemap = products
-    .filter((p) => p.visible === true)
+    .filter((p) => p.visible === true && !p.seoOverrides?.noindex && p.seoOverrides?.includeInSitemap !== false)
     .map((p) => ({
       url: `${baseUrl}/products/${p.slug}`,
       lastModified: p.updatedAt,
@@ -44,7 +68,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }));
 
+  const categoryUrls: MetadataRoute.Sitemap = categories
+    .filter((category) => category.visible === true && !category.seoOverrides?.noindex && category.seoOverrides?.includeInSitemap !== false)
+    .map((category) => ({
+      url: `${baseUrl}/categories/${category.slug}`,
+      lastModified: category.updatedAt,
+      changeFrequency: 'monthly',
+      priority: 0.75,
+    }));
+
   const catalogUrls: MetadataRoute.Sitemap = catalogs
+    .filter((c) => !c.seoOverrides?.noindex && c.seoOverrides?.includeInSitemap !== false)
     .map((c) => ({
       url: `${baseUrl}/catalogs/${c.slug}`,
       lastModified: c.updatedAt,
@@ -52,11 +86,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
-  // Though currently there is no /categories/[slug] route active in (site), 
-  // keeping this logic pre-configured is a best practice if they are added later.
-  // If they do not exist, they simply won't 404 since they aren't generated.
-  // Wait, I should not include routes that don't exist in the sitemap. 
-  // I will omit categories since I verified the directory structure earlier and there's no `/categories/[slug]/page.tsx`.
-
-  return [...staticPages, ...productUrls, ...catalogUrls];
+  return [...staticPages, ...productUrls, ...categoryUrls, ...catalogUrls];
 }

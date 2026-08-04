@@ -149,6 +149,59 @@ export function EditCategoryForm({ category, onSuccess, onCancel }: { category: 
         </div>
       </div>
 
+      <div className="mt-4 border border-white/10 bg-white/[0.04] p-4">
+        <h4 className="mb-3 text-sm font-bold uppercase text-white">SEO Overrides</h4>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Title Override</label>
+            <input name="seoOverrides.title" defaultValue={category.seoOverrides?.title} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Canonical URL Override</label>
+            <input name="seoOverrides.canonicalUrl" defaultValue={category.seoOverrides?.canonicalUrl} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" />
+          </div>
+        </div>
+        <div className="mt-4">
+          <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Description Override</label>
+          <textarea name="seoOverrides.description" defaultValue={category.seoOverrides?.description} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" rows={2} />
+        </div>
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Social Title</label>
+            <input name="seoOverrides.socialTitle" defaultValue={category.seoOverrides?.socialTitle} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" />
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Social Image URL</label>
+            <input name="seoOverrides.socialImage" defaultValue={category.seoOverrides?.socialImage} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" />
+          </div>
+        </div>
+        <div className="mt-4">
+          <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Social Description</label>
+          <textarea name="seoOverrides.socialDescription" defaultValue={category.seoOverrides?.socialDescription} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" rows={2} />
+        </div>
+        <div className="mt-4">
+          <label className="block text-xs font-bold uppercase text-neutral-400 mb-1">Breadcrumb Label</label>
+          <input name="seoOverrides.breadcrumbLabel" defaultValue={category.seoOverrides?.breadcrumbLabel} className="w-full border border-white/10 bg-white/[0.06] p-2.5 text-white outline-none transition-colors" />
+        </div>
+        <div className="mt-4 space-y-3">
+          <label className="flex items-center gap-2 text-xs font-bold uppercase text-neutral-300">
+            <input type="hidden" name="seoOverrides.noindex" value="false" />
+            <input type="checkbox" name="seoOverrides.noindex" value="true" defaultChecked={category.seoOverrides?.noindex} className="h-4 w-4 accent-[#E02424]" />
+            No Index (Hide from search)
+          </label>
+          <label className="flex items-center gap-2 text-xs font-bold uppercase text-neutral-300">
+            <input type="hidden" name="seoOverrides.nofollow" value="false" />
+            <input type="checkbox" name="seoOverrides.nofollow" value="true" defaultChecked={category.seoOverrides?.nofollow} className="h-4 w-4 accent-[#E02424]" />
+            No Follow
+          </label>
+          <label className="flex items-center gap-2 text-xs font-bold uppercase text-neutral-300">
+            <input type="hidden" name="seoOverrides.includeInSitemap" value="false" />
+            <input type="checkbox" name="seoOverrides.includeInSitemap" value="true" defaultChecked={category.seoOverrides?.includeInSitemap !== false} className="h-4 w-4 accent-[#E02424]" />
+            Include in sitemap
+          </label>
+        </div>
+      </div>
+
       <div className="flex items-center gap-2">
         {/* We need a hidden input with value 'false' so that if checkbox is unchecked, it sends 'false' instead of nothing, or we can just let checkbox send 'true'. 
             Wait, in my previous code I did: <input type="hidden" name="visible" value="true" />

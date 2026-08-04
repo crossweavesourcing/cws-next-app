@@ -128,7 +128,18 @@ export const productsSchema: Document = {
         title: { bsonType: 'string' },
         description: { bsonType: 'string' },
         canonicalUrl: { bsonType: 'string' },
-        noindex: { bsonType: 'bool' }
+        noindex: { bsonType: 'bool' },
+        nofollow: { bsonType: 'bool' },
+        includeInSitemap: { bsonType: 'bool' },
+        socialTitle: { bsonType: 'string' },
+        socialDescription: { bsonType: 'string' },
+        socialImage: { bsonType: 'string' },
+        breadcrumbLabel: { bsonType: 'string' },
+        primaryTopic: { bsonType: 'string' },
+        secondaryTopics: { bsonType: 'array', items: { bsonType: 'string' } },
+        reviewStatus: { enum: ['draft', 'needs_review', 'approved'] },
+        internalNotes: { bsonType: 'string' },
+        lastReviewedAt: { bsonType: 'string' }
       }
     }
   },

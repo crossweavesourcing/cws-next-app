@@ -16,6 +16,12 @@ interface SerializedGlobalSettings {
   contactPhone?: string;
   contactAddress?: string;
   socialLinks?: string[];
+  defaultSeoTitle?: string;
+  defaultSeoDescription?: string;
+  siteName?: string;
+  googleSiteVerification?: string;
+  bingSiteVerification?: string;
+  gtmId?: string;
   updatedAt: string | null;
   updatedBy: string | null;
 }
@@ -224,6 +230,67 @@ export function GlobalSettingsForm({ settings }: { settings: SerializedGlobalSet
                 placeholder="Dhaka, Bangladesh"
               />
             </label>
+          </div>
+        </section>
+
+        {/* SEO & Analytics */}
+        <section className="border border-neutral-200 bg-[#F9F9F9] p-4 md:p-5">
+          <h3 className="text-xs font-black uppercase tracking-[0.14em] text-neutral-950">
+            SEO & Analytics
+          </h3>
+          <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <label className="block md:col-span-2">
+              <span className={labelClass}>Site Name (Open Graph)</span>
+              <input
+                type="text"
+                name="siteName"
+                defaultValue={settings.siteName ?? ''}
+                className={inputClass}
+                placeholder="Cross Weave Sourcing"
+              />
+            </label>
+            <label className="block md:col-span-2">
+              <span className={labelClass}>Default SEO Title</span>
+              <input
+                type="text"
+                name="defaultSeoTitle"
+                defaultValue={settings.defaultSeoTitle ?? ''}
+                className={inputClass}
+                placeholder="Cross Weave Sourcing | Garments Manufacturer"
+              />
+            </label>
+            <label className="block md:col-span-2">
+              <span className={labelClass}>Default SEO Description</span>
+              <textarea
+                name="defaultSeoDescription"
+                defaultValue={settings.defaultSeoDescription ?? ''}
+                className={`${inputClass} h-24 py-3 resize-none`}
+                placeholder="Cross Weave Sourcing is an export-oriented garments manufacturer..."
+              />
+            </label>
+            <label className="block">
+              <span className={labelClass}>Google Site Verification</span>
+              <input
+                type="text"
+                name="googleSiteVerification"
+                defaultValue={settings.googleSiteVerification ?? ''}
+                className={inputClass}
+                placeholder="e.g. dQ_xxx..."
+              />
+            </label>
+            <label className="block">
+              <span className={labelClass}>Bing Site Verification</span>
+              <input
+                type="text"
+                name="bingSiteVerification"
+                defaultValue={settings.bingSiteVerification ?? ''}
+                className={inputClass}
+                placeholder="e.g. 8B2C..."
+              />
+            </label>
+            <div className="border border-neutral-200 bg-neutral-50 p-3 text-xs leading-relaxed text-neutral-600">
+              Analytics container IDs are environment-controlled for production and staging isolation. Use deployment environment variables for GTM/GA4 IDs.
+            </div>
           </div>
         </section>
 

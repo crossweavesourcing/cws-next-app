@@ -5,7 +5,50 @@ export const CategorySchema = z.object({
   slug: z.string().min(1, 'Slug is required').meta({ example: 'new-category' }),
   description: z.string().min(1, 'Description is required').meta({ example: 'Category description' }),
   visible: z.boolean().meta({ example: true }),
+  seoOverrides: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    canonicalUrl: z.string().optional(),
+    noindex: z.boolean().optional(),
+    nofollow: z.boolean().optional(),
+    includeInSitemap: z.boolean().optional(),
+    socialTitle: z.string().optional(),
+    socialDescription: z.string().optional(),
+    socialImage: z.string().optional(),
+    breadcrumbLabel: z.string().optional(),
+    primaryTopic: z.string().optional(),
+    secondaryTopics: z.array(z.string()).optional(),
+    reviewStatus: z.enum(['draft', 'needs_review', 'approved']).optional(),
+    internalNotes: z.string().optional(),
+    lastReviewedAt: z.string().optional()
+  }).optional(),
 }).meta({ id: 'Category' });
+
+export const CatalogSchema = z.object({
+  title: z.string().min(1, 'Title is required').meta({ example: 'Summer Catalog 2024' }),
+  slug: z.string().min(1, 'Slug is required').meta({ example: 'summer-catalog-2024' }),
+  description: z.string().min(1, 'Description is required').meta({ example: 'Our summer collection...' }),
+  categoryId: z.string().optional().nullable().meta({ example: '507f1f77bcf86cd799439011' }),
+  productId: z.string().optional().nullable().meta({ example: '507f1f77bcf86cd799439012' }),
+  status: z.enum(['draft', 'published']).meta({ example: 'draft' }),
+  seoOverrides: z.object({
+    title: z.string().optional(),
+    description: z.string().optional(),
+    canonicalUrl: z.string().optional(),
+    noindex: z.boolean().optional(),
+    nofollow: z.boolean().optional(),
+    includeInSitemap: z.boolean().optional(),
+    socialTitle: z.string().optional(),
+    socialDescription: z.string().optional(),
+    socialImage: z.string().optional(),
+    breadcrumbLabel: z.string().optional(),
+    primaryTopic: z.string().optional(),
+    secondaryTopics: z.array(z.string()).optional(),
+    reviewStatus: z.enum(['draft', 'needs_review', 'approved']).optional(),
+    internalNotes: z.string().optional(),
+    lastReviewedAt: z.string().optional()
+  }).optional(),
+}).meta({ id: 'Catalog' });
 
 export const ProductSchema = z.object({
   categoryId: z.string().optional().nullable().meta({ example: '507f1f77bcf86cd799439011' }),
@@ -32,6 +75,17 @@ export const ProductSchema = z.object({
     title: z.string().optional(),
     description: z.string().optional(),
     canonicalUrl: z.string().optional(),
-    noindex: z.boolean().optional()
+    noindex: z.boolean().optional(),
+    nofollow: z.boolean().optional(),
+    includeInSitemap: z.boolean().optional(),
+    socialTitle: z.string().optional(),
+    socialDescription: z.string().optional(),
+    socialImage: z.string().optional(),
+    breadcrumbLabel: z.string().optional(),
+    primaryTopic: z.string().optional(),
+    secondaryTopics: z.array(z.string()).optional(),
+    reviewStatus: z.enum(['draft', 'needs_review', 'approved']).optional(),
+    internalNotes: z.string().optional(),
+    lastReviewedAt: z.string().optional()
   }).optional(),
 }).meta({ id: 'Product' });

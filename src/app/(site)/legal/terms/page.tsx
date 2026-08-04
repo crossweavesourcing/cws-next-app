@@ -1,9 +1,20 @@
 import { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Terms of Service | Cross Weave Sourcing',
-  robots: { index: false, follow: false },
-};
+import { SeoService } from '@/auth/services/seo.service';
+import { constructMetadata } from '@/lib/seo/metadata';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const seoService = new SeoService();
+  const globalSettings = await seoService.getGlobalSettings().catch(() => null);
+  const pageSeo = await seoService.getPageSeoByPath('/legal/terms').catch(() => null);
+
+  return constructMetadata(globalSettings, {
+    title: pageSeo?.title || 'Terms of Service',
+    description: pageSeo?.description,
+    canonicalUrl: pageSeo?.canonicalUrl,
+    noindex: pageSeo?.noindex ?? true,
+  });
+}
 
 export default function TermsOfServicePage() {
   return (

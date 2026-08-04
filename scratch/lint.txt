@@ -1,0 +1,89 @@
+$ eslint
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/scratch/test-seo.ts
+  27:15  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/scripts/db-init.ts
+  13:10  warning  'getMongoClient' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/app/(admin)/dashboard/(cms)/account-security/TotpConfigurator.tsx
+  160:21  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/app/(admin)/dashboard/(cms)/page-content/PageContentManager.tsx
+  124:108  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  180:256  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/app/(admin)/dashboard/login/LoginForm.tsx
+  125:9  error  Do not use an `<a>` element to navigate to `/dashboard/forgot-password/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+  142:7  error  Do not use an `<a>` element to navigate to `/api/auth/google/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages            @next/next/no-html-link-for-pages
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/app/(admin)/dashboard/sessions/page.tsx
+  68:7  error  Do not use an `<a>` element to navigate to `/dashboard/`. Use `<Link />` from `next/link` instead. See: https://nextjs.org/docs/messages/no-html-link-for-pages  @next/next/no-html-link-for-pages
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/app/(site)/products/[slug]/page.tsx
+  63:9  warning  'categoryMap' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/app/api/auth/logout/openapi.ts
+  1:10  warning  'createSchema' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/app/api/auth/webauthn/login-verify/route.ts
+  10:26  warning  'sessionCookieOpts' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/app/api/contact/openapi.ts
+  3:10  warning  'ErrorSchema' is defined but never used            @typescript-eslint/no-unused-vars
+  3:23  warning  'ValidationErrorSchema' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/app/sitemap.ts
+  32:20  warning  'categories' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/auth/actions/csrf-guard.unit.test.ts
+  248:9   warning  'assertSameOrigin' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  248:27  warning  'CsrfError' is assigned a value but never used         @typescript-eslint/no-unused-vars
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/auth/crypto/password.ts
+  29:12  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/auth/crypto/token-edge.ts
+  52:12  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/auth/lib/encryption.ts
+  78:12  warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/auth/repositories/user.repository.ts
+  1:38  warning  'OptionalId' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/auth/services/category.service.unit.test.ts
+  4:10  warning  'getAuthUser' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/auth/services/geo-stepup.unit.test.ts
+  1:32  warning  'beforeAll' is defined but never used  @typescript-eslint/no-unused-vars
+  1:55  warning  'afterEach' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/auth/services/login.service.ts
+  103:13  warning  'waitTime' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/auth/services/password.service.unit.test.ts
+  99:19  warning  '_filter' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/auth/services/rate-limit.service.unit.test.ts
+  57:57  warning  'userAgent' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/components/TKOPage.tsx
+  119:11  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  171:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  185:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  219:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  268:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  277:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  318:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  327:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/components/catalog/CatalogWebView.tsx
+  16:9  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+/Users/User/Documents/projects/cws-proj/cws-next-app/src/lib/seo/schema-builders.unit.test.ts
+  5:3  warning  'buildWebPageSchema' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 36 problems (4 errors, 32 warnings)
+
+[ELIFECYCLE] Command failed with exit code 1.

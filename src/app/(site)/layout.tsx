@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import Header from '@/components/Header';
 import { SectionService } from '@/auth/services/section.service';
 import { getEnv } from '@/auth/config/env';
+import { SeoService } from '@/auth/services/seo.service';
 import { buildOrganizationSchema, buildWebSiteSchema, serializeJsonLd } from '@/lib/seo/schema-builders';
 
 export default async function SiteLayout({
@@ -12,11 +13,11 @@ export default async function SiteLayout({
   modal: ReactNode;
 }) {
   const env = getEnv();
-  const sections = await new SectionService().getPublicSections();
-  const footerSection = sections.find((s) => s.sectionId === 'global-footer');
+  const seoService = new SeoService();
+  const globalSettings = await seoService.getGlobalSettings().catch(() => null);
 
-  const orgSchema = buildOrganizationSchema(env.APP_URL, footerSection?.content);
-  const siteSchema = buildWebSiteSchema(env.APP_URL);
+  const orgSchema = buildOrganizationSchema(env.APP_URL, globalSettings);
+  const siteSchema = buildWebSiteSchema(env.APP_URL, globalSettings);
 
   return (
     <>

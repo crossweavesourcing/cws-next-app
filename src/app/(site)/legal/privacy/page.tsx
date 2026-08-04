@@ -1,9 +1,20 @@
 import { Metadata } from 'next';
 
-export const metadata: Metadata = {
-  title: 'Privacy Policy | Cross Weave Sourcing',
-  robots: { index: false, follow: false },
-};
+import { SeoService } from '@/auth/services/seo.service';
+import { constructMetadata } from '@/lib/seo/metadata';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const seoService = new SeoService();
+  const globalSettings = await seoService.getGlobalSettings().catch(() => null);
+  const pageSeo = await seoService.getPageSeoByPath('/legal/privacy').catch(() => null);
+
+  return constructMetadata(globalSettings, {
+    title: pageSeo?.title || 'Privacy Policy',
+    description: pageSeo?.description,
+    canonicalUrl: pageSeo?.canonicalUrl,
+    noindex: pageSeo?.noindex ?? true,
+  });
+}
 
 export default function PrivacyPolicyPage() {
   return (

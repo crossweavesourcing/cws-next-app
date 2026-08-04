@@ -3988,9 +3988,7 @@
                             "enum": [
                               "draft",
                               "published"
-                            ],
-                            "deprecated": true,
-                            "description": "Retained for compatibility; it does not control public visibility."
+                            ]
                           },
                           "pages": {
                             "type": "array",
@@ -4015,53 +4013,6 @@
                               "object",
                               "null"
                             ]
-                          },
-                          "responsiveContent": {
-                            "type": [
-                              "object",
-                              "null"
-                            ],
-                            "properties": {
-                              "version": {
-                                "type": "integer",
-                                "enum": [
-                                  1
-                                ]
-                              },
-                              "reviewStatus": {
-                                "type": "string",
-                                "enum": [
-                                  "pending_review",
-                                  "approved"
-                                ]
-                              },
-                              "blocks": {
-                                "type": "array",
-                                "items": {
-                                  "type": "object"
-                                }
-                              },
-                              "generatedAt": {
-                                "type": "string",
-                                "format": "date-time"
-                              },
-                              "reviewedAt": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ],
-                                "format": "date-time"
-                              },
-                              "reviewedBy": {
-                                "type": [
-                                  "string",
-                                  "null"
-                                ]
-                              },
-                              "sourceFingerprint": {
-                                "type": "string"
-                              }
-                            }
                           },
                           "processingError": {
                             "type": [
@@ -4322,9 +4273,7 @@
                       "enum": [
                         "draft",
                         "published"
-                      ],
-                      "deprecated": true,
-                      "description": "Retained for compatibility; it does not control public visibility."
+                      ]
                     },
                     "pages": {
                       "type": "array",
@@ -4349,53 +4298,6 @@
                         "object",
                         "null"
                       ]
-                    },
-                    "responsiveContent": {
-                      "type": [
-                        "object",
-                        "null"
-                      ],
-                      "properties": {
-                        "version": {
-                          "type": "integer",
-                          "enum": [
-                            1
-                          ]
-                        },
-                        "reviewStatus": {
-                          "type": "string",
-                          "enum": [
-                            "pending_review",
-                            "approved"
-                          ]
-                        },
-                        "blocks": {
-                          "type": "array",
-                          "items": {
-                            "type": "object"
-                          }
-                        },
-                        "generatedAt": {
-                          "type": "string",
-                          "format": "date-time"
-                        },
-                        "reviewedAt": {
-                          "type": [
-                            "string",
-                            "null"
-                          ],
-                          "format": "date-time"
-                        },
-                        "reviewedBy": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "sourceFingerprint": {
-                          "type": "string"
-                        }
-                      }
                     },
                     "processingError": {
                       "type": [
@@ -4804,9 +4706,7 @@
         "tags": [
           "Mobile Admin"
         ],
-        "summary": "Update legacy publication metadata",
-        "description": "Deprecated compatibility operation. Catalog public visibility is automatic.",
-        "deprecated": true,
+        "summary": "Publish or unpublish catalog",
         "operationId": "setCatalogPublicationMobile",
         "security": [
           {

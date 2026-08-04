@@ -1,7 +1,9 @@
 import { ObjectId } from 'mongodb';
 import { GlobalSettingsRepository } from '@/auth/repositories/global-settings.repository';
 import { RedirectRepository } from '@/auth/repositories/redirect.repository';
-import type { GlobalSettingsDocument, RedirectDocument } from '@/types/seo';
+import { PageSeoRepository } from '@/auth/repositories/page-seo.repository';
+import type { GlobalSettingsDocument, RedirectDocument, PageSeoDocument } from '@/types/seo';
+import { assertInternalRedirectDestination, assertInternalRedirectSource } from '@/lib/seo/config';
 
 export class SeoValidationError extends Error {
   constructor(message: string) {
@@ -13,6 +15,26 @@ export class SeoValidationError extends Error {
 export class SeoService {
   private globalSettingsRepo = new GlobalSettingsRepository();
   private redirectRepo = new RedirectRepository();
+  private pageSeoRepo = new PageSeoRepository();
+
+  async getPageSeoByPath(path: string): Promise<PageSeoDocument | null> {
+    return this.pageSeoRepo.findByPath(path);
+  }
+
+  async getAllPageSeos(): Promise<PageSeoDocument[]> {
+    return this.pageSeoRepo.findAll();
+  }
+
+  async savePageSeo(
+    data: Omit<PageSeoDocument, '_id' | 'createdAt' | 'updatedAt' | 'createdBy' | 'updatedBy'>,
+    userId?: ObjectId
+  ): Promise<PageSeoDocument> {
+    return this.pageSeoRepo.save(data, userId);
+  }
+
+  async deletePageSeo(id: string): Promise<void> {
+    return this.pageSeoRepo.deleteById(id);
+  }
 
   async getGlobalSettings(): Promise<GlobalSettingsDocument> {
     return this.globalSettingsRepo.getSettings();
@@ -54,6 +76,9 @@ export class SeoService {
       if (!nextRedirect) {
         break; // Chain ends safely
       }
+      if (currentDestination === destination) {
+        throw new SeoValidationError('Redirect destination already has a redirect. Chains are not allowed.');
+      }
       
       currentDestination = nextRedirect.destination;
       depth++;
@@ -65,24 +90,34 @@ export class SeoService {
   }
 
   async createRedirect(
-    data: { source: string; destination: string; statusCode: 301 | 302 | 307 | 308; active: boolean },
+    data: { source: string; destination: string; statusCode: 301 | 302; active: boolean; reason?: string; notes?: string; startsAt?: Date; endsAt?: Date },
     userId: ObjectId
   ): Promise<RedirectDocument> {
-    const existing = await this.redirectRepo.findBySource(data.source);
+    const normalized = {
+      ...data,
+      source: assertInternalRedirectSource(data.source),
+      destination: assertInternalRedirectDestination(data.destination),
+    };
+
+    if (normalized.endsAt && normalized.startsAt && normalized.endsAt <= normalized.startsAt) {
+      throw new SeoValidationError('Redirect end date must be after the start date.');
+    }
+
+    const existing = await this.redirectRepo.findBySource(normalized.source);
     if (existing) {
-      throw new SeoValidationError(`A redirect for ${data.source} already exists.`);
+      throw new SeoValidationError(`A redirect for ${normalized.source} already exists.`);
     }
 
-    if (data.active) {
-      await this.checkRedirectLoop(data.source, data.destination);
+    if (normalized.active) {
+      await this.checkRedirectLoop(normalized.source, normalized.destination);
     }
 
-    return this.redirectRepo.create(data, userId);
+    return this.redirectRepo.create(normalized, userId);
   }
 
   async updateRedirect(
     id: string,
-    data: { source?: string; destination?: string; statusCode?: 301 | 302 | 307 | 308; active?: boolean },
+    data: { source?: string; destination?: string; statusCode?: 301 | 302; active?: boolean; reason?: string; notes?: string; startsAt?: Date; endsAt?: Date },
     userId: ObjectId
   ): Promise<boolean> {
     const existing = await this.redirectRepo.findById(id);
@@ -90,14 +125,23 @@ export class SeoService {
       throw new SeoValidationError('Redirect not found.');
     }
 
-    const newSource = data.source ?? existing.source;
-    const newDestination = data.destination ?? existing.destination;
+    const normalized = {
+      ...data,
+      source: data.source ? assertInternalRedirectSource(data.source) : undefined,
+      destination: data.destination ? assertInternalRedirectDestination(data.destination) : undefined,
+    };
+    const newSource = normalized.source ?? existing.source;
+    const newDestination = normalized.destination ?? existing.destination;
     const newActive = data.active ?? existing.active;
 
-    if (data.source && data.source !== existing.source) {
-      const sourceExists = await this.redirectRepo.findBySource(data.source);
+    if (normalized.endsAt && normalized.startsAt && normalized.endsAt <= normalized.startsAt) {
+      throw new SeoValidationError('Redirect end date must be after the start date.');
+    }
+
+    if (normalized.source && normalized.source !== existing.source) {
+      const sourceExists = await this.redirectRepo.findBySource(normalized.source);
       if (sourceExists) {
-        throw new SeoValidationError(`A redirect for ${data.source} already exists.`);
+        throw new SeoValidationError(`A redirect for ${normalized.source} already exists.`);
       }
     }
 
@@ -105,7 +149,7 @@ export class SeoService {
       await this.checkRedirectLoop(newSource, newDestination);
     }
 
-    return this.redirectRepo.update(id, data, userId);
+    return this.redirectRepo.update(id, normalized, userId);
   }
 
   async deleteRedirect(id: string): Promise<boolean> {

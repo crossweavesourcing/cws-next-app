@@ -1,12 +1,22 @@
 import { z } from 'zod';
 import type { CatalogDocument, CatalogPage, CatalogScene, CatalogSceneText, SerializedCatalogDocument } from '@/types/catalog';
+import { safeSeoOverridesSchema } from '@/lib/seo/config';
 
-export const catalogMetadataSchema = z.object({
+const catalogMetadataBaseSchema = z.object({
   title: z.string().trim().min(2).max(160),
   description: z.string().trim().max(1000).default(''),
   categoryId: z.string().regex(/^[a-f\d]{24}$/i).nullable(),
   productId: z.string().regex(/^[a-f\d]{24}$/i).nullable(),
-}).refine((value) => value.categoryId || value.productId, { message: 'Choose a category, a product, or both.' });
+  seoOverrides: safeSeoOverridesSchema,
+});
+
+export const catalogMetadataSchema = catalogMetadataBaseSchema.refine((value) => value.categoryId || value.productId, { message: 'Choose a category, a product, or both.' });
+
+export const catalogMetadataUpdateSchema = catalogMetadataBaseSchema
+  .omit({ categoryId: true, productId: true })
+  .extend({
+    slug: z.string().trim().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(120).optional(),
+  });
 
 export function getPdfLimits() {
   const maxUploadMb = Number(process.env.PDF_MAX_UPLOAD_MB ?? 25);

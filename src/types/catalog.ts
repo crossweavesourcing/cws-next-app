@@ -9,6 +9,23 @@ export interface CategoryDocument {
   visible: boolean;
   createdAt: Date;
   updatedAt: Date;
+  seoOverrides?: {
+    title?: string;
+    description?: string;
+    canonicalUrl?: string;
+    noindex?: boolean;
+    nofollow?: boolean;
+    includeInSitemap?: boolean;
+    socialTitle?: string;
+    socialDescription?: string;
+    socialImage?: string;
+    breadcrumbLabel?: string;
+    primaryTopic?: string;
+    secondaryTopics?: string[];
+    reviewStatus?: 'draft' | 'needs_review' | 'approved';
+    internalNotes?: string;
+    lastReviewedAt?: string;
+  };
 }
 
 export interface ProductDocument {
@@ -49,6 +66,17 @@ export interface ProductDocument {
     description?: string;
     canonicalUrl?: string;
     noindex?: boolean;
+    nofollow?: boolean;
+    includeInSitemap?: boolean;
+    socialTitle?: string;
+    socialDescription?: string;
+    socialImage?: string;
+    breadcrumbLabel?: string;
+    primaryTopic?: string;
+    secondaryTopics?: string[];
+    reviewStatus?: 'draft' | 'needs_review' | 'approved';
+    internalNotes?: string;
+    lastReviewedAt?: string;
   };
 }
 
@@ -143,6 +171,23 @@ export interface CatalogDocument {
   updatedBy: ObjectId;
   createdAt: Date;
   updatedAt: Date;
+  seoOverrides?: {
+    title?: string;
+    description?: string;
+    canonicalUrl?: string;
+    noindex?: boolean;
+    nofollow?: boolean;
+    includeInSitemap?: boolean;
+    socialTitle?: string;
+    socialDescription?: string;
+    socialImage?: string;
+    breadcrumbLabel?: string;
+    primaryTopic?: string;
+    secondaryTopics?: string[];
+    reviewStatus?: 'draft' | 'needs_review' | 'approved';
+    internalNotes?: string;
+    lastReviewedAt?: string;
+  };
 }
 
 export interface SerializedCatalogDocument extends Omit<CatalogDocument, '_id' | 'categoryId' | 'productId' | 'createdBy' | 'updatedBy' | 'createdAt' | 'updatedAt' | 'publishedAt'> {
