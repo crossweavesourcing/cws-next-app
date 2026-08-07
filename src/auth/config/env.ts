@@ -85,7 +85,10 @@ const envSchema = z.object({
   // (GET, with the IP as a `?ip=` query param or path segment — see geoip.ts) to
   // resolve country/region/city. If unset, an offline DB (geoip-lite) is tried,
   // and if that is unavailable too, the lookup fails open to null.
-  GEOIP_LOOKUP_URL: z.string().url().optional(),
+  GEOIP_LOOKUP_URL: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.string().url().optional()
+  ),
 
   // WebAuthn / passkey relying-party config. When omitted, the runtime derives
   // RP ID + origin from APP_URL. Explicit overrides are useful for subdomain
