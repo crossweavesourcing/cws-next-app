@@ -10,6 +10,7 @@
     "prepare": "husky",
     "db:init": "tsx --env-file=.env scripts/db-init.ts",
     "db:seed": "tsx --env-file=.env scripts/db-seed.ts",
+    "db:update-admin-email": "tsx --env-file=.env scripts/update-admin-email.ts",
     "db:migrate:sections": "tsx --env-file=.env scripts/migrate-sections.ts",
     "db:migrate:account-security": "tsx --env-file=.env scripts/migrate-account-security.ts",
     "db:migrate:catalog-scenes": "tsx --env-file=.env scripts/migrate-catalog-scenes.ts",

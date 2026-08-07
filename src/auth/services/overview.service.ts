@@ -85,10 +85,14 @@ export class OverviewService {
     for (const log of auditLogs) {
       if (log.userId && log.userId instanceof ObjectId) {
         userObjectIds.push(log.userId);
-      } else if (typeof log.actor === 'string' && isHexId(log.actor)) {
+      }
+      const rawActor = log.actor as unknown;
+      if (typeof rawActor === 'string' && isHexId(rawActor)) {
         try {
-          userObjectIds.push(new ObjectId(log.actor));
+          userObjectIds.push(new ObjectId(rawActor));
         } catch {}
+      } else if (rawActor && typeof rawActor === 'object' && (rawActor as { id?: ObjectId | null }).id instanceof ObjectId) {
+        userObjectIds.push((rawActor as { id: ObjectId }).id);
       }
     }
 
@@ -105,15 +109,18 @@ export class OverviewService {
 
     const recentAuditLogs: RecentAuditLogItem[] = auditLogs.map((log) => {
       let actorName = 'System';
+      const rawActor = log.actor as unknown;
 
-      if (typeof log.actor === 'string' && !isHexId(log.actor) && log.actor.trim().length > 0) {
-        actorName = log.actor;
-      } else if (log.actor && typeof log.actor === 'object' && (log.actor as { displayName?: string }).displayName) {
-        actorName = (log.actor as { displayName?: string }).displayName!;
+      if (typeof rawActor === 'string' && !isHexId(rawActor) && rawActor.trim().length > 0) {
+        actorName = rawActor;
+      } else if (rawActor && typeof rawActor === 'object' && (rawActor as { displayName?: string }).displayName) {
+        actorName = (rawActor as { displayName?: string }).displayName!;
+      } else if (rawActor && typeof rawActor === 'object' && (rawActor as { id?: ObjectId | null }).id && userMap.has((rawActor as { id: ObjectId }).id.toHexString())) {
+        actorName = userMap.get((rawActor as { id: ObjectId }).id.toHexString())!;
       } else if (log.userId && userMap.has(log.userId.toHexString())) {
         actorName = userMap.get(log.userId.toHexString())!;
-      } else if (typeof log.actor === 'string' && isHexId(log.actor) && userMap.has(log.actor)) {
-        actorName = userMap.get(log.actor)!;
+      } else if (typeof rawActor === 'string' && isHexId(rawActor) && userMap.has(rawActor)) {
+        actorName = userMap.get(rawActor)!;
       } else {
         actorName = 'Admin User';
       }

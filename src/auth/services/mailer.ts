@@ -46,8 +46,9 @@ function getTransporter(): Transporter | null {
 export async function sendMail(message: MailMessage): Promise<void> {
   const env = getEnv();
   const mailer = getTransporter();
+  const fromAddress = env.EMAIL_FROM || env.EMAIL_USER;
 
-  if (!mailer || !env.EMAIL_FROM) {
+  if (!mailer || !fromAddress) {
     // Dev / unconfigured: surface the message for manual testing.
     console.info(
       `[mail:dev] to=${message.to} subject=${message.subject}\n${message.text}`
@@ -57,7 +58,7 @@ export async function sendMail(message: MailMessage): Promise<void> {
 
   try {
     await mailer.sendMail({
-      from: env.EMAIL_FROM,
+      from: fromAddress,
       to: message.to,
       subject: message.subject,
       text: message.text,

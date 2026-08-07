@@ -18,17 +18,10 @@ export class CategoryService {
       throw new Error('Image is required');
     }
 
-    console.log('[createCategory] Starting Cloudinary upload...', {
-      fileName: imageFile.name,
-      fileSize: imageFile.size,
-      folder: 'cws_categories',
-    });
-
     const buffer = Buffer.from(await imageFile.arrayBuffer());
     let imageUrl: string;
     try {
       imageUrl = await uploadToCloudinary(buffer, 'cws_categories');
-      console.log('[createCategory] Cloudinary upload successful:', imageUrl);
     } catch (uploadError: unknown) {
       console.error('[createCategory] Cloudinary upload failed explicitly:', JSON.stringify(uploadError, null, 2));
       throw new Error('Cloudinary upload failed (403). Please check your API keys or folder permissions.');

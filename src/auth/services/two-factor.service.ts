@@ -67,6 +67,14 @@ export class TwoFactorService {
       to: email,
       subject: 'CWS Admin — Your 2FA Code',
       text: `Your verification code is: ${code}\n\nThis code expires in 5 minutes. If you did not attempt to sign in, secure your account.`,
+      html: `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;border:1px solid #e5e5e5;background-color:#ffffff;color:#111827;">
+        <h2 style="font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:-0.025em;color:#111827;margin-top:0;">CWS Two-Factor Verification</h2>
+        <p style="font-size:14px;color:#4b5563;line-height:1.5;">Your verification code is below. Enter this code to complete your login:</p>
+        <div style="margin:24px 0;padding:16px;background-color:#f9fafb;border:1px solid #e5e7eb;text-align:center;">
+          <span style="font-family:monospace;font-size:32px;font-weight:900;letter-spacing:6px;color:#E02424;">${code}</span>
+        </div>
+        <p style="font-size:12px;color:#6b7280;line-height:1.5;">This code expires in <strong>5 minutes</strong>. If you did not attempt to sign in, please secure your account immediately.</p>
+      </div>`,
     });
 
     await this.auditRepo.log({
