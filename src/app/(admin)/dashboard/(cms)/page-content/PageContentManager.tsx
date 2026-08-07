@@ -42,13 +42,17 @@ export default function PageContentManager() {
 
   const load = async (preferredId?: string) => {
     setLoading(true);
-    const result = await getSectionsAction();
-    if (result.success) {
-      const next = result.sections as AdminSection[];
-      setSections(next);
-      if (preferredId && next.some((section) => section.sectionId === preferredId)) setSelectedId(preferredId);
-    } else {
-      setFeedback({ tone: 'error', message: result.error });
+    try {
+      const result = await getSectionsAction();
+      if (result.success) {
+        const next = result.sections as AdminSection[];
+        setSections(next);
+        if (preferredId && next.some((section) => section.sectionId === preferredId)) setSelectedId(preferredId);
+      } else {
+        setFeedback({ tone: 'error', message: result.error });
+      }
+    } catch {
+      setFeedback({ tone: 'error', message: 'Failed to communicate with server.' });
     }
     setLoading(false);
   };
@@ -56,12 +60,19 @@ export default function PageContentManager() {
   useEffect(() => {
     setActiveWorkspace('pages');
     let active = true;
-    getSectionsAction().then((result) => {
-      if (!active) return;
-      if (result.success) setSections(result.sections as AdminSection[]);
-      else setFeedback({ tone: 'error', message: result.error });
-      setLoading(false);
-    });
+    getSectionsAction()
+      .then((result) => {
+        if (!active) return;
+        if (result.success) setSections(result.sections as AdminSection[]);
+        else setFeedback({ tone: 'error', message: result.error });
+        setLoading(false);
+      })
+      .catch(() => {
+        if (active) {
+          setFeedback({ tone: 'error', message: 'Failed to communicate with server.' });
+          setLoading(false);
+        }
+      });
     return () => { active = false; };
   }, [setActiveWorkspace]);
 

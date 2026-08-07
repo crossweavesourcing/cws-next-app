@@ -89,7 +89,7 @@ export class PasswordService {
     const user = await this.userRepo.findById(userId);
     const email = await this.userRepo.findPrimaryEmail(userId);
     const context = user?.profile
-      ? [user.profile.displayName, user.profile.firstName ?? '', user.profile.lastName ?? '', email ?? '', 'CWS', 'Cross Weave Sourcing']
+      ? [user.profile.displayName, user.profile.fullName ?? '', email ?? '', 'CWS', 'Cross Weave Sourcing']
       : [email ?? '', 'CWS', 'Cross Weave Sourcing'];
     const strength = evaluatePasswordStrength(newPassword, context);
     if (strength.requiresExplicitConfirmation && !acceptWeakPassword) {

@@ -13,22 +13,22 @@ export const createUserAction = withCsrfGuard(async (
   formData: FormData
 ): Promise<ActionState> => {
   try {
-    const email = formData.get('email') as string;
-    const firstName = formData.get('firstName') as string;
-    const lastName = formData.get('lastName') as string;
+    const email = (formData.get('email') as string)?.trim();
+    const fullName = (formData.get('fullName') as string)?.trim() || undefined;
+    const displayName = (formData.get('displayName') as string)?.trim() || undefined;
     const role = formData.get('role') as UserRole;
     
     // Extract permissions (checkboxes with name="permissions")
     const permissions = formData.getAll('permissions') as CmsPermission[];
 
-    if (!email || !firstName || !lastName || !role) {
-      return { success: false, error: 'All required fields must be provided.' };
+    if (!email || (!fullName && !displayName) || !role) {
+      return { success: false, error: 'Please provide email, role, and at least a Full Name or a Nickname.' };
     }
 
     await service.createUser({
       email,
-      firstName,
-      lastName,
+      fullName,
+      displayName,
       role,
       permissions: role === 'manager' ? permissions : undefined,
     });

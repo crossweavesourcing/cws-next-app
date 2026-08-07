@@ -2282,15 +2282,14 @@
                       "properties": {
                         "displayName": {
                           "type": "string",
+                          "example": "Johnny"
+                        },
+                        "fullName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
                           "example": "John Doe"
-                        },
-                        "firstName": {
-                          "type": "string",
-                          "example": "John"
-                        },
-                        "lastName": {
-                          "type": "string",
-                          "example": "Doe"
                         },
                         "employeeId": {
                           "type": [
@@ -5070,15 +5069,18 @@
             "properties": {
               "displayName": {
                 "type": "string",
+                "example": "Johnny"
+              },
+              "fullName": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
                 "example": "John Doe"
-              },
-              "firstName": {
-                "type": "string",
-                "example": "John"
-              },
-              "lastName": {
-                "type": "string",
-                "example": "Doe"
               },
               "employeeId": {
                 "anyOf": [
@@ -5105,8 +5107,7 @@
             },
             "required": [
               "displayName",
-              "firstName",
-              "lastName",
+              "fullName",
               "employeeId",
               "department"
             ],

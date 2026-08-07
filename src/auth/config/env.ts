@@ -63,6 +63,7 @@ const envSchema = z.object({
     (value) => value === '' ? undefined : value,
     z.string().min(12).optional()
   ),
+  ADMIN_SEED_FULL_NAME: z.string().min(1).optional(),
   ADMIN_SEED_FIRST_NAME: z.string().min(1).optional(),
   ADMIN_SEED_LAST_NAME: z.string().min(1).optional(),
   ADMIN_SEED_EMPLOYEE_ID: z.string().min(1).optional(),

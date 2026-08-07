@@ -29,8 +29,7 @@ export const usersSchema: Document = {
       additionalProperties: false,
       properties: {
         displayName: { bsonType: 'string', minLength: 1, maxLength: 120 },
-        firstName: { bsonType: ['string', 'null'], maxLength: 80 },
-        lastName: { bsonType: ['string', 'null'], maxLength: 80 },
+        fullName: { bsonType: ['string', 'null'], maxLength: 160 },
 
         avatar: {
           bsonType: ['object', 'null'],

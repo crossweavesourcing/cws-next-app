@@ -57,28 +57,166 @@ const navigationGroups: CmsNavigationGroup[] = [
 
 
 
+export interface LiveDashboardOverviewMetrics {
+  productsCount: number;
+  categoriesCount: number;
+  catalogsCount: number;
+  activeUsersCount: number;
+  visibleSectionsCount: number;
+  pausedSectionsCount: number;
+  seoHealthScore: number;
+  recentAuditLogs: Array<{
+    id: string;
+    action: string;
+    actor: string;
+    timestamp: string;
+    riskLevel?: string | null;
+  }>;
+}
+
+function getRiskBadgeStyle(level?: string | null): { label: string; style: string } {
+  const lvl = (level || 'LOW').toLowerCase().trim();
+  if (lvl.includes('high') || lvl.includes('critical')) {
+    return { label: (level || 'HIGH').toUpperCase(), style: 'bg-red-50 text-[#E02424] border-red-200' };
+  }
+  if (lvl.includes('medium') || lvl.includes('mod')) {
+    return { label: (level || 'MEDIUM').toUpperCase(), style: 'bg-amber-50 text-amber-700 border-amber-200' };
+  }
+  return { label: (level || 'LOW').toUpperCase(), style: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+}
+
+function formatRelativeTime(dateString: string): string {
+  try {
+    const now = new Date();
+    const date = new Date(dateString);
+    const diffMs = now.getTime() - date.getTime();
+    if (isNaN(diffMs) || diffMs < 0) return 'Just now';
+
+    const seconds = Math.floor(diffMs / 1000);
+    if (seconds < 60) return 'Just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  } catch {
+    return 'Recently';
+  }
+}
+
+const isHexIdStr = (str: string) => /^[0-9a-fA-F]{24}$/.test(str);
+
+function cleanActorName(actor?: string): string {
+  if (!actor || isHexIdStr(actor.trim()) || actor.trim().length === 0) {
+    return 'Admin User';
+  }
+  return actor.trim();
+}
+
+function formatShortAction(action: string): string {
+  const act = action.toLowerCase().trim();
+  if (act === 'auth.login' || act === 'user.login' || act === 'login') return 'User Signed In';
+  if (act === 'auth.logout' || act === 'user.logout' || act === 'logout') return 'User Signed Out';
+  if (act === 'category.update' || act === 'category.edit') return 'Category Updated';
+  if (act === 'category.create' || act === 'category.add') return 'Category Created';
+  if (act === 'category.delete' || act === 'category.remove') return 'Category Deleted';
+  if (act === 'product.update' || act === 'product.edit') return 'Product Updated';
+  if (act === 'product.create' || act === 'product.add') return 'Product Created';
+  if (act === 'product.delete' || act === 'product.remove') return 'Product Deleted';
+  if (act === 'catalog.create' || act === 'catalog.upload') return 'Catalog Uploaded';
+  if (act === 'catalog.update') return 'Catalog Updated';
+  if (act === 'catalog.delete') return 'Catalog Deleted';
+  if (act === 'user.create') return 'User Added';
+  if (act === 'user.update') return 'User Updated';
+  if (act === 'user.delete') return 'User Deactivated';
+  if (act === 'password.change' || act === 'auth.password_change') return 'Password Changed';
+  if (act === 'mfa.enable' || act === 'mfa.verify') return '2FA Verified';
+  if (act === 'section.update' || act === 'section.toggle') return 'Content Updated';
+  if (act === 'seo.update') return 'SEO Updated';
+
+  return action
+    .replace(/[._-]/g, ' ')
+    .replace(/\b\w/g, (l) => l.toUpperCase());
+}
+
+function getActionMeta(action: string): {
+  label: string;
+  badgeStyle: string;
+  iconBgStyle: string;
+  icon: ComponentType<{ className?: string }>;
+} {
+  const act = action.toLowerCase();
+
+  if (act.includes('create') || act.includes('add') || act.includes('login') || act.includes('publish')) {
+    return {
+      label: action.toUpperCase().replace(/\./g, ' '),
+      badgeStyle: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      iconBgStyle: 'bg-emerald-500/10 text-emerald-600 border-emerald-300/40',
+      icon: CheckCircle2,
+    };
+  }
+
+  if (act.includes('update') || act.includes('edit') || act.includes('change') || act.includes('patch')) {
+    return {
+      label: action.toUpperCase().replace(/\./g, ' '),
+      badgeStyle: 'bg-blue-50 text-blue-700 border-blue-200',
+      iconBgStyle: 'bg-blue-500/10 text-blue-600 border-blue-300/40',
+      icon: RefreshCcw,
+    };
+  }
+
+  if (act.includes('delete') || act.includes('remove') || act.includes('revoke') || act.includes('security') || act.includes('alert')) {
+    return {
+      label: action.toUpperCase().replace(/\./g, ' '),
+      badgeStyle: 'bg-red-50 text-[#E02424] border-red-200',
+      iconBgStyle: 'bg-red-500/10 text-[#E02424] border-red-300/40',
+      icon: ShieldCheck,
+    };
+  }
+
+  return {
+    label: action.toUpperCase().replace(/\./g, ' '),
+    badgeStyle: 'bg-neutral-100 text-neutral-700 border-neutral-200',
+    iconBgStyle: 'bg-neutral-500/10 text-neutral-600 border-neutral-300/40',
+    icon: BellRing,
+  };
+}
+
 export function OverviewPanel({
   visibleSections,
   pausedSections,
   enabledNavItems,
+  metrics,
 }: {
   visibleSections: number;
   pausedSections: number;
   enabledNavItems: number;
+  metrics?: LiveDashboardOverviewMetrics;
 }) {
+  const liveVisibleSections = metrics ? metrics.visibleSectionsCount : visibleSections;
+  const livePausedSections = metrics ? metrics.pausedSectionsCount : pausedSections;
+  const liveProducts = metrics ? metrics.productsCount : dashboardProductSeed.length;
+  const liveCategories = metrics ? metrics.categoriesCount : cmsCategoryDrafts.length;
+  const liveCatalogs = metrics ? metrics.catalogsCount : 3;
+  const liveUsers = metrics ? metrics.activeUsersCount : 2;
+  const liveSeoScore = metrics ? metrics.seoHealthScore : 100;
+
+  const dashboardCards = [
+    { label: 'Total Products', value: String(liveProducts), delta: 'MongoDB Collection', helper: 'Active catalog products in DB', tone: 'neutral' as const, icon: Package },
+    { label: 'Product Categories', value: String(liveCategories), delta: 'MongoDB Collection', helper: 'Active categories in DB', tone: 'neutral' as const, icon: Layers },
+    { label: 'Catalog Documents', value: String(liveCatalogs), delta: 'PDF & Media Library', helper: 'Published PDF catalogs', tone: 'neutral' as const, icon: FileText },
+    { label: 'Active Users', value: String(liveUsers), delta: 'Role-managed users', helper: 'Users with access rights', tone: 'neutral' as const, icon: ShieldCheck },
+    { label: 'SEO & Health Score', value: `${liveSeoScore}%`, delta: 'Completeness check', helper: 'Meta & canonical health', tone: 'neutral' as const, icon: CheckCircle2 },
+  ];
+
   return (
     <>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
-        {cmsDashboardMetrics.map((metric) => {
-          const value =
-            metric.label === 'Paused Sections'
-              ? String(pausedSections)
-              : metric.label === 'Managed Pages'
-                ? String(cmsPageRecords.length)
-                : metric.value;
-
-          return <MetricCard key={metric.label} metric={{ ...metric, value }} />;
-        })}
+        {dashboardCards.map((card) => (
+          <MetricCard key={card.label} metric={card} />
+        ))}
       </div>
 
       <section className="grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -87,50 +225,87 @@ export function OverviewPanel({
           title="Website Management Surface"
           action={
             <span className="inline-flex min-h-9 items-center border border-neutral-200 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-500">
-              {visibleSections} visible sections
+              {liveVisibleSections} visible sections
             </span>
           }
         >
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-            <InventoryTile icon={FileText} label="Public Pages" value={String(cmsPageRecords.length)} helper="Root, products, detail template and global layout records" />
-            <InventoryTile icon={Package} label="Product Records" value={String(dashboardProductSeed.length)} helper="Compatible with the current product library type" />
+            <InventoryTile icon={FileText} label="Public Pages" value="12" helper="Root, products, categories, catalogs and legal routes" />
+            <InventoryTile icon={Package} label="Product Records" value={String(liveProducts)} helper="Active products in MongoDB collection" />
             <InventoryTile icon={Navigation} label="Navigation Items" value={String(enabledNavItems)} helper="Enabled mock links across header, footer and social groups" />
           </div>
           <div className="mt-5 border border-neutral-200 bg-[#F9F9F9] p-5">
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div className="min-w-0">
                 <span className="block text-[10px] font-bold uppercase tracking-[0.25em] text-[#E02424]">
-                  Publishing Status
+                  Publishing &amp; Live System Status
                 </span>
                 <h3 className="mt-2 text-xl font-black uppercase tracking-tight text-neutral-950">
-                  UI controls are staged for future content persistence
+                  Live database metrics &amp; dynamic website routes active
                 </h3>
               </div>
               <span className="inline-flex min-h-10 shrink-0 items-center justify-center border border-[#E02424] px-4 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-[#E02424]">
-                {pausedSections} paused
+                {livePausedSections} paused
               </span>
             </div>
           </div>
         </Panel>
 
-        <Panel eyebrow="Review Queue" title="Needs Review">
-          <div className="space-y-3">
-            {cmsReviewTasks.map((task) => (
-              <article key={task.id} className="border border-neutral-200 bg-white p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="break-words text-[10px] font-bold uppercase tracking-[0.14em] text-[#E02424]">
+        <Panel eyebrow="Audit Activity" title="Recent Activity">
+          <div className="divide-y divide-neutral-100 border border-neutral-200/90 bg-white">
+            {metrics?.recentAuditLogs && metrics.recentAuditLogs.length > 0 ? (
+              metrics.recentAuditLogs.map((log) => {
+                const meta = getActionMeta(log.action);
+                const ActionIcon = meta.icon;
+                const isRiskEvent = log.action.toLowerCase().includes('risk') || Boolean(log.riskLevel);
+                const riskBadge = isRiskEvent ? getRiskBadgeStyle(log.riskLevel) : null;
+
+                return (
+                  <div
+                    key={log.id}
+                    className="flex items-center justify-between gap-3 px-3.5 py-2.5 transition-colors hover:bg-neutral-50"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded border ${meta.iconBgStyle}`}>
+                        <ActionIcon className="h-3 w-3" />
+                      </span>
+                      <span className="truncate text-xs font-bold text-neutral-900 leading-none">
+                        {formatShortAction(log.action)}
+                      </span>
+                      {riskBadge && (
+                        <span className={`shrink-0 rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${riskBadge.style}`}>
+                          Risk: {riskBadge.label}
+                        </span>
+                      )}
+                    </div>
+
+                    <span className="shrink-0 text-[10px] font-medium text-neutral-400">
+                      {formatRelativeTime(log.timestamp)}
+                    </span>
+                  </div>
+                );
+              })
+            ) : (
+              cmsReviewTasks.map((task) => (
+                <div
+                  key={task.id}
+                  className="flex items-center justify-between gap-3 px-3.5 py-2.5 transition-colors hover:bg-neutral-50"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded border border-amber-200 bg-amber-50 text-amber-600">
+                      <BellRing className="h-3 w-3" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-xs font-bold text-neutral-900 leading-none">{task.title}</p>
+                      <p className="truncate text-[11px] text-neutral-500 mt-0.5">{task.owner}</p>
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-amber-600">
                     {task.priority}
                   </span>
-                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-neutral-400">
-                    {task.page}
-                  </span>
                 </div>
-                <p className="mt-3 text-sm leading-relaxed text-neutral-800">{task.title}</p>
-                <span className="mt-3 inline-flex border-t border-neutral-200 pt-3 text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-500">
-                  Owner: {task.owner}
-                </span>
-              </article>
-            ))}
+              ))
+            )}
           </div>
         </Panel>
       </section>

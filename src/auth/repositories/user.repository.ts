@@ -288,8 +288,8 @@ export class UserRepository {
    */
   async createUser(data: {
     email: string;
-    firstName: string;
-    lastName: string;
+    fullName?: string | null;
+    displayName?: string | null;
     role: UserRole;
     status: UserDocument['status'];
     permissions?: CmsPermission[];
@@ -299,11 +299,13 @@ export class UserRepository {
     const emailsColl = await getUserEmailsCollection();
     const now = new Date();
     
+    const fullNameVal = data.fullName?.trim() || data.displayName?.trim() || null;
+    const displayNameVal = data.displayName?.trim() || data.fullName?.trim() || '';
+
     const userDoc: Omit<UserDocument, '_id'> = {
       profile: {
-        displayName: `${data.firstName} ${data.lastName}`.trim(),
-        firstName: data.firstName,
-        lastName: data.lastName,
+        displayName: displayNameVal,
+        fullName: fullNameVal,
         avatar: null,
         timezone: null,
         locale: null,

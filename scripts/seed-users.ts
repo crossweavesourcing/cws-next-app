@@ -68,14 +68,12 @@ export async function seedUsers(): Promise<void> {
     secret: env.ARGON2_SECRET ? Buffer.from(env.ARGON2_SECRET) : undefined,
   });
 
-  const firstName = env.ADMIN_SEED_FIRST_NAME || 'System';
-  const lastName = env.ADMIN_SEED_LAST_NAME || 'Admin';
+  const fullName = env.ADMIN_SEED_FULL_NAME || env.ADMIN_SEED_FIRST_NAME || 'System Admin';
   const department = env.ADMIN_SEED_DEPARTMENT || 'Operations';
 
   const adminProfile = {
-    displayName: `${firstName} ${lastName}`,
-    firstName,
-    lastName,
+    displayName: fullName,
+    fullName,
     avatar: null,
     timezone: null,
     locale: null,

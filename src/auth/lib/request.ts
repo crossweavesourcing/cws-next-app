@@ -2,25 +2,6 @@ import { headers } from 'next/headers';
 import { getEnv } from '../config/env';
 import { UNTRUSTED_IP_SENTINEL } from './ip';
 
-/**
- * Resolves the client IP — the single source of truth used by login, OAuth
- * callback, 2FA, and refresh for rate limiting / audit / geo logic.
- *
- * Strategy (FIX-09 / FIX-C4):
- *  1. If a trusted-proxy header is configured via env (e.g. Vercel's
- *     `x-vercel-proxied-for`), prefer it — these are set by the platform edge
- *     and cannot be client-supplied.
- *  2. When NO trusted-proxy header is configured:
- *     - In PRODUCTION, client-supplied `x-forwarded-for` is fully spoofable, so
- *       we must NOT trust it. Prefer `x-real-ip` (also edge-set by most
- *       platforms) and otherwise fall back to an untrusted `0.0.0.0` sentinel.
- *       Fail-closed: collapsing per-IP limits is safer than trusting a forged
- *       header (the per-identifier/email limit still protects accounts).
- *     - In DEVELOPMENT (no real proxy) the first hop of `x-forwarded-for` is
- *       acceptable so local tooling keeps working.
- *  3. Fall back to `x-real-ip`, then `127.0.0.1` (dev/local) / `0.0.0.0` (prod
- *     untrusted sentinel).
- */
 let untrustedIpWarned = false;
 
 export async function getClientIp(): Promise<string> {
@@ -36,8 +17,6 @@ export async function getClientIp(): Promise<string> {
   const isProd = process.env.NODE_ENV === 'production';
 
   if (isProd) {
-    // No trusted-proxy header in production: client-supplied XFF is spoofable.
-    // Do NOT trust it. Prefer x-real-ip (edge-set) and never a client header.
     if (!untrustedIpWarned) {
       untrustedIpWarned = true;
       console.warn(
@@ -50,12 +29,9 @@ export async function getClientIp(): Promise<string> {
     }
     const realIp = headersList.get('x-real-ip');
     if (realIp) return realIp.trim();
-    // Untrusted sentinel; rate-limit/geo treat as "unknown". Consumers MUST NOT
-    // key a counter on this constant (it would collapse into one global bucket).
     return UNTRUSTED_IP_SENTINEL;
   }
 
-  // Development: behind no real proxy, XFF first-hop is acceptable for local testing.
   const forwardedFor = headersList.get('x-forwarded-for');
   if (forwardedFor) return forwardedFor.split(',')[0].trim();
 
@@ -65,11 +41,6 @@ export async function getClientIp(): Promise<string> {
   return '127.0.0.1';
 }
 
-/**
- * Thrown by `assertSameOrigin` when a cross-origin (CSRF) request is detected.
- * Server Actions / routes should catch this and surface a neutral error to the
- * client WITHOUT echoing the offending origin.
- */
 export class CsrfError extends Error {
   constructor() {
     super('Cross-origin request rejected.');
@@ -77,11 +48,6 @@ export class CsrfError extends Error {
   }
 }
 
-/**
- * Origin helper: returns the normalized `scheme://hostname:port` portion of a
- * URL string, or
- * null if the value is not a valid absolute URL.
- */
 function originOf(value: string | null): string | null {
   if (!value) return null;
   try {
@@ -91,19 +57,36 @@ function originOf(value: string | null): string | null {
   }
 }
 
+function originsMatch(candidateOrigin: string | null, appOrigin: string): boolean {
+  if (!candidateOrigin) return false;
+  const parsed = originOf(candidateOrigin);
+  if (!parsed) return false;
+  if (parsed === appOrigin) return true;
+
+  // In development mode, allow localhost <-> 127.0.0.1 & http <-> https for local dev ONLY
+  if (process.env.NODE_ENV === 'development') {
+    try {
+      const uReq = new URL(parsed);
+      const uApp = new URL(appOrigin);
+      const isLocalReq = uReq.hostname === 'localhost' || uReq.hostname === '127.0.0.1';
+      const isLocalApp = uApp.hostname === 'localhost' || uApp.hostname === '127.0.0.1';
+      if (isLocalReq && isLocalApp) {
+        const portReq = uReq.port || (uReq.protocol === 'https:' ? '443' : '80');
+        const portApp = uApp.port || (uApp.protocol === 'https:' ? '443' : '80');
+        if (portReq === portApp) {
+          return true;
+        }
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+}
+
 /**
  * CSRF/origin guard for state-changing auth routes AND Server Actions.
- *
- * Browsers send an `Origin` header on cross-origin fetches/XHR and on
- * cross-site top-level form POSTs. For same-origin requests the `Origin` may
- * be absent or `null` (e.g. some Server Action POSTs, private-network, or
- * `file:`), so when `Origin` is missing we fall back to the `Referer` header
- * and compare its origin to APP_URL's origin. If neither header is present we
- * allow the request — same-origin assumptions are backed by Next.js's built-in
- * Server Action protection (encrypted action IDs + POST-only enforcement).
- *
- * C1 fix: this is now uniformly applied to EVERY state-changing auth endpoint
- * (routes via direct call, Server Actions via `withCsrfGuard`).
  */
 export async function assertSameOrigin(): Promise<void> {
   const env = getEnv();
@@ -111,34 +94,25 @@ export async function assertSameOrigin(): Promise<void> {
 
   const appOrigin = originOf(env.APP_URL);
   if (!appOrigin) {
-    // Misconfigured APP_URL — fail closed rather than skip the check.
     throw new CsrfError();
   }
 
   const origin = headersList.get('origin');
   if (origin) {
-    // `null` Origin (private network / file://) is never a legit same-origin API.
-    if (origin === 'null' || originOf(origin) !== appOrigin) {
+    if (origin === 'null' || !originsMatch(origin, appOrigin)) {
       throw new CsrfError();
     }
     return;
   }
 
-  // No Origin: fall back to Referer host (common for same-origin form/Action POSTs).
   const referer = headersList.get('referer');
-  const refererOrigin = originOf(referer);
-  if (refererOrigin && refererOrigin !== appOrigin) {
+  if (referer && !originsMatch(referer, appOrigin)) {
     throw new CsrfError();
   }
-  // No Origin and no Referer → allow (same-origin by Next.js Action protections).
 }
 
 /**
  * Strict same-origin guard for direct state-changing Route Handlers.
- *
- * Unlike Server Actions, direct route handlers do not need to tolerate requests
- * with both Origin and Referer missing. Require one explicit browser-provided
- * same-origin signal for defense in depth.
  */
 export async function assertSameOriginStrict(): Promise<void> {
   const env = getEnv();
@@ -151,14 +125,14 @@ export async function assertSameOriginStrict(): Promise<void> {
 
   const origin = headersList.get('origin');
   if (origin) {
-    if (origin === 'null' || originOf(origin) !== appOrigin) {
+    if (origin === 'null' || !originsMatch(origin, appOrigin)) {
       throw new CsrfError();
     }
     return;
   }
 
-  const refererOrigin = originOf(headersList.get('referer'));
-  if (refererOrigin === appOrigin) {
+  const referer = headersList.get('referer');
+  if (referer && originsMatch(referer, appOrigin)) {
     return;
   }
 

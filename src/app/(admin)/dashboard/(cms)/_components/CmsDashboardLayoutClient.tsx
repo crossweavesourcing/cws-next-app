@@ -33,7 +33,7 @@ const ALL_WORKSPACE_ITEMS: Array<{
   icon: ComponentType<{ className?: string }>;
   permissionKey: CmsPermission | 'super_admin_only' | 'always' | 'users';
 }> = [
-  { href: '/dashboard', label: 'Overview', helper: 'CMS command center', icon: Monitor, permissionKey: 'overview' },
+  { href: '/dashboard', label: 'Overview', helper: 'CMS command center', icon: Monitor, permissionKey: 'always' },
   { href: '/dashboard/page-content', label: 'Page Content', helper: 'Sections and page copy', icon: FileText, permissionKey: 'page_content' },
   { href: '/dashboard/categories', label: 'Categories', helper: 'Portfolio category cards', icon: Layers, permissionKey: 'categories' },
   { href: '/dashboard/products', label: 'Products', helper: 'Descriptions and media', icon: Package, permissionKey: 'products' },
@@ -61,8 +61,10 @@ export function CmsDashboardLayoutClient({
   userName: string;
   avatarUrl: string | null;
 }) {
-  const pathname = usePathname();
-  const isWideWorkspace = pathname?.startsWith('/dashboard/page-content') || pathname?.startsWith('/dashboard/account-security') || pathname?.startsWith('/dashboard/users');
+  const rawPathname = usePathname() || '';
+  const pathname = rawPathname.length > 1 && rawPathname.endsWith('/') ? rawPathname.slice(0, -1) : rawPathname;
+
+  const isWideWorkspace = pathname.startsWith('/dashboard/page-content') || pathname.startsWith('/dashboard/account-security') || pathname.startsWith('/dashboard/users');
   const {
     activeWorkspace,
     selectedPage,
@@ -82,7 +84,7 @@ export function CmsDashboardLayoutClient({
 
   // Find current workspace label based on URL
   const currentWorkspaceItem = workspaceItems.find(item => 
-    item.href === '/dashboard' ? pathname === '/dashboard' : pathname?.startsWith(item.href)
+    item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href)
   );
 
   return (
@@ -109,7 +111,7 @@ export function CmsDashboardLayoutClient({
             <nav className="flex-1 space-y-2 overflow-y-auto px-3 py-5 scrollbar-thin scrollbar-thumb-white/10">
               {workspaceItems.map((item) => {
                 const Icon = item.icon;
-                const isActive = item.href === '/dashboard' ? pathname === '/dashboard' : pathname?.startsWith(item.href);
+                const isActive = item.href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(item.href);
 
                 return (
                   <Link

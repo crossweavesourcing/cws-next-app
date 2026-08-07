@@ -96,6 +96,18 @@ export function proxy(request: NextRequest) {
   // Unauthenticated users visiting protected pages -> redirect to login (with trailing slash)
   if (isProtectedPath && !isPublicAuthPage && !hasValidSession) {
     const loginUrl = new URL('/dashboard/login/', request.url);
+    const isActionOrRsc =
+      request.headers.has('next-action') ||
+      request.headers.get('rsc') === '1' ||
+      request.headers.get('accept')?.includes('application/json');
+
+    if (isActionOrRsc) {
+      return NextResponse.json(
+        { error: 'Unauthorized', redirect: '/dashboard/login/' },
+        { status: 401 }
+      );
+    }
+
     return NextResponse.redirect(loginUrl);
   }
 

@@ -41,12 +41,16 @@ export class UserManagementService {
    */
   async createUser(data: {
     email: string;
-    firstName: string;
-    lastName: string;
+    fullName?: string;
+    displayName?: string;
     role: UserRole;
     permissions?: CmsPermission[];
   }) {
     const caller = await this.requireManagerAccess();
+
+    if (!data.fullName?.trim() && !data.displayName?.trim()) {
+      throw new Error('Please provide either a Full Name or a Nickname.');
+    }
 
     if (data.role === 'super_admin') {
       throw new Error('Cannot create a super_admin user via UI.');

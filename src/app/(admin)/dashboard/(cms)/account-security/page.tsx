@@ -50,10 +50,10 @@ export default async function AccountSecurityPage() {
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.85fr)]">
         <div className="space-y-5">
-          <section className="border border-neutral-200 bg-white p-6 md:p-8">
+          <section className="bg-white p-6 md:p-8">
             <Heading eyebrow="Identity" title="Personal information" copy="The identity attached to security notifications and audit activity." />
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              {[['Display name', data.profile.displayName], ['Full name', [data.profile.firstName, data.profile.lastName].filter(Boolean).join(' ') || 'Not provided'], ['Email', data.profile.email ?? 'Not configured'], ['Access role', data.profile.role]].map(([label, value]) => <div key={label} className="border border-neutral-200 bg-neutral-50 p-4"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-500">{label}</p><p className="mt-2 break-words text-sm font-semibold text-neutral-900">{value}</p></div>)}
+              {[['Nickname', data.profile.displayName], ['Full name', data.profile.fullName ?? data.profile.displayName], ['Email', data.profile.email ?? 'Not configured'], ['Access role', data.profile.role]].map(([label, value]) => <div key={label} className="border border-neutral-200 bg-neutral-50 p-4"><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-neutral-500">{label}</p><p className="mt-2 break-words text-sm font-semibold text-neutral-900">{value}</p></div>)}
             </div>
             <div className="mt-4 flex items-center gap-2 text-sm"><Mail className="h-4 w-4 text-[#E02424]" /><Status active={data.profile.emailVerified}>{data.profile.emailVerified ? 'Email verified' : 'Email not verified'}</Status></div>
           </section>
@@ -93,7 +93,7 @@ export default async function AccountSecurityPage() {
                 <h3 className="mt-2 text-lg font-black uppercase tracking-tight text-neutral-950">Security Preferences</h3>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-neutral-600">Configure when password sign-ins need a second step and which password verification method appears first.</p>
               </div>
-              <SecurityPreferencesClient 
+              <SecurityPreferencesClient
                 key={[
                   data.protection.twoFaPreference,
                   data.protection.defaultTwoFaMethod ?? 'email',
@@ -113,7 +113,7 @@ export default async function AccountSecurityPage() {
             </div>
           </section>
 
-          <section className="border border-neutral-200 bg-white p-6 md:p-8">
+          <section className="bg-white p-6 md:p-8">
             <Heading eyebrow="Recovery" title="Recovery access" copy="Recovery codes are a backup path for account access when normal verification is unavailable." />
             <article className="mt-6 grid gap-4 border border-neutral-200 bg-neutral-50 p-5 sm:grid-cols-[48px_1fr_auto] sm:items-start">
               <span className="mt-1 flex h-12 w-12 items-center justify-center bg-white text-[#E02424]"><LockKeyhole className="h-5 w-5" /></span>
@@ -129,7 +129,7 @@ export default async function AccountSecurityPage() {
         <aside className="space-y-5">
           <section className="border border-neutral-200 bg-white p-6"><Heading eyebrow="Checklist" title="Security safeguards" copy="Each completed safeguard contributes 20 points." /><ol className="mt-6 space-y-4">{data.accountScore.checks.map((check) => <li key={check.label} className="grid grid-cols-[32px_1fr] items-center gap-3 text-sm font-semibold"><span className={`flex h-8 w-8 items-center justify-center ${check.complete ? 'bg-emerald-600 text-white' : 'bg-neutral-100 text-neutral-500'}`}>{check.complete ? <Check className="h-4 w-4" /> : '—'}</span>{check.label}</li>)}</ol></section>
 
-          <section className="border border-neutral-200 bg-[#101010] p-6 text-white"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#E02424]">Active access</p><div className="mt-5 grid grid-cols-2 gap-3">{[['Sessions', data.access.activeSessionCount], ['Trusted devices', data.access.trustedDeviceCount], ['Blocked', data.access.blockedDeviceCount], ['Failed sign-ins', data.access.recentFailedLoginCount]].map(([label, value]) => <div key={String(label)} className="border border-white/10 bg-white/[0.04] p-4"><p className="text-2xl font-black">{value ?? '—'}</p><p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-neutral-400">{label}</p></div>)}</div><div className="mt-4 space-y-3">{data.access.sessions.map((session, index) => <div key={`${session.device}-${index}`} className="border border-white/10 p-4"><div className="flex items-center justify-between gap-3"><span className="flex items-center gap-2 text-sm font-bold"><Laptop className="h-4 w-4 text-[#E02424]" />{session.device}</span>{session.current && <span className="text-[10px] font-bold uppercase text-emerald-400">Current</span>}</div><p className="mt-2 flex items-center gap-2 text-xs text-neutral-400"><MapPin className="h-3.5 w-3.5" />{session.location}</p><p className="mt-1 text-xs text-neutral-500">{session.browser ?? 'Unknown browser'} · {dateLabel(session.lastActiveAt)}</p></div>)}</div><Link href="/dashboard/security" className="mt-5 inline-flex min-h-11 w-full items-center justify-center bg-white px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-neutral-950">Review devices &amp; sign-ins</Link></section>
+          <section className="border border-neutral-200 bg-[#101010] p-6 text-white"><p className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#E02424]">Active access</p><div className="mt-5 grid grid-cols-2 gap-3">{[['Sessions', data.access.activeSessionCount], ['Trusted devices', data.access.trustedDeviceCount], ['Blocked', data.access.blockedDeviceCount], ['Failed sign-ins', data.access.recentFailedLoginCount]].map(([label, value]) => <div key={String(label)} className="border border-white/10 bg-white/[0.04] p-4"><p className="text-2xl font-black">{value ?? '—'}</p><p className="mt-1 text-[10px] uppercase tracking-[0.12em] text-neutral-400">{label}</p></div>)}</div><div className="mt-4 space-y-3 p-2">{data.access.sessions.map((session, index) => <div key={`${session.device}-${index}`} className="border border-white/10 p-4"><div className="flex items-center justify-between gap-3"><span className="flex items-center gap-2 text-sm font-bold"><Laptop className="h-4 w-4 text-[#E02424]" />{session.device}</span>{session.current && <span className="text-[10px] font-bold uppercase text-emerald-400">Current</span>}</div><p className="mt-2 flex items-center gap-2 text-xs text-neutral-400"><MapPin className="h-3.5 w-3.5" />{session.location}</p><p className="mt-1 text-xs text-neutral-500">{session.browser ?? 'Unknown browser'} · {dateLabel(session.lastActiveAt)}</p></div>)}</div><Link href="/dashboard/security" className="mt-5 inline-flex min-h-11 w-full items-center justify-center bg-white px-4 text-[11px] font-bold uppercase tracking-[0.14em] text-neutral-950">Review devices &amp; sign-ins</Link></section>
 
           <section className="border border-neutral-200 bg-white p-6"><div className="flex h-11 w-11 items-center justify-center bg-[#E02424]/10 text-[#E02424]"><UserRound className="h-5 w-5" /></div><h2 className="mt-5 text-lg font-black uppercase tracking-tight">Your data stays scoped</h2><p className="mt-3 text-sm leading-6 text-neutral-600">This information is loaded only when you open Account &amp; Security. It is not queried by the dashboard overview or shared layout.</p></section>
         </aside>

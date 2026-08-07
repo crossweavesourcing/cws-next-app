@@ -145,8 +145,7 @@ function makeUser(overrides: Partial<UserDocument> = {}): UserDocument {
     _id: userId,
     profile: {
       displayName: 'Test User',
-      firstName: 'Test',
-      lastName: 'User',
+      fullName: 'Test User',
       avatar: null,
       timezone: null,
       locale: null,

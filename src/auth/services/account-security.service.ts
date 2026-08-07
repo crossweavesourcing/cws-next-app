@@ -13,8 +13,7 @@ import type { CmsPermission } from '@/types/auth';
 export interface AccountSecurityViewModel {
   profile: {
     displayName: string;
-    firstName: string | null;
-    lastName: string | null;
+    fullName: string | null;
     email: string | null;
     emailVerified: boolean;
     role: string;
@@ -101,8 +100,7 @@ export async function getAccountSecurityView(): Promise<AccountSecurityViewModel
   return {
     profile: {
       displayName: user.profile.displayName,
-      firstName: user.profile.firstName,
-      lastName: user.profile.lastName,
+      fullName: user.profile.fullName ?? user.profile.displayName,
       email: email?.email ?? null,
       emailVerified: email?.verified ?? false,
       role: user.role,

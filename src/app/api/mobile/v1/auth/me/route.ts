@@ -14,8 +14,7 @@ export async function GET(request: NextRequest) {
     status: auth.user.status,
     profile: {
       displayName: auth.user.profile.displayName,
-      firstName: auth.user.profile.firstName,
-      lastName: auth.user.profile.lastName,
+      fullName: auth.user.profile.fullName,
       employeeId: auth.user.profile.employeeId,
       department: auth.user.profile.department,
     },

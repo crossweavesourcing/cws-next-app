@@ -35,4 +35,12 @@ export class AuditLogRepository {
       );
     }
   }
+
+  /**
+   * Fetches recent audit log entries ordered by creation date descending.
+   */
+  async getRecentLogs(limit = 10): Promise<AuditLogDocument[]> {
+    const auditColl = await getAuditLogsCollection();
+    return auditColl.find().sort({ createdAt: -1 }).limit(limit).toArray();
+  }
 }

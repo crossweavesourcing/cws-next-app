@@ -17,9 +17,8 @@ export const UserProfileResponseSchema = z
     role: UserRoleSchema,
     status: UserStatusSchema,
     profile: z.object({
-      displayName: z.string().meta({ example: 'John Doe' }),
-      firstName: z.string().meta({ example: 'John' }),
-      lastName: z.string().meta({ example: 'Doe' }),
+      displayName: z.string().meta({ example: 'Johnny' }),
+      fullName: z.string().nullable().meta({ example: 'John Doe' }),
       employeeId: z.string().nullable().meta({ example: 'EMP-0001' }),
       department: z.string().nullable().meta({ example: 'Engineering' }),
     }),

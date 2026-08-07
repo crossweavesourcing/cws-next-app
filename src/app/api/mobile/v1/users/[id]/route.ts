@@ -55,8 +55,7 @@ export async function GET(
     status: user.status,
     profile: {
       displayName: user.profile.displayName,
-      firstName: user.profile.firstName,
-      lastName: user.profile.lastName,
+      fullName: user.profile.fullName,
       employeeId: user.profile.employeeId,
       department: user.profile.department,
     },

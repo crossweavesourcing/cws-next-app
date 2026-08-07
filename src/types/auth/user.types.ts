@@ -24,8 +24,7 @@ export interface UserAvatar {
 
 export interface UserProfile {
   displayName: string;
-  firstName:   string | null;
-  lastName:    string | null;
+  fullName:    string | null;
   /**
    * Structured avatar object.
    * @see UserAvatar

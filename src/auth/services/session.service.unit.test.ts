@@ -240,8 +240,7 @@ function makeUser(): UserDocument {
     _id: new ObjectId(),
     profile: {
       displayName: 'Test User',
-      firstName: 'Test',
-      lastName: 'User',
+      fullName: 'Test User',
       avatar: null,
       timezone: null,
       locale: null,

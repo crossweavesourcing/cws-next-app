@@ -41,10 +41,15 @@ export function NewUserClient({
 }) {
   const router = useRouter();
   const overlayRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+
   const [role, setRole] = useState<UserRole>('manager');
   const [selectedPermissions, setSelectedPermissions] = useState<CmsPermission[]>([
     'overview',
   ]);
+  const [clientError, setClientError] = useState<string | null>(null);
+
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(
     createUserAction,
     { success: false }
@@ -54,8 +59,12 @@ export function NewUserClient({
   const isModal = variant === 'modal';
 
   const close = useCallback(() => {
-    router.push('/dashboard/users');
-  }, [router]);
+    if (isModal) {
+      router.back();
+    } else {
+      router.push('/dashboard/users');
+    }
+  }, [isModal, router]);
 
   const selectedPermissionSet = useMemo(
     () => new Set(selectedPermissions),
@@ -68,17 +77,64 @@ export function NewUserClient({
     }
   }, [router, state]);
 
+  // Lock body scroll when modal is open
   useEffect(() => {
     if (!isModal) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isModal]);
+
+  // Focus management, focus trap & Escape key
+  useEffect(() => {
+    if (!isModal) return;
+
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+
+    // Set initial focus to email input
+    const focusTimer = setTimeout(() => {
+      emailInputRef.current?.focus();
+    }, 50);
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
         close();
+        return;
+      }
+
+      if (event.key === 'Tab' && dialogRef.current) {
+        const focusables = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length === 0) return;
+
+        const firstElement = focusables[0];
+        const lastElement = focusables[focusables.length - 1];
+
+        if (event.shiftKey) {
+          if (document.activeElement === firstElement) {
+            event.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            event.preventDefault();
+            firstElement.focus();
+          }
+        }
       }
     }
 
     document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    return () => {
+      clearTimeout(focusTimer);
+      document.removeEventListener('keydown', onKeyDown);
+      previouslyFocused?.focus();
+    };
   }, [close, isModal]);
 
   useEffect(() => {
@@ -95,8 +151,28 @@ export function NewUserClient({
     );
   }
 
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    const formData = new FormData(event.currentTarget);
+    const fullName = (formData.get('fullName') as string)?.trim();
+    const displayName = (formData.get('displayName') as string)?.trim();
+
+    if (!fullName && !displayName) {
+      event.preventDefault();
+      setClientError('Please provide at least a Full Name or a Nickname.');
+      return;
+    }
+
+    setClientError(null);
+  }
+
+  const activeError = clientError || state.error;
+
   const content = (
-    <form action={formAction} className="flex h-full min-h-0 flex-col bg-white text-neutral-950">
+    <form
+      action={formAction}
+      onSubmit={handleSubmit}
+      className="flex h-full min-h-0 flex-col bg-white text-neutral-950"
+    >
       <div className="shrink-0 border-b border-neutral-200 bg-[#101010] p-6 text-white md:p-7">
         <div className="flex items-start gap-4">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-white/15 bg-white/10">
@@ -106,7 +182,10 @@ export function NewUserClient({
             <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-[#E02424]">
               Users Management
             </span>
-            <h2 className="mt-2 break-words text-xl font-black uppercase tracking-tight md:text-2xl">
+            <h2
+              id="new-user-title"
+              className="mt-2 break-words text-xl font-black uppercase tracking-tight md:text-2xl"
+            >
               Add User
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-neutral-300">
@@ -117,9 +196,9 @@ export function NewUserClient({
       </div>
 
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-4 md:space-y-6 md:p-7">
-        {state.error && (
+        {activeError && (
           <div className="border border-red-500/25 bg-red-500/5 px-4 py-3 text-xs font-bold uppercase tracking-[0.14em] text-red-600">
-            {state.error}
+            {activeError}
           </div>
         )}
 
@@ -136,40 +215,45 @@ export function NewUserClient({
                 Email Address
               </span>
               <input
+                ref={emailInputRef}
                 type="email"
                 name="email"
                 autoComplete="email"
                 required
+                onChange={() => clientError && setClientError(null)}
                 className="h-11 w-full border border-neutral-200 bg-white px-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424]"
                 placeholder="name@company.com"
               />
             </label>
             <label className="block">
               <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-500">
-                First Name
+                Full Name
               </span>
               <input
                 type="text"
-                name="firstName"
-                autoComplete="given-name"
-                required
+                name="fullName"
+                autoComplete="name"
+                onChange={() => clientError && setClientError(null)}
                 className="h-11 w-full border border-neutral-200 bg-white px-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424]"
-                placeholder="First name"
+                placeholder="Full Name"
               />
             </label>
             <label className="block">
               <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.16em] text-neutral-500">
-                Last Name
+                Nickname
               </span>
               <input
                 type="text"
-                name="lastName"
-                autoComplete="family-name"
-                required
+                name="displayName"
+                autoComplete="nickname"
+                onChange={() => clientError && setClientError(null)}
                 className="h-11 w-full border border-neutral-200 bg-white px-3 text-sm text-neutral-900 outline-none transition-colors placeholder:text-neutral-400 focus:border-[#E02424]"
-                placeholder="Last name"
+                placeholder="Nickname"
               />
             </label>
+            <p className="text-xs text-neutral-500 md:col-span-2">
+              * Provide at least Full Name or Nickname. If only one is provided, both fields will share the same value.
+            </p>
           </div>
         </section>
 
@@ -215,7 +299,7 @@ export function NewUserClient({
                 return (
                   <label
                     key={permission}
-                    className={`flex min-h-24 cursor-pointer items-start gap-3 border p-4 transition-colors ${
+                    className={`flex min-h-24 cursor-pointer items-start gap-3 border p-4 transition-colors focus-within:ring-2 focus-within:ring-[#E02424] focus-within:ring-offset-1 ${
                       checked
                         ? 'border-[#E02424] bg-white'
                         : 'border-neutral-200 bg-white hover:border-[#E02424]/50'
@@ -280,16 +364,17 @@ export function NewUserClient({
       <div
         ref={overlayRef}
         className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 backdrop-blur-sm sm:p-6"
-        onMouseDown={(event) => {
+        onClick={(event) => {
           if (event.target === overlayRef.current) {
             close();
           }
         }}
       >
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
-          aria-label="Add user"
+          aria-labelledby="new-user-title"
           className="relative flex h-[min(92vh,860px)] min-h-0 w-full max-w-3xl flex-col overflow-hidden border border-neutral-800 bg-white shadow-2xl"
         >
           <button

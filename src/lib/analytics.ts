@@ -73,7 +73,7 @@ const processedEventIds = new Set<string>();
  */
 function stripPII(params: Record<string, unknown>): Record<string, unknown> {
   const safeParams = { ...params };
-  const blockedKeys = ['email', 'name', 'phone', 'message', 'firstName', 'lastName', 'company', 'file', 'filename', 'session', 'token', 'auth'];
+  const blockedKeys = ['email', 'name', 'phone', 'message', 'fullName', 'firstName', 'lastName', 'company', 'file', 'filename', 'session', 'token', 'auth'];
   
   for (const key of Object.keys(safeParams)) {
     if (blockedKeys.some(blocked => key.toLowerCase().includes(blocked.toLowerCase()))) {

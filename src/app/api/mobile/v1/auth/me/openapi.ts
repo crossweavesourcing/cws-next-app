@@ -25,9 +25,8 @@ export const mobileMePath = {
                   profile: {
                     type: 'object',
                     properties: {
-                      displayName: { type: 'string', example: 'John Doe' },
-                      firstName: { type: 'string', example: 'John' },
-                      lastName: { type: 'string', example: 'Doe' },
+                      displayName: { type: 'string', example: 'Johnny' },
+                      fullName: { type: ['string', 'null'], example: 'John Doe' },
                       employeeId: { type: ['string', 'null'], example: 'EMP-0001' },
                       department: { type: ['string', 'null'], example: 'Engineering' },
                     },
