@@ -6,7 +6,7 @@ import { CategoryRepository } from '@/auth/repositories/category.repository';
 import { ProductRepository } from '@/auth/repositories/product.repository';
 import { AuditLogRepository } from '@/auth/repositories/audit-log.repository';
 import { catalogMetadataSchema, catalogMetadataUpdateSchema, generateCatalogMarkdown, generateSemanticCatalogMarkdown, serializeCatalog, slugifyCatalog, validateCatalogPages, validateCatalogScene } from '@/lib/catalog-documents';
-import { createCatalogUploadSignature, deleteCatalogAsset, inspectCatalogAsset, inspectAndRenderCatalogPdf } from '@/lib/catalog-cloudinary';
+import { createCatalogUploadSignature, deleteCatalogAsset, inspectCatalogAsset, inspectAndRenderCatalogPdf, renderCatalogPages } from '@/lib/catalog-cloudinary';
 import { CatalogOperationError } from '@/lib/catalog-errors';
 import { SeoService } from './seo.service';
 
@@ -127,9 +127,16 @@ export class CatalogDocumentService {
   }
 
   /**
-   * Phase 2 (heavy, runs in background API route): Parses the PDF, renders pages,
-   * and updates the catalog document to 'draft' status on success, 'draft' with
-   * processingError on failure.
+   * Phase 2 (runs in the background API route):
+   * Fetches PNG page previews from Cloudinary (fast, network-only — no pdfjs-dist).
+   * The catalog's asset metadata is already stored from Phase 1, so we only need
+   * to generate the per-page preview URLs and dimensions.
+   *
+   * We deliberately skip parseCatalogPdf / pdfjs-dist here because it:
+   *  (a) downloads the entire PDF into memory,
+   *  (b) runs a JS PDF interpreter for every page,
+   *  (c) reliably exhausts serverless function memory/time limits.
+   * Scene/markdown (used for AI chat) remain empty until a dedicated offline job runs.
    */
   async finalizeProcessing(catalogId: string, publicId: string, actorUserId: ObjectId) {
     const document = await this.repo.findById(catalogId);
@@ -139,22 +146,22 @@ export class CatalogDocumentService {
       return;
     }
     try {
-      console.info(JSON.stringify({ level: 'info', event: 'catalog.operation.stage', stage: 'pdf.parse', catalogId }));
-      const processed = await inspectAndRenderCatalogPdf(publicId, actorUserId.toString());
-      validateCatalogPages(processed.pages, processed.asset.pages);
-      console.info(JSON.stringify({ level: 'info', event: 'catalog.operation.stage', stage: 'database.update', catalogId, pageCount: processed.pages.length }));
+      console.info(JSON.stringify({ level: 'info', event: 'catalog.operation.stage', stage: 'page.render', catalogId, pageCount: document.asset.pages }));
+      // Cloudinary PNG renders — each is a simple HTTP fetch, no in-process computation.
+      const pages = await renderCatalogPages(document.asset);
+      validateCatalogPages(pages, document.asset.pages);
+      console.info(JSON.stringify({ level: 'info', event: 'catalog.operation.stage', stage: 'database.update', catalogId, pageCount: pages.length }));
       await this.repo.update(document._id, {
         status: 'draft',
-        asset: processed.asset,
-        pages: processed.pages,
-        markdown: processed.markdown,
-        sceneVersion: processed.scene.version,
-        scene: processed.scene,
+        pages,
+        markdown: '',    // populated by a separate offline scene-parse job
+        sceneVersion: null,
+        scene: null,
         processingError: null,
         updatedBy: actorUserId,
         updatedAt: new Date(),
       });
-      await this.writeAudit({ userId: actorUserId, sessionId: null, permissions: [], source: 'web', operationId: catalogId }, 'catalog.create.completed', document._id, { pageCount: processed.pages.length });
+      await this.writeAudit({ userId: actorUserId, sessionId: null, permissions: [], source: 'web', operationId: catalogId }, 'catalog.create.completed', document._id, { pageCount: pages.length });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'PDF processing failed.';
       console.error(JSON.stringify({ level: 'error', event: 'catalog.processing.failed', catalogId, errorName: error instanceof Error ? error.name : 'UnknownError', errorMessage: message }));

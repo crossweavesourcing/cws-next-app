@@ -81,6 +81,31 @@ export async function inspectAndRenderCatalogPdf(publicId: string, actorId: stri
 }
 
 /**
+ * Lightweight rendering-only step: fetches PNG previews from Cloudinary for each page.
+ * Does NOT run pdfjs-dist. Use this in the background processing phase to avoid
+ * hitting serverless function timeouts while still producing viewable catalog pages.
+ *
+ * The `scene` and `markdown` fields are left empty — they can be populated later
+ * by a separate pdfjs-dist parsing job if AI/search features are needed.
+ */
+export async function renderCatalogPages(asset: CatalogAsset): Promise<CatalogPage[]> {
+  const limits = getPdfLimits();
+  const pagePromises = Array.from({ length: asset.pages }, async (_, i) => {
+    const pageNumber = i + 1;
+    const secureUrl = cloudinary.url(asset.publicId, {
+      resource_type: 'image', type: 'authenticated', secure: true, sign_url: true,
+      version: asset.version, page: pageNumber, density: limits.dpi, format: 'png', flags: 'rasterize',
+    });
+    const response = await fetch(secureUrl, { cache: 'no-store' });
+    if (!response.ok) throw new CatalogOperationError('PDF_RENDERING_UNAVAILABLE', 'PDF page rendering is unavailable. Check the catalog storage PDF settings.');
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const dimensions = pngDimensions(buffer);
+    return { pageNumber, secureUrl, ...dimensions, bytes: buffer.length };
+  });
+  return Promise.all(pagePromises);
+}
+
+/**
  * Fast metadata-only check (< 1s). Validates that the uploaded file is a valid PDF
  * owned by the actor, and returns the CatalogAsset record.
  * Does NOT download or parse the PDF — that is done by inspectAndRenderCatalogPdf.
