@@ -48,7 +48,7 @@ async function _finalizeCatalogCreate(input: unknown, publicId: string) {
     const actor = await webActor(referenceId);
     // Phase 1: fast insert with status 'processing' — returns in < 2s
     const catalog = await new CatalogDocumentService().finalizeCreate(actor, input, publicId);
-    // Phase 2: fire the Netlify Background Function (fire-and-forget).
+    // Phase 2: fire the Netlify Background Function, fire-and-forget.
     // Background Functions have a 15-minute timeout — unlike Next.js API routes
     // which are Netlify Functions with a 10s limit.
     // URL: /.netlify/functions/catalog-process-background

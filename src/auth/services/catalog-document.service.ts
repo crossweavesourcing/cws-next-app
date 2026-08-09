@@ -247,7 +247,7 @@ export class CatalogDocumentService {
     const document = await this.repo.findById(id); if (!document) throw new CatalogValidationError('Catalog not found.');
     this.requireAssociations(actor, document.categoryId?.toString() ?? null, document.productId?.toString() ?? null);
     try {
-      const assetMeta = await inspectCatalogAsset(publicId);
+      const assetMeta = await inspectCatalogAsset(publicId, actor.userId.toString());
       const updated = await this.repo.update(document._id, {
         asset: assetMeta,
         pages: [],
