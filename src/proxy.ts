@@ -57,7 +57,7 @@ export function buildCsp(
  * NOTE: Full signature validation and DB lookup is deferred to the Server Component DAL
  * via requireAuth() to avoid database overhead on static/asset requests.
  */
-export function proxy(request: NextRequest) {
+export default function proxy(request: NextRequest) {
   // Ensure a stable device identity exists for every request. This is the
   // single place untrusted clients receive their device id cookie.
   ensureDeviceId().catch(() => {});
