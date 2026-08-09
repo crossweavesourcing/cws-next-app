@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { headers } from 'next/headers';
 import { getEnv } from '../config/env';
-import { ObjectId } from 'mongodb';
+import { ObjectId } from 'bson';
 import { signSessionId } from '../crypto/token';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { sessionCookieOpts, clearingCookieOpts } from './cookies';
