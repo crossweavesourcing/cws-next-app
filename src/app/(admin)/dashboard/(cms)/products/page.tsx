@@ -18,6 +18,7 @@ export default async function ProductsRoute() {
     ...p,
     _id: p._id.toString(),
     categoryId: p.categoryId?.toString() || null,
+    relatedProducts: p.relatedProducts?.map((id) => id.toString()) || [],
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

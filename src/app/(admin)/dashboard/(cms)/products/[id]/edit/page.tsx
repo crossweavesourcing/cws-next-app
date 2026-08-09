@@ -25,6 +25,7 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
     ...product,
     _id: product._id.toString(),
     categoryId: product.categoryId?.toString() || null,
+    relatedProducts: product.relatedProducts?.map((id) => id.toString()) || [],
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

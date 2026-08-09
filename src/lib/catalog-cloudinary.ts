@@ -67,15 +67,16 @@ export async function inspectAndRenderCatalogPdf(publicId: string, actorId: stri
   }
   const source = new Uint8Array(await sourceResponse.arrayBuffer());
   const parsed = await parseCatalogPdf(source);
-  const pages: CatalogPage[] = [];
-  for (let pageNumber = 1; pageNumber <= pageCount; pageNumber += 1) {
+  const pagePromises = Array.from({ length: pageCount }, async (_, i) => {
+    const pageNumber = i + 1;
     const secureUrl = cloudinary.url(publicId, { resource_type: 'image', type: 'authenticated', secure: true, sign_url: true, version: resource.version, page: pageNumber, density: limits.dpi, format: 'png', flags: 'rasterize' });
     const response = await fetch(secureUrl, { cache: 'no-store' });
     if (!response.ok) throw new CatalogOperationError('PDF_RENDERING_UNAVAILABLE', 'PDF page rendering is unavailable. Check the catalog storage PDF settings.');
     const buffer = Buffer.from(await response.arrayBuffer());
     const dimensions = pngDimensions(buffer);
-    pages.push({ pageNumber, secureUrl, ...dimensions, bytes: buffer.length });
-  }
+    return { pageNumber, secureUrl, ...dimensions, bytes: buffer.length };
+  });
+  const pages: CatalogPage[] = await Promise.all(pagePromises);
   return { asset: { publicId, resourceType: 'image' as const, format: 'pdf' as const, secureUrl: originalUrl, originalFilename: resource.original_filename ?? 'catalog.pdf', bytes: resource.bytes, pages: pageCount, version: resource.version }, pages, ...parsed };
 }
 
