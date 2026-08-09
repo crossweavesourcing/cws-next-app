@@ -80,7 +80,13 @@ export interface ProductDocument {
   };
 }
 
-export type CatalogStatus = 'draft' | 'published';
+/**
+ * 'processing' — the PDF has been uploaded to Cloudinary and the catalog record
+ * exists in the database, but background parsing is still in progress.
+ * 'draft'      — processing succeeded; the catalog is visible to admins only.
+ * 'published'  — the catalog is publicly visible on the site.
+ */
+export type CatalogStatus = 'draft' | 'published' | 'processing';
 
 export interface CatalogAsset {
   publicId: string;
@@ -161,7 +167,9 @@ export interface CatalogDocument {
   description: string;
   status: CatalogStatus;
   asset: CatalogAsset;
+  /** Populated after background processing completes. Empty during 'processing' status. */
   pages: CatalogPage[];
+  /** Populated after background processing completes. Empty string during 'processing' status. */
   markdown: string;
   sceneVersion?: number | null;
   scene?: CatalogScene | null;

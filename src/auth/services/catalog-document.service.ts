@@ -6,7 +6,7 @@ import { CategoryRepository } from '@/auth/repositories/category.repository';
 import { ProductRepository } from '@/auth/repositories/product.repository';
 import { AuditLogRepository } from '@/auth/repositories/audit-log.repository';
 import { catalogMetadataSchema, catalogMetadataUpdateSchema, generateCatalogMarkdown, generateSemanticCatalogMarkdown, serializeCatalog, slugifyCatalog, validateCatalogPages, validateCatalogScene } from '@/lib/catalog-documents';
-import { createCatalogUploadSignature, deleteCatalogAsset, inspectAndRenderCatalogPdf } from '@/lib/catalog-cloudinary';
+import { createCatalogUploadSignature, deleteCatalogAsset, inspectCatalogAsset, inspectAndRenderCatalogPdf, renderCatalogPages } from '@/lib/catalog-cloudinary';
 import { CatalogOperationError } from '@/lib/catalog-errors';
 import { SeoService } from './seo.service';
 
@@ -79,25 +79,108 @@ export class CatalogDocumentService {
     return createCatalogUploadSignature(actor.userId.toString());
   }
 
+  /**
+   * Phase 1 (fast, < 2s): Validates associations and inserts a 'processing' catalog stub.
+   * Returns immediately with the catalog ID so the client can start polling.
+   * The heavy PDF parsing is done by finalizeProcessing(), called from a background API route.
+   */
   async finalizeCreate(actor: CatalogActor, input: unknown, publicId: string) {
-    console.info(JSON.stringify({ level: 'info', event: 'catalog.operation.stage', stage: 'pdf.inspect', referenceId: actor.operationId ?? null }));
+    console.info(JSON.stringify({ level: 'info', event: 'catalog.operation.stage', stage: 'create.init', referenceId: actor.operationId ?? null }));
     const parsed = catalogMetadataSchema.parse(input);
     this.requireAssociations(actor, parsed.categoryId, parsed.productId);
-    await this.validateAssociations(parsed.categoryId, parsed.productId);
-    let processed: Awaited<ReturnType<typeof inspectAndRenderCatalogPdf>> | null = null;
+    // Fetch Cloudinary metadata quickly to validate the upload exists and check file size/format.
+    // This is a lightweight API call (no PDF parsing) and completes in < 1s.
+    let assetMeta: Awaited<ReturnType<typeof inspectCatalogAsset>>;
     try {
-      processed = await inspectAndRenderCatalogPdf(publicId, actor.userId.toString());
-      validateCatalogPages(processed.pages, processed.asset.pages);
-      console.info(JSON.stringify({ level: 'info', event: 'catalog.operation.stage', stage: 'database.insert', referenceId: actor.operationId ?? null, pageCount: processed.pages.length }));
-      const now = new Date();
-      const document: CatalogDocument = { _id: new ObjectId(), categoryId: parsed.categoryId ? new ObjectId(parsed.categoryId) : null, productId: parsed.productId ? new ObjectId(parsed.productId) : null, title: parsed.title, slug: await this.uniqueSlug(parsed.title), description: parsed.description, status: 'draft', asset: processed.asset, pages: processed.pages, markdown: processed.markdown, sceneVersion: processed.scene.version, scene: processed.scene, processingError: null, publishedAt: null, createdBy: actor.userId, updatedBy: actor.userId, createdAt: now, updatedAt: now, seoOverrides: parsed.seoOverrides };
-      await this.repo.create(document);
-      await this.writeAudit(actor, 'catalog.create', document._id, { categoryId: parsed.categoryId, productId: parsed.productId, pageCount: document.pages.length });
-      return serializeCatalog(document);
+      assetMeta = await inspectCatalogAsset(publicId, actor.userId.toString());
     } catch (error) {
-      await deleteCatalogAsset(publicId).catch((cleanupError) => console.error('Catalog provisional asset cleanup failed', cleanupError));
+      await deleteCatalogAsset(publicId).catch((cleanupError) => console.error('Catalog asset validation cleanup failed', cleanupError));
       throw error;
     }
+    await this.validateAssociations(parsed.categoryId, parsed.productId);
+    const now = new Date();
+    const document: CatalogDocument = {
+      _id: new ObjectId(),
+      categoryId: parsed.categoryId ? new ObjectId(parsed.categoryId) : null,
+      productId: parsed.productId ? new ObjectId(parsed.productId) : null,
+      title: parsed.title,
+      slug: await this.uniqueSlug(parsed.title),
+      description: parsed.description,
+      status: 'processing',
+      asset: assetMeta,
+      pages: [],
+      markdown: '',
+      sceneVersion: null,
+      scene: null,
+      processingError: null,
+      publishedAt: null,
+      createdBy: actor.userId,
+      updatedBy: actor.userId,
+      createdAt: now,
+      updatedAt: now,
+      seoOverrides: parsed.seoOverrides,
+    };
+    console.info(JSON.stringify({ level: 'info', event: 'catalog.operation.stage', stage: 'database.insert', referenceId: actor.operationId ?? null }));
+    await this.repo.create(document);
+    await this.writeAudit(actor, 'catalog.create.initiated', document._id, { categoryId: parsed.categoryId, productId: parsed.productId });
+    return serializeCatalog(document);
+  }
+
+  /**
+   * Phase 2 (runs in the background API route):
+   * Fetches PNG page previews from Cloudinary (fast, network-only — no pdfjs-dist).
+   * The catalog's asset metadata is already stored from Phase 1, so we only need
+   * to generate the per-page preview URLs and dimensions.
+   *
+   * We deliberately skip parseCatalogPdf / pdfjs-dist here because it:
+   *  (a) downloads the entire PDF into memory,
+   *  (b) runs a JS PDF interpreter for every page,
+   *  (c) reliably exhausts serverless function memory/time limits.
+   * Scene/markdown (used for AI chat) remain empty until a dedicated offline job runs.
+   */
+  async finalizeProcessing(catalogId: string, publicId: string, actorUserId: ObjectId) {
+    const document = await this.repo.findById(catalogId);
+    if (!document) throw new Error(`Catalog ${catalogId} not found for background processing.`);
+    if (document.status !== 'processing') {
+      console.warn(JSON.stringify({ level: 'warn', event: 'catalog.processing.skip', catalogId, status: document.status }));
+      return;
+    }
+    try {
+      console.info(JSON.stringify({ level: 'info', event: 'catalog.operation.stage', stage: 'page.render', catalogId, pageCount: document.asset.pages }));
+      // Cloudinary PNG renders — each is a simple HTTP fetch, no in-process computation.
+      const pages = await renderCatalogPages(document.asset);
+      validateCatalogPages(pages, document.asset.pages);
+      console.info(JSON.stringify({ level: 'info', event: 'catalog.operation.stage', stage: 'database.update', catalogId, pageCount: pages.length }));
+      await this.repo.update(document._id, {
+        status: 'draft',
+        pages,
+        markdown: '',    // populated by a separate offline scene-parse job
+        sceneVersion: null,
+        scene: null,
+        processingError: null,
+        updatedBy: actorUserId,
+        updatedAt: new Date(),
+      });
+      await this.writeAudit({ userId: actorUserId, sessionId: null, permissions: [], source: 'web', operationId: catalogId }, 'catalog.create.completed', document._id, { pageCount: pages.length });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'PDF processing failed.';
+      console.error(JSON.stringify({ level: 'error', event: 'catalog.processing.failed', catalogId, errorName: error instanceof Error ? error.name : 'UnknownError', errorMessage: message }));
+      await this.repo.update(document._id, {
+        status: 'draft',
+        processingError: message.slice(0, 500),
+        updatedAt: new Date(),
+      });
+    }
+  }
+
+  /** Lightweight status check used by the polling API route. */
+  async getJobStatus(catalogId: string): Promise<{ status: string; error: string | null }> {
+    const doc = await this.repo.getStatus(catalogId);
+    if (!doc) return { status: 'not_found', error: null };
+    return {
+      status: doc.status === 'processing' ? 'processing' : doc.processingError ? 'error' : 'ready',
+      error: doc.processingError ?? null,
+    };
   }
 
   async list(actor: CatalogActor, filter: { categoryId?: string; productId?: string } = {}) {
@@ -164,11 +247,22 @@ export class CatalogDocumentService {
     const document = await this.repo.findById(id); if (!document) throw new CatalogValidationError('Catalog not found.');
     this.requireAssociations(actor, document.categoryId?.toString() ?? null, document.productId?.toString() ?? null);
     try {
-      const processed = await inspectAndRenderCatalogPdf(publicId, actor.userId.toString()); validateCatalogPages(processed.pages, processed.asset.pages);
-      const updated = await this.repo.update(document._id, { asset: processed.asset, pages: processed.pages, markdown: processed.markdown, sceneVersion: processed.scene.version, scene: processed.scene, status: 'draft', publishedAt: null, processingError: null, updatedBy: actor.userId, updatedAt: new Date() });
+      const assetMeta = await inspectCatalogAsset(publicId, actor.userId.toString());
+      const updated = await this.repo.update(document._id, {
+        asset: assetMeta,
+        pages: [],
+        markdown: '',
+        sceneVersion: null,
+        scene: null,
+        status: 'processing',
+        publishedAt: null,
+        processingError: null,
+        updatedBy: actor.userId,
+        updatedAt: new Date()
+      });
       if (!updated) throw new CatalogValidationError('Catalog not found.');
       await deleteCatalogAsset(document.asset.publicId).catch((error) => console.error('Catalog replaced asset cleanup failed', error));
-      await this.writeAudit(actor, 'catalog.replaced', document._id, { pageCount: processed.pages.length });
+      await this.writeAudit(actor, 'catalog.replacement.initiated', document._id, { newPublicId: publicId });
       return serializeCatalog(updated);
     } catch (error) {
       await deleteCatalogAsset(publicId).catch(() => {});

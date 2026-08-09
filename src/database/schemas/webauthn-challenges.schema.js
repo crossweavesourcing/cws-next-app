@@ -1,0 +1,50 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.webauthnChallengesSchema = void 0;
+exports.webauthnChallengesSchema = {
+    bsonType: 'object',
+    title: 'webauthn_challenges',
+    required: [
+        '_id',
+        'challenge',
+        'purpose',
+        'userId',
+        'tokenHash',
+        'deviceObjectId',
+        'platform',
+        'attempts',
+        'maxAttempts',
+        'expiresAt',
+        'usedAt',
+        'createdAt',
+        'updatedAt',
+    ],
+    additionalProperties: false,
+    properties: {
+        _id: { bsonType: 'objectId' },
+        challenge: { bsonType: 'string', minLength: 16, maxLength: 512 },
+        purpose: {
+            bsonType: 'string',
+            enum: [
+                'registration',
+                'mfa',
+                'passwordless_login',
+                'mobile_registration',
+                'mobile_mfa',
+                'mobile_passwordless_login',
+            ],
+        },
+        userId: { bsonType: ['objectId', 'null'] },
+        tokenHash: { bsonType: ['string', 'null'], minLength: 64, maxLength: 64 },
+        deviceObjectId: { bsonType: ['objectId', 'null'] },
+        platform: { bsonType: 'string', enum: ['web', 'mobile'] },
+        ipAddress: { bsonType: ['string', 'null'], maxLength: 45 },
+        userAgent: { bsonType: ['string', 'null'], maxLength: 512 },
+        attempts: { bsonType: 'int', minimum: 0 },
+        maxAttempts: { bsonType: 'int', minimum: 1 },
+        expiresAt: { bsonType: 'date' },
+        usedAt: { bsonType: ['date', 'null'] },
+        createdAt: { bsonType: 'date' },
+        updatedAt: { bsonType: 'date' },
+    },
+};

@@ -44,8 +44,34 @@ export const initializeCatalogUploadAction = withCsrfGuard(_initializeCatalogUpl
 
 async function _finalizeCatalogCreate(input: unknown, publicId: string) {
   const referenceId = randomUUID();
-  try { const catalog = await new CatalogDocumentService().finalizeCreate(await webActor(referenceId), input, publicId); revalidateCatalogPaths(catalog); return { success: true as const, error: undefined, catalog }; }
-  catch (error) { return safeFailure(error, 'create.finalize', referenceId); }
+  try {
+    const actor = await webActor(referenceId);
+    // Phase 1: fast insert with status 'processing' — returns in < 2s
+    const catalog = await new CatalogDocumentService().finalizeCreate(actor, input, publicId);
+    // Phase 2: fire the Netlify Background Function, fire-and-forget.
+    // Background Functions have a 15-minute timeout — unlike Next.js API routes
+    // which are Netlify Functions with a 10s limit.
+    // URL: /.netlify/functions/catalog-process-background
+    // The client polls /api/catalog/status/[jobId] every 2s for completion.
+    const appUrl = process.env.APP_URL ?? ''; // security-scan-ignore
+    const secret = process.env.CATALOG_PROCESS_SECRET ?? ''; // security-scan-ignore
+    if (appUrl && secret) {
+      // We MUST await the fetch here so Next.js does not destroy the Server Action execution context
+      // before the fetch begins (which causes an out-of-band 500 error / Dynamic Server Error).
+      // The background function returns 202 Accepted immediately (<50ms).
+      await fetch(`${appUrl}/api/catalog/process`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-catalog-secret': secret },
+        body: JSON.stringify({ catalogId: catalog._id, publicId, actorUserId: actor.userId.toString() }),
+      }).catch((err: unknown) => {
+        console.error(JSON.stringify({ level: 'error', event: 'catalog.process.trigger.failed', catalogId: catalog._id, errorMessage: err instanceof Error ? err.message : 'Unknown' }));
+      });
+    } else {
+      console.warn(JSON.stringify({ level: 'warn', event: 'catalog.process.trigger.skipped', reason: 'APP_URL or CATALOG_PROCESS_SECRET not set' }));
+    }
+    revalidateCatalogPaths(catalog);
+    return { success: true as const, error: undefined, catalog, jobId: catalog._id };
+  } catch (error) { return safeFailure(error, 'create.finalize', referenceId); }
 }
 export const finalizeCatalogCreateAction = withCsrfGuard(_finalizeCatalogCreate);
 
@@ -76,5 +102,30 @@ export const updateCatalogMetadataAction = withCsrfGuard(_updateCatalogMetadata)
 async function _updateCatalogAssociations(id: string, input: { categoryId: string | null; productId: string | null }) { const referenceId = randomUUID(); try { const catalog = await new CatalogDocumentService().updateAssociations(await webActor(referenceId), id, input); revalidateCatalogPaths(catalog); return { success: true as const, error: undefined, catalog }; } catch (error) { return safeFailure(error, 'associations.update', referenceId); } }
 export const updateCatalogAssociationsAction = withCsrfGuard(_updateCatalogAssociations);
 
-async function _replaceCatalogPdf(id: string, publicId: string) { const referenceId = randomUUID(); try { const catalog = await new CatalogDocumentService().replacePdf(await webActor(referenceId), id, publicId); revalidateCatalogPaths(catalog); return { success: true as const, error: undefined, catalog }; } catch (error) { return safeFailure(error, 'pdf.replace', referenceId); } }
+async function _replaceCatalogPdf(id: string, publicId: string) {
+  const referenceId = randomUUID();
+  try {
+    const actor = await webActor(referenceId);
+    const catalog = await new CatalogDocumentService().replacePdf(actor, id, publicId);
+    const appUrl = process.env.APP_URL ?? ''; // security-scan-ignore
+    const secret = process.env.CATALOG_PROCESS_SECRET ?? ''; // security-scan-ignore
+    if (appUrl && secret) {
+      // Must be awaited to prevent Next.js from destroying the context too early,
+      // which causes a Dynamic Server Error / 500 when fetch reads tracing headers.
+      await fetch(`${appUrl}/api/catalog/process`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-catalog-secret': secret },
+        body: JSON.stringify({ catalogId: catalog._id, publicId, actorUserId: actor.userId.toString() }),
+      }).catch((err: unknown) => {
+        console.error(JSON.stringify({ level: 'error', event: 'catalog.process.replace.trigger.failed', catalogId: catalog._id, errorMessage: err instanceof Error ? err.message : 'Unknown' }));
+      });
+    } else {
+      console.warn(JSON.stringify({ level: 'warn', event: 'catalog.process.replace.trigger.skipped', reason: 'APP_URL or CATALOG_PROCESS_SECRET not set' }));
+    }
+    revalidateCatalogPaths(catalog);
+    return { success: true as const, error: undefined, catalog, jobId: catalog._id };
+  } catch (error) {
+    return safeFailure(error, 'pdf.replace', referenceId);
+  }
+}
 export const replaceCatalogPdfAction = withCsrfGuard(_replaceCatalogPdf);

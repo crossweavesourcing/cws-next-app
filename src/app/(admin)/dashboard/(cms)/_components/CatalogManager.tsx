@@ -20,7 +20,7 @@ import {
 
 type LockedAssociation = { kind: 'category' | 'product'; id: string; name: string };
 type Option = { id: string; name: string };
-type OperationStage = 'idle' | 'uploading' | 'processing' | 'success' | 'error';
+type OperationStage = 'idle' | 'uploading' | 'processing' | 'parsing' | 'success' | 'error';
 type UploadParameters = { uploadUrl: string; apiKey: string; timestamp: number; signature: string; publicId: string; context: string };
 
 class BrowserUploadError extends Error {
@@ -72,9 +72,11 @@ export function CatalogManager({ locked }: { locked: LockedAssociation }) {
   const [progress, setProgress] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const pending = stage === 'uploading' || stage === 'processing';
+  const pending = stage === 'uploading' || stage === 'processing' || stage === 'parsing';
   const fileValidation = validateCatalogPdfFile(selectedFile);
   const formReady = Boolean(replacingId || title.trim().length >= 2) && Boolean(categoryId || productId) && fileValidation.valid && !pending;
+  const [parseElapsed, setParseElapsed] = useState(0);
+  const parseTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const refresh = useCallback(async () => {
     const result = await listCatalogsAction(locked.kind === 'category' ? { categoryId: locked.id } : { productId: locked.id });
@@ -102,7 +104,8 @@ export function CatalogManager({ locked }: { locked: LockedAssociation }) {
   });
 
   function resetDialog() {
-    setSelectedFile(null); setTitle(''); setDescription(''); setError(''); setProgress(0); setStage('idle'); setDragActive(false);
+    setSelectedFile(null); setTitle(''); setDescription(''); setError(''); setProgress(0); setStage('idle'); setDragActive(false); setParseElapsed(0);
+    if (parseTimerRef.current) { clearInterval(parseTimerRef.current); parseTimerRef.current = null; }
     setCategoryId(locked.kind === 'category' ? locked.id : ''); setProductId(locked.kind === 'product' ? locked.id : '');
     if (fileRef.current) fileRef.current.value = '';
   }
@@ -148,8 +151,40 @@ export function CatalogManager({ locked }: { locked: LockedAssociation }) {
         ? await replaceCatalogPdfAction(replacingId, initialized.upload.publicId)
         : await finalizeCatalogCreateAction(input, initialized.upload.publicId);
       if (!finalized.success) throw new BrowserUploadError(actionError(finalized));
+
+      // If a jobId is returned, the catalog is in 'processing' state — start polling.
+      if ('jobId' in finalized && finalized.jobId) {
+        setStage('parsing');
+        setParseElapsed(0);
+        if (parseTimerRef.current) clearInterval(parseTimerRef.current);
+        parseTimerRef.current = setInterval(() => setParseElapsed((s) => s + 1), 1000);
+        const jobId = finalized.jobId as string;
+        let done = false;
+        while (!done) {
+          await new Promise<void>((r) => setTimeout(r, 2000));
+          try {
+            const statusRes = await fetch(`/api/catalog/status/${jobId}`, { cache: 'no-store' });
+            if (statusRes.ok) {
+              const statusData = (await statusRes.json()) as { status: string; error?: string | null };
+              if (statusData.status === 'ready') {
+                done = true;
+              } else if (statusData.status === 'error') {
+                done = true;
+                throw new BrowserUploadError(statusData.error ?? 'PDF processing failed. Try again.');
+              }
+              // 'processing' → keep polling
+            }
+          } catch (pollError) {
+            if (pollError instanceof BrowserUploadError) throw pollError;
+            // Network errors: keep polling silently
+          }
+        }
+        if (parseTimerRef.current) { clearInterval(parseTimerRef.current); parseTimerRef.current = null; }
+      }
+
       setStage('success'); await refresh(); setOpen(false); setReplacingId(null); resetDialog();
     } catch (uploadError) {
+      if (parseTimerRef.current) { clearInterval(parseTimerRef.current); parseTimerRef.current = null; }
       setError(uploadError instanceof Error ? uploadError.message : 'Catalog upload failed.'); setStage('error');
     }
   }
@@ -162,13 +197,45 @@ export function CatalogManager({ locked }: { locked: LockedAssociation }) {
   return <section className="mt-8 border-t border-white/10 pt-7 text-white">
     <div className="flex items-center justify-between gap-4"><div><span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#E02424]">PDF Catalogs</span><h3 className="mt-2 text-xl font-black uppercase">Documents</h3></div><button type="button" onClick={() => openDialog()} className="inline-flex h-10 items-center gap-2 bg-[#E02424] px-4 text-xs font-bold uppercase text-white"><Plus className="h-4 w-4" /> Add PDF</button></div>
     {error && !open && !editingCatalog && <p className="mt-4 border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}
-    <div className="mt-5 space-y-3">{catalogs.length === 0 ? <div className="border border-dashed border-white/20 p-6 text-center text-sm text-neutral-400"><FileText className="mx-auto mb-2 h-6 w-6" />No catalogs attached to {locked.name}.</div> : catalogs.map((catalog) => <article key={catalog._id} className="border border-white/10 bg-white/[0.04] p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h4 className="font-bold text-white">{catalog.title}</h4><span className={`px-2 py-1 text-[9px] font-bold uppercase ${catalog.status === 'published' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-amber-500/15 text-amber-300'}`}>{catalog.status}</span></div><p className="mt-1 text-xs text-neutral-400">{catalog.asset.originalFilename} · {catalog.pages.length} pages</p>{catalog.status === 'draft' && <p className="mt-2 text-xs font-medium text-amber-300">Draft catalogs are visible to administrators only. Publish to show this catalog on the public product page.</p>}{catalog.processingError && <p className="mt-2 text-xs text-red-300">{catalog.processingError}</p>}</div><div className="flex flex-wrap gap-2"><Link href={`/dashboard/catalogs/${catalog._id}/preview`} className="border border-white/20 px-3 py-2 text-[10px] font-bold uppercase">Preview</Link><button disabled={pending} onClick={() => edit(catalog)} className="border border-white/20 px-3 py-2 text-[10px] font-bold uppercase">Edit</button><button disabled={pending} onClick={() => openDialog(catalog._id)} className="border border-white/20 px-3 py-2 text-[10px] font-bold uppercase">Replace</button><button disabled={pending} onClick={() => void publish(catalog._id, catalog.status !== 'published')} className={`${catalog.status === 'draft' ? 'bg-[#E02424] text-white' : 'border border-white/20'} px-3 py-2 text-[10px] font-bold uppercase`}>{catalog.status === 'published' ? 'Unpublish' : 'Publish'}</button>{(locked.kind === 'category' ? catalog.productId : catalog.categoryId) && <button disabled={pending} onClick={() => void detach(catalog)} className="border border-white/20 px-3 py-2 text-[10px] font-bold uppercase">Detach</button>}<button disabled={pending} onClick={() => void remove(catalog._id)} className="px-3 py-2 text-[10px] font-bold uppercase text-red-300">Delete</button></div></div></article>)}</div>
+    <div className="mt-5 space-y-3">{catalogs.length === 0 ? <div className="border border-dashed border-white/20 p-6 text-center text-sm text-neutral-400"><FileText className="mx-auto mb-2 h-6 w-6" />No catalogs attached to {locked.name}.</div> : catalogs.map((catalog) => <article key={catalog._id} className="border border-white/10 bg-white/[0.04] p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div><div className="flex flex-wrap items-center gap-2"><h4 className="font-bold text-white">{catalog.title}</h4><span className={`px-2 py-1 text-[9px] font-bold uppercase ${catalog.status === 'published' ? 'bg-emerald-500/15 text-emerald-300' : catalog.status === 'processing' ? 'bg-blue-500/15 text-blue-300' : 'bg-amber-500/15 text-amber-300'}`}>{catalog.status === 'processing' ? 'Processing…' : catalog.status}</span></div><p className="mt-1 text-xs text-neutral-400">{catalog.asset.originalFilename}{catalog.status !== 'processing' && ` · ${catalog.pages.length} pages`}</p>{catalog.status === 'processing' && <p className="mt-2 text-xs font-medium text-blue-300">Parsing PDF in the background — this page will update automatically when ready.</p>}{catalog.status === 'draft' && <p className="mt-2 text-xs font-medium text-amber-300">Draft catalogs are visible to administrators only. Publish to show this catalog on the public product page.</p>}{catalog.processingError && <p className="mt-2 text-xs text-red-300">{catalog.processingError}</p>}</div><div className="flex flex-wrap gap-2">{catalog.status !== 'processing' && <Link href={`/dashboard/catalogs/${catalog._id}/preview`} className="border border-white/20 px-3 py-2 text-[10px] font-bold uppercase">Preview</Link>}<button disabled={pending || catalog.status === 'processing'} onClick={() => edit(catalog)} className="border border-white/20 px-3 py-2 text-[10px] font-bold uppercase disabled:opacity-40">Edit</button>{catalog.status !== 'processing' && <button disabled={pending} onClick={() => openDialog(catalog._id)} className="border border-white/20 px-3 py-2 text-[10px] font-bold uppercase">Replace</button>}{catalog.status !== 'processing' && <button disabled={pending} onClick={() => void publish(catalog._id, catalog.status !== 'published')} className={`${catalog.status === 'draft' ? 'bg-[#E02424] text-white' : 'border border-white/20'} px-3 py-2 text-[10px] font-bold uppercase`}>{catalog.status === 'published' ? 'Unpublish' : 'Publish'}</button>}{(locked.kind === 'category' ? catalog.productId : catalog.categoryId) && <button disabled={pending} onClick={() => void detach(catalog)} className="border border-white/20 px-3 py-2 text-[10px] font-bold uppercase">Detach</button>}<button disabled={pending} onClick={() => void remove(catalog._id)} className="px-3 py-2 text-[10px] font-bold uppercase text-red-300">Delete</button></div></div></article>)}</div>
 
     {open && <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/75 p-3 sm:p-6" onMouseDown={(event) => event.target === event.currentTarget && closeDialog()}><div role="dialog" aria-modal="true" aria-labelledby="catalog-dialog-title" className="flex h-[min(92dvh,760px)] w-full max-w-2xl flex-col overflow-hidden border border-neutral-700 bg-[#101010] shadow-2xl"><div className="flex shrink-0 items-center justify-between border-b border-white/10 px-5 py-4"><div><span className="text-[10px] font-bold uppercase text-[#E02424]">{replacingId ? 'Replace document' : 'New document'}</span><h3 id="catalog-dialog-title" className="mt-1 text-xl font-black uppercase">PDF Catalog</h3></div><button type="button" aria-label="Close catalog dialog" disabled={pending} onClick={closeDialog} className="p-2 text-neutral-400 hover:text-white disabled:opacity-40"><X className="h-5 w-5" /></button></div>
       <form onSubmit={create} className="flex h-full min-h-0 flex-col"><div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-5">{!replacingId && <><label className="block text-xs font-bold uppercase text-neutral-400">Title<input value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={160} className="mt-2 w-full border border-white/10 bg-white/[0.06] p-3 text-white" /></label><label className="block text-xs font-bold uppercase text-neutral-400">Description<textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} maxLength={1000} className="mt-2 w-full border border-white/10 bg-white/[0.06] p-3 text-white" /></label><div className="grid gap-4 sm:grid-cols-2"><label className="text-xs font-bold uppercase text-neutral-400">Category<select disabled={locked.kind === 'category'} value={categoryId} onChange={(event) => setCategoryId(event.target.value)} className="mt-2 w-full border border-white/10 bg-[#181818] p-3 text-white disabled:opacity-60"><option value="">None</option>{options.categories.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label><label className="text-xs font-bold uppercase text-neutral-400">Product<select disabled={locked.kind === 'product'} value={productId} onChange={(event) => setProductId(event.target.value)} className="mt-2 w-full border border-white/10 bg-[#181818] p-3 text-white disabled:opacity-60"><option value="">None</option>{options.products.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label></div></>}
         {selectedFile ? <div className="flex items-center gap-4 border border-emerald-500/30 bg-emerald-500/[0.08] p-4"><span className="flex h-11 w-11 shrink-0 items-center justify-center bg-emerald-500/15 text-emerald-300"><FileCheck2 className="h-5 w-5" /></span><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-white">{selectedFile.name}</p><p className="mt-1 text-xs text-emerald-300">{formatFileSize(selectedFile.size)} · Ready to upload</p></div><button type="button" disabled={pending} onClick={openFilePicker} aria-label="Replace selected PDF" title="Replace PDF" className="p-2 text-neutral-300 hover:text-white"><RefreshCw className="h-4 w-4" /></button><button type="button" disabled={pending} onClick={() => chooseFile(null)} aria-label="Remove selected PDF" title="Remove PDF" className="p-2 text-red-300 hover:text-red-200"><Trash2 className="h-4 w-4" /></button></div> : <button type="button" onClick={openFilePicker} onDragEnter={(event) => { event.preventDefault(); setDragActive(true); }} onDragOver={(event) => event.preventDefault()} onDragLeave={() => setDragActive(false)} onDrop={(event) => { event.preventDefault(); setDragActive(false); chooseFile(event.dataTransfer.files[0] ?? null); }} className={`flex w-full flex-col items-center border-2 border-dashed p-8 text-neutral-300 transition-colors ${dragActive ? 'border-[#E02424] bg-[#E02424]/10' : 'border-white/20 hover:border-[#E02424]'}`}><Upload className="mb-3 h-7 w-7" /><span className="text-sm font-bold">Choose PDF</span><span className="mt-1 text-xs text-neutral-500">or drag and drop · up to {formatFileSize(DEFAULT_CATALOG_PDF_MAX_BYTES)}</span></button>}
         <input ref={fileRef} type="file" accept="application/pdf,.pdf" onChange={(event) => chooseFile(event.target.files?.[0] ?? null)} className="sr-only" />
-        {pending && <div aria-live="polite"><div className="mb-2 flex justify-between text-xs text-neutral-400"><span>{stage === 'uploading' ? 'Uploading PDF' : 'Validating and rendering pages'}</span><span>{stage === 'uploading' ? `${progress}%` : 'Please wait'}</span></div><div className="h-1 overflow-hidden bg-white/10"><div className={`h-full bg-[#E02424] ${stage === 'processing' ? 'w-1/3 animate-pulse' : ''}`} style={stage === 'uploading' ? { width: `${progress}%` } : undefined} /></div></div>}
+        {pending && (
+          <div aria-live="polite" className="space-y-2">
+            <div className="mb-2 flex justify-between text-xs text-neutral-400">
+              <span>
+                {stage === 'uploading' && 'Uploading PDF to cloud storage'}
+                {stage === 'processing' && 'Saving catalog — verifying upload…'}
+                {stage === 'parsing' && (
+                  <span className="flex items-center gap-2">
+                    <LoaderCircle className="h-3 w-3 animate-spin" />
+                    Parsing PDF pages{parseElapsed > 0 ? ` · ${parseElapsed}s` : ''}
+                  </span>
+                )}
+              </span>
+              <span>{stage === 'uploading' ? `${progress}%` : stage === 'parsing' ? 'Please wait…' : ''}</span>
+            </div>
+            <div className="h-1 overflow-hidden bg-white/10">
+              {stage === 'uploading' && (
+                <div className="h-full bg-[#E02424] transition-all duration-300" style={{ width: `${progress}%` }} />
+              )}
+              {stage === 'processing' && (
+                <div className="h-full w-1/3 animate-pulse bg-[#E02424]" />
+              )}
+              {stage === 'parsing' && (
+                <div className="h-full animate-[shimmer_2s_linear_infinite] bg-gradient-to-r from-[#E02424] via-[#ff6b6b] to-[#E02424] bg-[length:200%_100%]" style={{ width: `${Math.min(95, 10 + parseElapsed * 1.2)}%`, transition: 'width 1s linear' }} />
+              )}
+            </div>
+            {stage === 'parsing' && (
+              <p className="text-xs text-neutral-500">
+                Extracting text, rendering pages, and storing catalog data. This can take up to 2 minutes for large PDFs.
+              </p>
+            )}
+          </div>
+        )}
         {error && <p role="alert" className="border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">{error}</p>}</div>
         <div className="flex shrink-0 justify-end gap-3 border-t border-white/10 bg-[#101010] p-4"><button type="button" disabled={pending} onClick={closeDialog} className="h-11 border border-white/20 px-5 text-xs font-bold uppercase disabled:opacity-40">Cancel</button><button disabled={!formReady} className="inline-flex h-11 items-center gap-2 bg-[#E02424] px-5 text-xs font-bold uppercase disabled:cursor-not-allowed disabled:opacity-40">{pending && <LoaderCircle className="h-4 w-4 animate-spin" />}{replacingId ? 'Replace PDF' : 'Create Catalog'}</button></div></form></div></div>}
 

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { cloudinary } from '@/lib/cloudinary';
 import { getPdfLimits } from '@/lib/catalog-documents';
-import type { CatalogPage } from '@/types/catalog';
+import type { CatalogAsset, CatalogPage } from '@/types/catalog';
 import { CatalogOperationError } from '@/lib/catalog-errors';
 import { parseCatalogPdf } from '@/lib/catalog-pdf-parser';
 
@@ -78,6 +78,59 @@ export async function inspectAndRenderCatalogPdf(publicId: string, actorId: stri
   });
   const pages: CatalogPage[] = await Promise.all(pagePromises);
   return { asset: { publicId, resourceType: 'image' as const, format: 'pdf' as const, secureUrl: originalUrl, originalFilename: resource.original_filename ?? 'catalog.pdf', bytes: resource.bytes, pages: pageCount, version: resource.version }, pages, ...parsed };
+}
+
+/**
+ * Lightweight rendering-only step: fetches PNG previews from Cloudinary for each page.
+ * Does NOT run pdfjs-dist. Use this in the background processing phase to avoid
+ * hitting serverless function timeouts while still producing viewable catalog pages.
+ *
+ * The `scene` and `markdown` fields are left empty — they can be populated later
+ * by a separate pdfjs-dist parsing job if AI/search features are needed.
+ */
+export async function renderCatalogPages(asset: CatalogAsset): Promise<CatalogPage[]> {
+  const limits = getPdfLimits();
+  const pagePromises = Array.from({ length: asset.pages }, async (_, i) => {
+    const pageNumber = i + 1;
+    const secureUrl = cloudinary.url(asset.publicId, {
+      resource_type: 'image', type: 'authenticated', secure: true, sign_url: true,
+      version: asset.version, page: pageNumber, density: limits.dpi, format: 'png', flags: 'rasterize',
+    });
+    const response = await fetch(secureUrl, { cache: 'no-store' });
+    if (!response.ok) throw new CatalogOperationError('PDF_RENDERING_UNAVAILABLE', 'PDF page rendering is unavailable. Check the catalog storage PDF settings.');
+    const buffer = Buffer.from(await response.arrayBuffer());
+    const dimensions = pngDimensions(buffer);
+    return { pageNumber, secureUrl, ...dimensions, bytes: buffer.length };
+  });
+  return Promise.all(pagePromises);
+}
+
+/**
+ * Fast metadata-only check (< 1s). Validates that the uploaded file is a valid PDF
+ * owned by the actor, and returns the CatalogAsset record.
+ * Does NOT download or parse the PDF — that is done by inspectAndRenderCatalogPdf.
+ */
+export async function inspectCatalogAsset(publicId: string, actorId: string): Promise<CatalogAsset> {
+  if (!publicId.startsWith(`cws_catalogs/${actorId}/`)) throw new CatalogOperationError('UPLOAD_REJECTED', 'The uploaded catalog could not be verified.');
+  const limits = getPdfLimits();
+  let resource: CloudinaryPdfResource;
+  try {
+    resource = await cloudinary.api.resource(publicId, {
+      resource_type: 'image',
+      type: 'authenticated',
+      context: true,
+      pages: true,
+    }) as CloudinaryPdfResource;
+  } catch (error) {
+    throw new CatalogOperationError('UPLOAD_REJECTED', 'The uploaded PDF could not be found in catalog storage.', { cause: error });
+  }
+  const pageCount = resource.pages ?? 0;
+  if (resource.resource_type !== 'image' || resource.format !== 'pdf' || resource.bytes < 1 || resource.bytes > limits.maxBytes || pageCount < 1 || pageCount > limits.maxPages) {
+    throw new CatalogOperationError('PDF_INVALID', 'The PDF is invalid or exceeds the configured limits.');
+  }
+  if (resource.context?.custom?.catalog_owner !== actorId) throw new CatalogOperationError('UPLOAD_REJECTED', 'The uploaded catalog ownership could not be verified.');
+  const originalUrl = cloudinary.url(publicId, { resource_type: 'image', type: 'authenticated', secure: true, sign_url: true, version: resource.version, format: 'pdf' });
+  return { publicId, resourceType: 'image', format: 'pdf', secureUrl: originalUrl, originalFilename: resource.original_filename ?? 'catalog.pdf', bytes: resource.bytes, pages: pageCount, version: resource.version };
 }
 
 export async function fetchCatalogPdfSource(secureUrl: string, range: string | null): Promise<Response> {
