@@ -247,11 +247,22 @@ export class CatalogDocumentService {
     const document = await this.repo.findById(id); if (!document) throw new CatalogValidationError('Catalog not found.');
     this.requireAssociations(actor, document.categoryId?.toString() ?? null, document.productId?.toString() ?? null);
     try {
-      const processed = await inspectAndRenderCatalogPdf(publicId, actor.userId.toString()); validateCatalogPages(processed.pages, processed.asset.pages);
-      const updated = await this.repo.update(document._id, { asset: processed.asset, pages: processed.pages, markdown: processed.markdown, sceneVersion: processed.scene.version, scene: processed.scene, status: 'draft', publishedAt: null, processingError: null, updatedBy: actor.userId, updatedAt: new Date() });
+      const assetMeta = await inspectCatalogAsset(publicId);
+      const updated = await this.repo.update(document._id, {
+        asset: assetMeta,
+        pages: [],
+        markdown: '',
+        sceneVersion: null,
+        scene: null,
+        status: 'processing',
+        publishedAt: null,
+        processingError: null,
+        updatedBy: actor.userId,
+        updatedAt: new Date()
+      });
       if (!updated) throw new CatalogValidationError('Catalog not found.');
       await deleteCatalogAsset(document.asset.publicId).catch((error) => console.error('Catalog replaced asset cleanup failed', error));
-      await this.writeAudit(actor, 'catalog.replaced', document._id, { pageCount: processed.pages.length });
+      await this.writeAudit(actor, 'catalog.replacement.initiated', document._id, { newPublicId: publicId });
       return serializeCatalog(updated);
     } catch (error) {
       await deleteCatalogAsset(publicId).catch(() => {});

@@ -20,11 +20,13 @@ export async function POST(request: NextRequest) {
       const appUrl = process.env.APP_URL ?? '';
       const secret = process.env.CATALOG_PROCESS_SECRET ?? '';
       if (appUrl && secret) {
-        void fetch(`${appUrl}/api/catalog/process`, {
+        // Await the background fetch to prevent Next.js from throwing an Unhandled Promise Rejection
+        // if it tears down the route handler context before the fetch request initializes.
+        await fetch(`${appUrl}/api/catalog/process`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-catalog-secret': secret },
           body: JSON.stringify({ catalogId: catalog._id, publicId: body.publicId, actorUserId: actor.userId.toString() }),
-        }).catch(() => undefined);
+        }).catch((error) => console.error(JSON.stringify({ level: 'error', event: 'catalog.process.mobile.trigger.failed', catalogId: catalog._id, errorMessage: error instanceof Error ? error.message : 'Unknown' })));
       }
       return mobileJson(request, { success: true, catalog, jobId: catalog._id }, { status: 201 });
     }
