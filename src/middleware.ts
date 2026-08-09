@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import * as crypto from 'crypto';
-import { verifySessionSignature } from '@/auth/crypto/token';
+import { verifySessionSignatureEdge } from '@/auth/crypto/token-edge';
 import { getEnv } from '@/auth/config/env';
-import { ensureDeviceId } from '@/auth/lib/device';
-
 const COOKIE_NAME = 'cws_session';
 
 /** Header carrying the per-request CSP nonce so Server Components / next/script can read it. */
@@ -57,10 +54,7 @@ export function buildCsp(
  * NOTE: Full signature validation and DB lookup is deferred to the Server Component DAL
  * via requireAuth() to avoid database overhead on static/asset requests.
  */
-export default function proxy(request: NextRequest) {
-  // Ensure a stable device identity exists for every request. This is the
-  // single place untrusted clients receive their device id cookie.
-  ensureDeviceId().catch(() => {});
+export default async function middleware(request: NextRequest) {
 
   const sessionCookie = request.cookies.get(COOKIE_NAME)?.value;
   const { pathname } = request.nextUrl;
@@ -75,7 +69,7 @@ export default function proxy(request: NextRequest) {
   if (sessionCookie) {
     try {
       const env = getEnv();
-      hasValidSession = verifySessionSignature(sessionCookie, env.SESSION_SECRET) !== null;
+      hasValidSession = (await verifySessionSignatureEdge(sessionCookie, env.SESSION_SECRET)) !== null;
     } catch {
       hasValidSession = false;
     }
@@ -111,10 +105,11 @@ export default function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // FIX-11: generate a fresh nonce and apply the nonce-based CSP. The nonce is
-  // also exposed on a request header so Server Components / next/script can
-  // attach it to any inline <script>/<style> that genuinely needs to run.
-  const nonce = crypto.randomBytes(16).toString('base64');
+  // FIX-11: generate a fresh nonce and apply the nonce-based CSP.
+  const nonceBytes = new Uint8Array(16);
+  crypto.getRandomValues(nonceBytes);
+  const nonce = btoa(String.fromCharCode(...nonceBytes));
+  
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set(CSP_NONCE_HEADER, nonce);
 
