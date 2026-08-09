@@ -44,8 +44,29 @@ export const initializeCatalogUploadAction = withCsrfGuard(_initializeCatalogUpl
 
 async function _finalizeCatalogCreate(input: unknown, publicId: string) {
   const referenceId = randomUUID();
-  try { const catalog = await new CatalogDocumentService().finalizeCreate(await webActor(referenceId), input, publicId); revalidateCatalogPaths(catalog); return { success: true as const, error: undefined, catalog }; }
-  catch (error) { return safeFailure(error, 'create.finalize', referenceId); }
+  try {
+    const actor = await webActor(referenceId);
+    // Phase 1: fast insert with status 'processing' — returns in < 2s
+    const catalog = await new CatalogDocumentService().finalizeCreate(actor, input, publicId);
+    // Phase 2: fire background processing route (fire-and-forget)
+    // The client polls /api/catalog/status/[jobId] for completion.
+    const appUrl = process.env.APP_URL ?? '';
+    const secret = process.env.CATALOG_PROCESS_SECRET ?? '';
+    if (appUrl && secret) {
+      // Not awaited — this is intentionally fire-and-forget.
+      void fetch(`${appUrl}/api/catalog/process`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-catalog-secret': secret },
+        body: JSON.stringify({ catalogId: catalog._id, publicId, actorUserId: actor.userId.toString() }),
+      }).catch((err: unknown) => {
+        console.error(JSON.stringify({ level: 'error', event: 'catalog.process.trigger.failed', catalogId: catalog._id, errorMessage: err instanceof Error ? err.message : 'Unknown' }));
+      });
+    } else {
+      console.warn(JSON.stringify({ level: 'warn', event: 'catalog.process.trigger.skipped', reason: 'APP_URL or CATALOG_PROCESS_SECRET not set' }));
+    }
+    revalidateCatalogPaths(catalog);
+    return { success: true as const, error: undefined, catalog, jobId: catalog._id };
+  } catch (error) { return safeFailure(error, 'create.finalize', referenceId); }
 }
 export const finalizeCatalogCreateAction = withCsrfGuard(_finalizeCatalogCreate);
 

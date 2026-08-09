@@ -1,0 +1,61 @@
+"use strict";
+// ─────────────────────────────────────────────────────────────────────────────
+// Public API: src/database/
+//
+// Import from here: import { getDb, getUsersCollection } from '@/database'
+// ─────────────────────────────────────────────────────────────────────────────
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ALL_INDEXES = exports.ALL_SCHEMAS = exports.getCatalogDocumentsCollection = exports.getMobileAuthChallengesCollection = exports.getWebAuthnChallengesCollection = exports.getWebAuthnCredentialsCollection = exports.getTotpCredentialsCollection = exports.getPasswordHistoryCollection = exports.getPasswordPoliciesCollection = exports.getLoginAttemptsCollection = exports.getAuditLogsCollection = exports.getRecoveryCodesCollection = exports.getOtpCodesCollection = exports.getVerificationTokensCollection = exports.getRefreshTokensCollection = exports.getSessionsCollection = exports.getDevicesCollection = exports.getOAuthAccountsCollection = exports.getUserPhonesCollection = exports.getUserEmailsCollection = exports.getUsersCollection = exports.COLLECTION_ORDER = exports.COLLECTION_NAMES = exports.initializeDatabase = exports.getCollectionStats = exports.pruneExpiredDocuments = exports.archiveAuditLogs = exports.registerShutdownHandlers = exports.withRetry = exports.createDefaultSecuritySink = exports.createWebhookSecuritySink = exports.createConsoleSecuritySink = exports.getActiveSecuritySink = exports.setupSecurityAlerting = exports.setupDatabaseObservability = exports.checkDatabaseHealth = exports.getDb = exports.getMongoClient = exports.DatabaseConfigError = exports.getDatabaseConfig = void 0;
+var config_1 = require("./config");
+Object.defineProperty(exports, "getDatabaseConfig", { enumerable: true, get: function () { return config_1.getDatabaseConfig; } });
+Object.defineProperty(exports, "DatabaseConfigError", { enumerable: true, get: function () { return config_1.DatabaseConfigError; } });
+var client_1 = require("./client");
+Object.defineProperty(exports, "getMongoClient", { enumerable: true, get: function () { return client_1.getMongoClient; } });
+Object.defineProperty(exports, "getDb", { enumerable: true, get: function () { return client_1.getDb; } });
+var health_1 = require("./health");
+Object.defineProperty(exports, "checkDatabaseHealth", { enumerable: true, get: function () { return health_1.checkDatabaseHealth; } });
+var observability_1 = require("./observability");
+Object.defineProperty(exports, "setupDatabaseObservability", { enumerable: true, get: function () { return observability_1.setupDatabaseObservability; } });
+var observability_2 = require("./observability");
+Object.defineProperty(exports, "setupSecurityAlerting", { enumerable: true, get: function () { return observability_2.setupSecurityAlerting; } });
+Object.defineProperty(exports, "getActiveSecuritySink", { enumerable: true, get: function () { return observability_2.getActiveSecuritySink; } });
+Object.defineProperty(exports, "createConsoleSecuritySink", { enumerable: true, get: function () { return observability_2.createConsoleSecuritySink; } });
+Object.defineProperty(exports, "createWebhookSecuritySink", { enumerable: true, get: function () { return observability_2.createWebhookSecuritySink; } });
+Object.defineProperty(exports, "createDefaultSecuritySink", { enumerable: true, get: function () { return observability_2.createDefaultSecuritySink; } });
+var retry_1 = require("./retry");
+Object.defineProperty(exports, "withRetry", { enumerable: true, get: function () { return retry_1.withRetry; } });
+var shutdown_1 = require("./shutdown");
+Object.defineProperty(exports, "registerShutdownHandlers", { enumerable: true, get: function () { return shutdown_1.registerShutdownHandlers; } });
+var maintenance_1 = require("./maintenance");
+Object.defineProperty(exports, "archiveAuditLogs", { enumerable: true, get: function () { return maintenance_1.archiveAuditLogs; } });
+Object.defineProperty(exports, "pruneExpiredDocuments", { enumerable: true, get: function () { return maintenance_1.pruneExpiredDocuments; } });
+Object.defineProperty(exports, "getCollectionStats", { enumerable: true, get: function () { return maintenance_1.getCollectionStats; } });
+var init_1 = require("./init");
+Object.defineProperty(exports, "initializeDatabase", { enumerable: true, get: function () { return init_1.initializeDatabase; } });
+var constants_1 = require("./constants");
+Object.defineProperty(exports, "COLLECTION_NAMES", { enumerable: true, get: function () { return constants_1.COLLECTION_NAMES; } });
+Object.defineProperty(exports, "COLLECTION_ORDER", { enumerable: true, get: function () { return constants_1.COLLECTION_ORDER; } });
+var collections_1 = require("./collections");
+Object.defineProperty(exports, "getUsersCollection", { enumerable: true, get: function () { return collections_1.getUsersCollection; } });
+Object.defineProperty(exports, "getUserEmailsCollection", { enumerable: true, get: function () { return collections_1.getUserEmailsCollection; } });
+Object.defineProperty(exports, "getUserPhonesCollection", { enumerable: true, get: function () { return collections_1.getUserPhonesCollection; } });
+Object.defineProperty(exports, "getOAuthAccountsCollection", { enumerable: true, get: function () { return collections_1.getOAuthAccountsCollection; } });
+Object.defineProperty(exports, "getDevicesCollection", { enumerable: true, get: function () { return collections_1.getDevicesCollection; } });
+Object.defineProperty(exports, "getSessionsCollection", { enumerable: true, get: function () { return collections_1.getSessionsCollection; } });
+Object.defineProperty(exports, "getRefreshTokensCollection", { enumerable: true, get: function () { return collections_1.getRefreshTokensCollection; } });
+Object.defineProperty(exports, "getVerificationTokensCollection", { enumerable: true, get: function () { return collections_1.getVerificationTokensCollection; } });
+Object.defineProperty(exports, "getOtpCodesCollection", { enumerable: true, get: function () { return collections_1.getOtpCodesCollection; } });
+Object.defineProperty(exports, "getRecoveryCodesCollection", { enumerable: true, get: function () { return collections_1.getRecoveryCodesCollection; } });
+Object.defineProperty(exports, "getAuditLogsCollection", { enumerable: true, get: function () { return collections_1.getAuditLogsCollection; } });
+Object.defineProperty(exports, "getLoginAttemptsCollection", { enumerable: true, get: function () { return collections_1.getLoginAttemptsCollection; } });
+Object.defineProperty(exports, "getPasswordPoliciesCollection", { enumerable: true, get: function () { return collections_1.getPasswordPoliciesCollection; } });
+Object.defineProperty(exports, "getPasswordHistoryCollection", { enumerable: true, get: function () { return collections_1.getPasswordHistoryCollection; } });
+Object.defineProperty(exports, "getTotpCredentialsCollection", { enumerable: true, get: function () { return collections_1.getTotpCredentialsCollection; } });
+Object.defineProperty(exports, "getWebAuthnCredentialsCollection", { enumerable: true, get: function () { return collections_1.getWebAuthnCredentialsCollection; } });
+Object.defineProperty(exports, "getWebAuthnChallengesCollection", { enumerable: true, get: function () { return collections_1.getWebAuthnChallengesCollection; } });
+Object.defineProperty(exports, "getMobileAuthChallengesCollection", { enumerable: true, get: function () { return collections_1.getMobileAuthChallengesCollection; } });
+Object.defineProperty(exports, "getCatalogDocumentsCollection", { enumerable: true, get: function () { return collections_1.getCatalogDocumentsCollection; } });
+var schemas_1 = require("./schemas");
+Object.defineProperty(exports, "ALL_SCHEMAS", { enumerable: true, get: function () { return schemas_1.ALL_SCHEMAS; } });
+var indexes_1 = require("./indexes");
+Object.defineProperty(exports, "ALL_INDEXES", { enumerable: true, get: function () { return indexes_1.ALL_INDEXES; } });
