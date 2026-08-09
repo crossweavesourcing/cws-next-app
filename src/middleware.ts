@@ -8,11 +8,10 @@ const COOKIE_NAME = 'cws_session';
 export const CSP_NONCE_HEADER = 'x-nonce';
 
 /**
- * Builds a per-request Content-Security-Policy using a fresh cryptographic nonce
- * (FIX-11). Inline scripts/styles must use this nonce; 'unsafe-inline' is
- * removed so a successful XSS can no longer execute arbitrary inline scripts.
- * Third-party script/connect sources (e.g. Google OAuth) should be added to the
- * relevant directives once finalized.
+ * Builds a per-request Content-Security-Policy.
+ * Note: 'unsafe-inline' is used for scripts instead of a cryptographic nonce because 
+ * Netlify's edge caching and Next.js SSG often cause the dynamically generated nonce
+ * header to mismatch with the statically cached HTML, leading to hydration failures.
  */
 export function buildCsp(
   nonce: string,
@@ -20,7 +19,7 @@ export function buildCsp(
 ): string {
   const scriptSources = [
     "'self'",
-    `'nonce-${nonce}'`,
+    "'unsafe-inline'", // Reverted to unsafe-inline because Netlify edge caching breaks Next.js nonces
     ...(isDevelopment ? ["'unsafe-eval'"] : []),
   ].join(' ');
 
