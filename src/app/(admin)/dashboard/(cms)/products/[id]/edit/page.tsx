@@ -21,23 +21,24 @@ export default async function EditProductPage({ params }: { params: Promise<{ id
   const categoryRepo = new CategoryRepository();
   const categories = await categoryRepo.findAll();
 
-  const serializedProduct = {
+  // Ensure complete serialization of any hidden ObjectIds or Dates
+  const baseSerialized = {
     ...product,
     _id: product._id.toString(),
     categoryId: product.categoryId?.toString() || null,
     relatedProducts: product.relatedProducts?.map((id) => id.toString()) || [],
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any;
+  };
 
-  const serializedCategories = categories.map(cat => ({
+  const serializedProduct = JSON.parse(JSON.stringify(baseSerialized));
+
+  const serializedCategories = JSON.parse(JSON.stringify(categories.map(cat => ({
     ...cat,
     _id: cat._id.toString(),
     createdAt: cat.createdAt.toISOString(),
     updatedAt: cat.updatedAt.toISOString(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  })) as any[];
+  }))));
 
   return (
     <div className="mx-auto max-w-3xl py-8">

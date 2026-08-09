@@ -147,7 +147,7 @@ export class CatalogDocumentService {
   }
 
   async setPublished(actor: CatalogActor, id: string, published: boolean) {
-    const document = await this.repo.findById(id); if (!document) throw new CatalogValidationError('Catalog not found.');
+    const document = await this.repo.findById(id, true); if (!document) throw new CatalogValidationError('Catalog not found.');
     this.requireAssociations(actor, document.categoryId?.toString() ?? null, document.productId?.toString() ?? null);
     if (published) {
       this.validateProcessedContent(document);

@@ -12,13 +12,12 @@ export default async function CategoriesRoute() {
 
   // We convert the documents to POJOs because they contain ObjectIds and Dates
   // that can't be passed directly to Client Components without serialization.
-  const serializedCategories = categories.map(cat => ({
-    ...cat,
-    _id: cat._id.toString(),
-    createdAt: cat.createdAt.toISOString(),
-    updatedAt: cat.updatedAt.toISOString(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  })) as any[];
+  const serializedCategories = JSON.parse(JSON.stringify(categories.map(c => ({
+    ...c,
+    _id: c._id.toString(),
+    createdAt: c.createdAt.toISOString(),
+    updatedAt: c.updatedAt.toISOString(),
+  }))));
 
   return <CategoryManagerClient categories={serializedCategories} />;
 }

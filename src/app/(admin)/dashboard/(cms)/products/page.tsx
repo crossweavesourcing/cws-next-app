@@ -14,23 +14,21 @@ export default async function ProductsRoute() {
   const categoryRepo = new CategoryRepository();
   const categories = await categoryRepo.findAll();
 
-  const serializedProducts = products.map(p => ({
+  const serializedProducts = JSON.parse(JSON.stringify(products.map(p => ({
     ...p,
     _id: p._id.toString(),
     categoryId: p.categoryId?.toString() || null,
     relatedProducts: p.relatedProducts?.map((id) => id.toString()) || [],
     createdAt: p.createdAt.toISOString(),
     updatedAt: p.updatedAt.toISOString(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  })) as any[];
+  }))));
 
-  const serializedCategories = categories.map(cat => ({
+  const serializedCategories = JSON.parse(JSON.stringify(categories.map(cat => ({
     ...cat,
     _id: cat._id.toString(),
     createdAt: cat.createdAt.toISOString(),
     updatedAt: cat.updatedAt.toISOString(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  })) as any[];
+  }))));
 
   return <ProductManagerClient products={serializedProducts} categories={serializedCategories} />;
 }

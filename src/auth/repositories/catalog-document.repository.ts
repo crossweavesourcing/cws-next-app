@@ -3,14 +3,14 @@ import { getCatalogDocumentsCollection } from '@/database';
 import type { CatalogDocument } from '@/types/catalog';
 
 export class CatalogDocumentRepository {
-  async findById(id: string) { return ObjectId.isValid(id) ? (await getCatalogDocumentsCollection()).findOne({ _id: new ObjectId(id) }) : null; }
-  async findBySlug(slug: string, publishedOnly = false) { return (await getCatalogDocumentsCollection()).findOne({ slug, ...(publishedOnly ? { status: 'published' as const } : {}) }); }
-  async findAll(filter: { categoryId?: string; productId?: string; publishedOnly?: boolean } = {}) {
+  async findById(id: string, includeScene = false) { return ObjectId.isValid(id) ? (await getCatalogDocumentsCollection()).findOne({ _id: new ObjectId(id) }, { projection: includeScene ? {} : { scene: 0, markdown: 0 } }) : null; }
+  async findBySlug(slug: string, publishedOnly = false, includeScene = false) { return (await getCatalogDocumentsCollection()).findOne({ slug, ...(publishedOnly ? { status: 'published' as const } : {}) }, { projection: includeScene ? {} : { scene: 0, markdown: 0 } }); }
+  async findAll(filter: { categoryId?: string; productId?: string; publishedOnly?: boolean; includeScene?: boolean } = {}) {
     const query: Filter<CatalogDocument> = {};
     if (filter.categoryId && ObjectId.isValid(filter.categoryId)) query.categoryId = new ObjectId(filter.categoryId);
     if (filter.productId && ObjectId.isValid(filter.productId)) query.productId = new ObjectId(filter.productId);
     if (filter.publishedOnly) query.status = 'published';
-    return (await getCatalogDocumentsCollection()).find(query).sort({ updatedAt: -1 }).toArray();
+    return (await getCatalogDocumentsCollection()).find(query, { projection: filter.includeScene ? {} : { scene: 0, markdown: 0 } }).sort({ updatedAt: -1 }).toArray();
   }
   async slugExists(slug: string, excludeId?: ObjectId) { return Boolean(await (await getCatalogDocumentsCollection()).findOne({ slug, ...(excludeId ? { _id: { $ne: excludeId } } : {}) }, { projection: { _id: 1 } })); }
   async create(document: CatalogDocument) { await (await getCatalogDocumentsCollection()).insertOne(document); return document; }
