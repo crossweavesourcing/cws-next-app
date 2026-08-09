@@ -97,16 +97,26 @@ export async function assertSameOrigin(): Promise<void> {
     throw new CsrfError();
   }
 
+  const host = headersList.get('x-forwarded-host') || headersList.get('host');
+  const proto = headersList.get('x-forwarded-proto') || 'https';
+  const dynamicOrigin = host ? originOf(`${proto}://${host}`) : null;
+
+  const isMatch = (candidate: string) => {
+    if (originsMatch(candidate, appOrigin)) return true;
+    if (dynamicOrigin && originsMatch(candidate, dynamicOrigin)) return true;
+    return false;
+  };
+
   const origin = headersList.get('origin');
   if (origin) {
-    if (origin === 'null' || !originsMatch(origin, appOrigin)) {
+    if (origin === 'null' || !isMatch(origin)) {
       throw new CsrfError();
     }
     return;
   }
 
   const referer = headersList.get('referer');
-  if (referer && !originsMatch(referer, appOrigin)) {
+  if (referer && !isMatch(referer)) {
     throw new CsrfError();
   }
 }
@@ -123,16 +133,26 @@ export async function assertSameOriginStrict(): Promise<void> {
     throw new CsrfError();
   }
 
+  const host = headersList.get('x-forwarded-host') || headersList.get('host');
+  const proto = headersList.get('x-forwarded-proto') || 'https';
+  const dynamicOrigin = host ? originOf(`${proto}://${host}`) : null;
+
+  const isMatch = (candidate: string) => {
+    if (originsMatch(candidate, appOrigin)) return true;
+    if (dynamicOrigin && originsMatch(candidate, dynamicOrigin)) return true;
+    return false;
+  };
+
   const origin = headersList.get('origin');
   if (origin) {
-    if (origin === 'null' || !originsMatch(origin, appOrigin)) {
+    if (origin === 'null' || !isMatch(origin)) {
       throw new CsrfError();
     }
     return;
   }
 
   const referer = headersList.get('referer');
-  if (referer && originsMatch(referer, appOrigin)) {
+  if (referer && isMatch(referer)) {
     return;
   }
 
