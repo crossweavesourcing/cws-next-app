@@ -11,6 +11,7 @@ export default function Verify2FAForm() {
     { success: false }
   );
   const [isResending, startResend] = useTransition();
+  const [resendError, setResendError] = useState<string | null>(null);
 
   const [trustPending, startTrust] = useTransition();
 
@@ -65,14 +66,33 @@ export default function Verify2FAForm() {
         {isPending ? 'Verifying...' : 'Verify & Sign In'}
       </button>
 
-      <button
-        type="button"
-        disabled={isResending}
-        onClick={() => startResend(async () => { await resend2faAction(); setSent(true); })}
-        className="text-xs font-bold uppercase tracking-[0.14em] text-neutral-500 underline hover:text-neutral-900"
-      >
-        {sent ? 'Code resent to your email' : 'Resend code'}
-      </button>
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          disabled={isResending}
+          onClick={() => {
+            setResendError(null);
+            startResend(async () => {
+              const result = await resend2faAction();
+              if (result && result.error) {
+                setResendError(result.error);
+                setSent(false);
+              } else {
+                setResendError(null);
+                setSent(true);
+              }
+            });
+          }}
+          className="text-xs font-bold uppercase tracking-[0.14em] text-neutral-500 underline hover:text-neutral-900 text-left"
+        >
+          {isResending ? 'Sending...' : (sent ? 'Code resent to your email' : 'Resend code')}
+        </button>
+        {resendError && (
+          <span className="text-xs font-bold uppercase tracking-[0.14em] text-red-500">
+            {resendError}
+          </span>
+        )}
+      </div>
 
       {state.success && state.showTrustPrompt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">

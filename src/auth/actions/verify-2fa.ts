@@ -199,7 +199,11 @@ async function resend2faActionImpl(): Promise<{ error?: string } | void> {
   });
 
   const twoFactor = new TwoFactorService();
-  await twoFactor.sendCode(userId);
+  try {
+    await twoFactor.sendCode(userId);
+  } catch (error: any) {
+    return { error: error.message || 'Unable to send code. Please try again later.' };
+  }
 }
 
 export const verify2faAction = withCsrfGuard(verify2faActionImpl);
