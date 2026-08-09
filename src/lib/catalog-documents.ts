@@ -90,10 +90,11 @@ export function isAllowedCloudinaryUrl(value: string): boolean {
 }
 
 export function serializeCatalog(document: CatalogDocument): SerializedCatalogDocument {
+  const { scene, markdown, ...rest } = document;
   return {
-    ...document,
-    _id: document._id.toString(), categoryId: document.categoryId?.toString() ?? null, productId: document.productId?.toString() ?? null,
-    createdBy: document.createdBy.toString(), updatedBy: document.updatedBy.toString(), createdAt: document.createdAt.toISOString(),
-    updatedAt: document.updatedAt.toISOString(), publishedAt: document.publishedAt?.toISOString() ?? null,
+    ...rest,
+    _id: rest._id.toString(), categoryId: rest.categoryId?.toString() ?? null, productId: rest.productId?.toString() ?? null,
+    createdBy: rest.createdBy.toString(), updatedBy: rest.updatedBy.toString(), createdAt: rest.createdAt.toISOString(),
+    updatedAt: rest.updatedAt.toISOString(), publishedAt: rest.publishedAt?.toISOString() ?? null,
   };
 }

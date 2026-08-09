@@ -190,7 +190,7 @@ export interface CatalogDocument {
   };
 }
 
-export interface SerializedCatalogDocument extends Omit<CatalogDocument, '_id' | 'categoryId' | 'productId' | 'createdBy' | 'updatedBy' | 'createdAt' | 'updatedAt' | 'publishedAt'> {
+export interface SerializedCatalogDocument extends Omit<CatalogDocument, '_id' | 'categoryId' | 'productId' | 'createdBy' | 'updatedBy' | 'createdAt' | 'updatedAt' | 'publishedAt' | 'scene' | 'markdown'> {
   _id: string;
   categoryId: string | null;
   productId: string | null;
