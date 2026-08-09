@@ -59,7 +59,7 @@ async function _finalizeCatalogCreate(input: unknown, publicId: string) {
       // We MUST await the fetch here so Next.js does not destroy the Server Action execution context
       // before the fetch begins (which causes an out-of-band 500 error / Dynamic Server Error).
       // The background function returns 202 Accepted immediately (<50ms).
-      await fetch(`${appUrl}/api/catalog/process`, {
+      await fetch(`${appUrl}/.netlify/functions/catalog-process-background`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-catalog-secret': secret },
         body: JSON.stringify({ catalogId: catalog._id, publicId, actorUserId: actor.userId.toString() }),
