@@ -10,13 +10,12 @@ export default async function NewProductIntercept() {
   const categoryRepo = new CategoryRepository();
   const categories = await categoryRepo.findAll();
 
-  const serializedCategories = categories.map(cat => ({
+  const serializedCategories = JSON.parse(JSON.stringify(categories.map(cat => ({
     ...cat,
     _id: cat._id.toString(),
     createdAt: cat.createdAt.toISOString(),
     updatedAt: cat.updatedAt.toISOString(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  })) as any[];
+  }))));
 
   return <NewProductClient categories={serializedCategories} />;
 }

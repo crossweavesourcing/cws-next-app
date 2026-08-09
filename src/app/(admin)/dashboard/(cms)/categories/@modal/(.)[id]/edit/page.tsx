@@ -17,13 +17,15 @@ export default async function EditCategoryModalPage({ params }: { params: Promis
     notFound();
   }
 
-  const serializedCategory = {
+  // Ensure complete serialization of any hidden ObjectIds or Dates
+  const baseSerialized = {
     ...category,
     _id: category._id.toString(),
     createdAt: category.createdAt.toISOString(),
     updatedAt: category.updatedAt.toISOString(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any;
+  };
+
+  const serializedCategory = JSON.parse(JSON.stringify(baseSerialized));
 
   return (
     <Modal>
