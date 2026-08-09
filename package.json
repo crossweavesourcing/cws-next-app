@@ -15,6 +15,8 @@
     "db:migrate:account-security": "tsx --env-file=.env scripts/migrate-account-security.ts",
     "db:migrate:catalog-scenes": "tsx --env-file=.env scripts/migrate-catalog-scenes.ts",
     "db:migrate:alt-text": "tsx --env-file=.env scripts/migrate-product-alt-text.ts",
+    "db:migrate:to-new-uri": "tsx --env-file=.env scripts/migrate-db-to-new-uri.ts",
+    "migrate:full-service": "tsx --env-file=.env scripts/migrate-full-service.ts",
     "test:e2e": "playwright test",
     "test:unit": "vitest run",
     "docs:generate": "tsx scripts/generate-openapi.ts",
