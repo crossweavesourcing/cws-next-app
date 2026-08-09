@@ -5,7 +5,7 @@ import { getEnv } from '@/auth/config/env';
 const COOKIE_NAME = 'cws_session';
 
 /** Header carrying the per-request CSP nonce so Server Components / next/script can read it. */
-export const CSP_NONCE_HEADER = 'x-csp-nonce';
+export const CSP_NONCE_HEADER = 'x-nonce';
 
 /**
  * Builds a per-request Content-Security-Policy using a fresh cryptographic nonce
@@ -39,7 +39,6 @@ export function buildCsp(
     "connect-src 'self' https://api.cloudinary.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
-    "form-action 'self'",
   ].join('; ');
 }
 
