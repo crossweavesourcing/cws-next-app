@@ -1,5 +1,6 @@
 import { getAuthSession } from '@/auth/dal';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { ProductRepository } from '@/auth/repositories/product.repository';
 import { CategoryRepository } from '@/auth/repositories/category.repository';
 import { EditProductClient } from './EditProductClient';
@@ -8,8 +9,18 @@ export default async function EditProductIntercept({ params }: { params: Promise
   const session = await getAuthSession();
   if (!session) redirect('/dashboard/login');
 
-  const { id } = await params;
+  const p = await params;
+  let id = p?.id;
+  if (!id) {
+    const referer = (await headers()).get('referer') || '';
+    const match = referer.match(/\/products\/([^\/]+)\/edit/);
+    if (match) id = match[1];
+  }
   
+  if (!id) {
+    redirect('/dashboard/products');
+  }
+
   const productRepo = new ProductRepository();
   const product = await productRepo.findById(id);
   
