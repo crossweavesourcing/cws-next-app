@@ -30,7 +30,11 @@ export default function Verify2FAForm() {
       if (trust && state?.pendingDeviceId) {
         const fd = new FormData();
         fd.append('deviceId', state.pendingDeviceId);
-        await trustCurrentDeviceAction(undefined, fd);
+        const result = await trustCurrentDeviceAction(undefined, fd);
+        if (result && result.error) {
+          alert(`Failed to trust device: ${result.error}`);
+          return;
+        }
       }
       window.location.href = '/dashboard';
     });

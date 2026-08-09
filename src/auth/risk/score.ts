@@ -31,7 +31,7 @@ export const defaultRiskPolicy: RiskPolicyConfiguration = {
     recentAccountRecovery: 40,
     recentTwoFactorDisable: 50,
 
-    privilegedAccount: 15,
+    privilegedAccount: 0, // Admin escalation is handled in policy.ts; avoid flat penalties here.
   },
   thresholds: {
     medium: 25,
