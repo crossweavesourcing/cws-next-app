@@ -75,11 +75,7 @@ const publicSecurityHeaders: Array<{ key: string; value: string }> = [
 ];
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['pdfjs-dist', '@napi-rs/canvas'],
-  outputFileTracingIncludes: {
-    '/pdf.worker.min.mjs': ['./node_modules/pdfjs-dist/build/pdf.worker.min.mjs'],
-  },
-  // output: "export", // Commented out to allow `next start`
+  serverExternalPackages: ['pdfjs-dist'],
   images: {
     remotePatterns: [
       {
@@ -94,9 +90,6 @@ const nextConfig: NextConfig = {
     },
   },
   trailingSlash: true,
-  turbopack: {
-    root: __dirname,
-  },
   allowedDevOrigins: ['192.168.0.247'],
   async headers() {
     const isStaging = process.env.NEXT_PUBLIC_SITE_ENV !== 'production' || process.env.VERCEL_ENV === 'preview';
