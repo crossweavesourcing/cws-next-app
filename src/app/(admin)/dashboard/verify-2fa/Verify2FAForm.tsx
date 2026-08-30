@@ -28,12 +28,12 @@ export default function Verify2FAForm() {
   const handleTrust = (trust: boolean) => {
     startTrust(async () => {
       if (trust && state?.pendingDeviceId) {
-        const fd = new FormData();
-        fd.append('deviceId', state.pendingDeviceId);
-        const result = await trustCurrentDeviceAction(undefined, fd);
-        if (result && result.error) {
-          alert(`Failed to trust device: ${result.error}`);
-          return;
+        try {
+          const fd = new FormData();
+          fd.append('deviceId', state.pendingDeviceId);
+          await trustCurrentDeviceAction(undefined, fd);
+        } catch {
+          // Ignore trust action errors during post-2FA transition
         }
       }
       window.location.href = '/dashboard';
