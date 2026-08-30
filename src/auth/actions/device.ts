@@ -22,6 +22,17 @@ async function resolveOwnedDevice(deviceId: string) {
   return { session, device };
 }
 
+async function resolveOwnedDeviceForCurrentAuth(deviceId: string) {
+  if (!DeviceRepository.isValidDeviceId(deviceId)) {
+    return null;
+  }
+  const { requireAuth } = await import('../dal');
+  const session = await requireAuth();
+  const device = await new DeviceRepository().findByIdForUser(deviceId, session.userId);
+  if (!device) return null;
+  return { session, device };
+}
+
 /**
  * Server Action: trust/untrust a device. Mutates device trust state + audit.
  *
@@ -171,7 +182,7 @@ async function trustCurrentDeviceActionImpl(
   if (!deviceId) return { error: 'Invalid device.' };
 
   try {
-    const owned = await resolveOwnedDevice(deviceId);
+    const owned = await resolveOwnedDeviceForCurrentAuth(deviceId);
     if (!owned) return { error: 'You do not have access to this device.' };
 
     await new DeviceRepository().setTrusted(deviceId, owned.session.userId, true, 'user');
