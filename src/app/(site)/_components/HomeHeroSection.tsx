@@ -44,12 +44,12 @@ export default function HomeHeroSection({ section }: { section?: SectionItem }) 
         />
       </div>
 
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-12 lg:px-16 flex justify-end">
-        <div className="text-right select-none pr-4 md:pr-12 max-w-4xl w-full">
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 flex justify-end">
+        <div className="text-right select-none max-w-full w-full">
           <h1 className="leading-none tracking-normal" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.45), 0 1px 2px rgba(0,0,0,0.3)' }}>
             <span className="block text-xs sm:text-sm font-sans font-bold text-white uppercase tracking-[0.4em] mb-4">{contentValue(section, 'eyebrow', 'End-to-End Solution')}</span>
-            <span className="block text-2xl sm:text-3xl md:text-4xl font-sans font-bold text-white uppercase tracking-[0.2em]">{contentValue(section, 'prefix', 'We')}</span>
-            <span className="block min-h-[50px] sm:min-h-[70px] md:min-h-[90px] lg:min-h-[110px] text-4xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-[96px] font-sans font-black text-[#E02424] uppercase tracking-tight leading-none my-1 whitespace-nowrap">
+            <span className="block text-xl sm:text-2xl md:text-3xl font-sans font-bold text-white uppercase tracking-[0.2em]">{contentValue(section, 'prefix', 'We')}</span>
+            <span className="block min-h-[44px] sm:min-h-[58px] md:min-h-[76px] lg:min-h-[96px] text-3xl sm:text-5xl md:text-6xl lg:text-[72px] xl:text-[84px] font-sans font-black text-[#E02424] uppercase tracking-tighter leading-none my-1 whitespace-nowrap overflow-visible">
               <Typewriter words={heroWords} />
             </span>
             <span className="block mt-6 sm:mt-8 text-xs sm:text-sm md:text-base font-sans font-medium text-neutral-400 tracking-[0.3em] uppercase max-w-lg ml-auto">
