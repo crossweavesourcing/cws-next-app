@@ -48,9 +48,9 @@ export default function Typewriter({ words }: { words: string[] }) {
   }, [currentText, isDeleting, currentWordIndex, words]);
 
   return (
-    <>
+    <span className="inline-block whitespace-nowrap">
       {currentText}
       <span className="animate-pulse ml-1 text-white font-light opacity-70 aria-hidden" aria-hidden="true">|</span>
-    </>
+    </span>
   );
 }
