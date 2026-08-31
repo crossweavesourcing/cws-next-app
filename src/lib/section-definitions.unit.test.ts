@@ -41,4 +41,22 @@ describe('section definitions', () => {
     expect(Object.keys(defaultMediaFor(services))).toHaveLength(6);
     expect(Object.values(defaultMediaFor(services)).every((media) => media.kind === 'image' && media.isDefault)).toBe(true);
   });
+
+  it('configures home-contact with required fields for two contact persons', () => {
+    const contact = SECTION_DEFINITIONS.find((section) => section.id === 'home-contact')!;
+    expect(contact).toBeDefined();
+    const fieldKeys = contact.fields.map((f) => f.key);
+    expect(fieldKeys).toContain('person1Name');
+    expect(fieldKeys).toContain('person1Email');
+    expect(fieldKeys).toContain('person1Phone');
+    expect(fieldKeys).toContain('person1UsaAddress');
+    expect(fieldKeys).toContain('person1BdAddress');
+    expect(fieldKeys).toContain('person2Name');
+    expect(fieldKeys).toContain('person2Email');
+    expect(fieldKeys).toContain('person2Phone');
+    expect(fieldKeys).toContain('person2UsaAddress');
+    expect(fieldKeys).toContain('person2BdAddress');
+    expect(contact.defaultContent.person1Name).toBe('ASHRAFUR RAHAMAN');
+    expect(contact.defaultContent.person2Name).toBe('MD SHARIFUL ISLAM');
+  });
 });
