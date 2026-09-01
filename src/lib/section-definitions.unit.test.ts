@@ -55,4 +55,18 @@ describe('section definitions', () => {
     expect(contact.defaultContent.primaryEmail).toBe('ashrahaman@crossweavesourcing.com');
     expect(contact.defaultContent.secondaryEmail).toBe('sharif@crossweavesourcing.com');
   });
+
+  it('configures global-footer with direct channel and office address fields', () => {
+    const footer = SECTION_DEFINITIONS.find((section) => section.id === 'global-footer')!;
+    expect(footer).toBeDefined();
+    const fieldKeys = footer.fields.map((f) => f.key);
+    expect(fieldKeys).toContain('contactHeading');
+    expect(fieldKeys).toContain('primaryEmail');
+    expect(fieldKeys).toContain('secondaryEmail');
+    expect(fieldKeys).toContain('usaPhone');
+    expect(fieldKeys).toContain('bdPhone');
+    expect(fieldKeys).toContain('bangladeshAddress');
+    expect(fieldKeys).toContain('usaAddress');
+    expect(fieldKeys).toContain('aboutHeading');
+  });
 });
