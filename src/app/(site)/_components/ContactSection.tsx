@@ -1,21 +1,16 @@
-import { Mail, MapPin, Phone, User } from 'lucide-react';
+import { Mail, MapPin, Phone } from 'lucide-react';
 import ContactInformationForm from '@/components/ContactInformationForm';
 import { SectionItem, contentValue } from './SectionHelpers';
 
 export default function ContactSection({ section }: { section?: SectionItem }) {
   if (section?.paused) return null;
 
-  const person1Name = contentValue(section, 'person1Name', 'ASHRAFUR RAHAMAN');
-  const person1Email = contentValue(section, 'person1Email', contentValue(section, 'email', 'ashrahaman@crossweavesourcing.com'));
-  const person1Phone = contentValue(section, 'person1Phone', '+1 347 659 2484');
-  const person1Usa = contentValue(section, 'person1UsaAddress', 'Serda, A White Horse Pike, Somerdale, NJ 08083, USA');
-  const person1Bd = contentValue(section, 'person1BdAddress', contentValue(section, 'bangladeshAddress', 'Bashundhara R/A, Road No. 3, Lane No. 3, House No. 1339/A, Ward No. 24, Chittagong, Bangladesh'));
-
-  const person2Name = contentValue(section, 'person2Name', 'MD SHARIFUL ISLAM');
-  const person2Email = contentValue(section, 'person2Email', 'sharif@crossweavesourcing.com');
-  const person2Phone = contentValue(section, 'person2Phone', 'USA: +1 609 453 5301 | BD: +880 1811-182609');
-  const person2Usa = contentValue(section, 'person2UsaAddress', contentValue(section, 'usaAddress', 'PO Box: 41, 26 S White Horse Pike, Somerdale, NJ 08083, USA'));
-  const person2Bd = contentValue(section, 'person2BdAddress', 'Bashundhara R/A, Road No. 3, Lane No. 3, House No. 1339/A, Ward No. 24, Chittagong, Bangladesh');
+  const primaryEmail = contentValue(section, 'primaryEmail', contentValue(section, 'email', 'ashrahaman@crossweavesourcing.com'));
+  const secondaryEmail = contentValue(section, 'secondaryEmail', 'sharif@crossweavesourcing.com');
+  const usaPhone = contentValue(section, 'usaPhone', '+1 (347) 659-2484, +1 (609) 453-5301');
+  const bdPhone = contentValue(section, 'bdPhone', '+880 1811-182609');
+  const usaAddress = contentValue(section, 'usaAddress', 'PO Box: 41, 26 S White Horse Pike, Somerdale, NJ 08083, USA');
+  const bdAddress = contentValue(section, 'bangladeshAddress', 'Bashundhara R/A, Road No. 3, Lane No. 3, House No. 1339/A, Ward No. 24, Chittagong, Bangladesh');
 
   return (
     <section id="contracting" className="py-24 bg-white text-neutral-900 border-b border-gray-200">
@@ -43,84 +38,86 @@ export default function ContactSection({ section }: { section?: SectionItem }) {
               </p>
             </div>
 
-            <div className="space-y-8">
-              {/* Person 1 */}
-              <div className="border-t border-white/10 pt-6 space-y-4">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 items-center justify-center bg-[#E02424]/20 text-[#E02424] border border-[#E02424]/40 text-xs">
-                    <User className="h-3.5 w-3.5" />
+            <div className="space-y-6">
+              {/* Emails */}
+              <div className="border-t border-white/10 pt-6 flex items-start gap-4">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-white/15 bg-white/5 text-[#E02424]">
+                  <Mail className="h-5 w-5" />
+                </span>
+                <div className="space-y-2 min-w-0">
+                  <span className="block text-[11px] font-bold uppercase tracking-[0.24em] text-neutral-400">
+                    Email Us
                   </span>
-                  <h4 className="text-base sm:text-lg font-bold uppercase tracking-wide text-white">
-                    {person1Name}
-                  </h4>
-                </div>
-
-                <div className="grid gap-3 text-xs sm:text-sm pl-1">
-                  {person1Email && (
-                    <a
-                      href={`mailto:${person1Email}`}
-                      className="group flex items-center gap-3 text-neutral-300 hover:text-white transition-colors"
-                    >
-                      <Mail className="h-4 w-4 shrink-0 text-[#E02424] group-hover:scale-110 transition-transform" />
-                      <span className="font-medium truncate">{person1Email}</span>
-                    </a>
-                  )}
-
-                  {person1Phone && (
-                    <div className="flex items-center gap-3 text-neutral-300">
-                      <Phone className="h-4 w-4 shrink-0 text-[#E02424]" />
-                      <span>{person1Phone}</span>
-                    </div>
-                  )}
-
-                  {(person1Usa || person1Bd) && (
-                    <div className="flex items-start gap-3 text-neutral-400 font-light pt-1">
-                      <MapPin className="h-4 w-4 shrink-0 text-[#E02424] mt-0.5" />
-                      <div className="space-y-1.5 leading-relaxed">
-                        {person1Usa && <p><strong className="font-semibold text-neutral-300">USA:</strong> {person1Usa}</p>}
-                        {person1Bd && <p><strong className="font-semibold text-neutral-300">BD:</strong> {person1Bd}</p>}
-                      </div>
-                    </div>
-                  )}
+                  <div className="space-y-1 text-sm sm:text-base">
+                    {primaryEmail && (
+                      <a
+                        href={`mailto:${primaryEmail}`}
+                        className="block font-medium text-white hover:text-[#EF4444] transition-colors truncate"
+                      >
+                        {primaryEmail}
+                      </a>
+                    )}
+                    {secondaryEmail && (
+                      <a
+                        href={`mailto:${secondaryEmail}`}
+                        className="block font-medium text-neutral-300 hover:text-[#EF4444] transition-colors truncate"
+                      >
+                        {secondaryEmail}
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Person 2 */}
-              <div className="border-t border-white/10 pt-6 space-y-4">
-                <div className="flex items-center gap-2.5">
-                  <span className="flex h-7 w-7 items-center justify-center bg-[#E02424]/20 text-[#E02424] border border-[#E02424]/40 text-xs">
-                    <User className="h-3.5 w-3.5" />
+              {/* Phones */}
+              <div className="border-t border-white/10 pt-6 flex items-start gap-4">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-white/15 bg-white/5 text-[#E02424]">
+                  <Phone className="h-5 w-5" />
+                </span>
+                <div className="space-y-2 min-w-0">
+                  <span className="block text-[11px] font-bold uppercase tracking-[0.24em] text-neutral-400">
+                    Call Us
                   </span>
-                  <h4 className="text-base sm:text-lg font-bold uppercase tracking-wide text-white">
-                    {person2Name}
-                  </h4>
+                  <div className="space-y-1.5 text-sm sm:text-base text-neutral-200">
+                    {usaPhone && (
+                      <div className="flex flex-wrap items-baseline gap-1.5">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">USA:</span>
+                        <span className="font-medium text-white">{usaPhone}</span>
+                      </div>
+                    )}
+                    {bdPhone && (
+                      <div className="flex flex-wrap items-baseline gap-1.5">
+                        <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">BD:</span>
+                        <span className="font-medium text-white">{bdPhone}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
+              </div>
 
-                <div className="grid gap-3 text-xs sm:text-sm pl-1">
-                  {person2Email && (
-                    <a
-                      href={`mailto:${person2Email}`}
-                      className="group flex items-center gap-3 text-neutral-300 hover:text-white transition-colors"
-                    >
-                      <Mail className="h-4 w-4 shrink-0 text-[#E02424] group-hover:scale-110 transition-transform" />
-                      <span className="font-medium truncate">{person2Email}</span>
-                    </a>
-                  )}
-
-                  {person2Phone && (
-                    <div className="flex items-center gap-3 text-neutral-300">
-                      <Phone className="h-4 w-4 shrink-0 text-[#E02424]" />
-                      <span>{person2Phone}</span>
+              {/* Office Addresses */}
+              <div className="border-t border-white/10 pt-6 flex items-start gap-4">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-white/15 bg-white/5 text-[#E02424]">
+                  <MapPin className="h-5 w-5" />
+                </span>
+                <div className="space-y-3">
+                  <span className="block text-[11px] font-bold uppercase tracking-[0.24em] text-neutral-400">
+                    Visit Us
+                  </span>
+                  {usaAddress && (
+                    <div className="space-y-0.5">
+                      <span className="block text-[11px] font-semibold uppercase tracking-wider text-neutral-300">USA Office</span>
+                      <p className="text-sm leading-relaxed text-neutral-400 font-light">
+                        {usaAddress}
+                      </p>
                     </div>
                   )}
-
-                  {(person2Usa || person2Bd) && (
-                    <div className="flex items-start gap-3 text-neutral-400 font-light pt-1">
-                      <MapPin className="h-4 w-4 shrink-0 text-[#E02424] mt-0.5" />
-                      <div className="space-y-1.5 leading-relaxed">
-                        {person2Usa && <p><strong className="font-semibold text-neutral-300">USA:</strong> {person2Usa}</p>}
-                        {person2Bd && <p><strong className="font-semibold text-neutral-300">BD:</strong> {person2Bd}</p>}
-                      </div>
+                  {bdAddress && (
+                    <div className="space-y-0.5">
+                      <span className="block text-[11px] font-semibold uppercase tracking-wider text-neutral-300">Bangladesh Office</span>
+                      <p className="text-sm leading-relaxed text-neutral-400 font-light">
+                        {bdAddress}
+                      </p>
                     </div>
                   )}
                 </div>

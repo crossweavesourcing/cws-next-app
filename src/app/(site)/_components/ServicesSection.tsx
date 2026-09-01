@@ -4,24 +4,24 @@ import { SectionItem, contentValue, mediaValue } from './SectionHelpers';
 
 const defaultServices = [
   {
-    title: 'Product Development & Sampling',
-    description: 'Support from concept review and material selection through fit samples, proto samples and pre-production approvals.',
-    image: '/assets/images/service_product_development_sampling.jpg',
+    title: 'Fabric, Trims & Material Development',
+    description: 'Comprehensive sourcing of certified fabrics, custom branded hardware, premium buttons, zippers, and trims tailored to buyer specifications.',
+    image: '/assets/images/service_trims_accessories_fabric_sourcing.jpg',
   },
   {
-    title: 'Private Label Manufacturing',
-    description: 'End-to-end production for buyer-owned labels with brand-specific trims, packaging and quality requirements.',
-    image: '/assets/images/service_private_label_manufacturing.jpg',
+    title: 'Tech-Pack & Garment Prototyping',
+    description: 'From detailed tech-pack development and measurement grade rules to proto-sample review and pre-production fit approvals.',
+    image: '/assets/images/service_techpack_garment_specification.jpg',
   },
   {
-    title: 'Knit, Woven & Sweater Production',
-    description: 'Reliable manufacturing coordination across core apparel categories through a trusted production network.',
-    image: '/assets/images/service_knit_woven_sweater_production.jpg',
+    title: 'Denim, Knit & Woven Manufacturing',
+    description: 'Precision garment construction and specialized denim, knit, and woven manufacturing delivered through our trusted production network.',
+    image: '/assets/images/service_denim_craftsmanship_production.jpg',
   },
   {
-    title: 'Costing & Commercial Support',
-    description: 'Transparent costing, supplier negotiation and commercial guidance to help brands meet target margins.',
-    image: '/assets/images/service_costing_commercial_support.jpg',
+    title: 'Color Development & Lab-Dip Matching',
+    description: 'Precision color matching, lab-dip approvals, and fabric shade-band consistency across organic cotton, linen, knit, and synthetic blends.',
+    image: '/assets/images/service_fabric_swatch_color_matching.jpg',
   },
   {
     title: 'Quality Control & Inspection',
@@ -29,9 +29,9 @@ const defaultServices = [
     image: '/assets/images/service_quality_control_inspection.jpg',
   },
   {
-    title: 'Export Documentation & Logistics Coordination',
-    description: 'Shipment follow-up, export document coordination and logistics support from production handover to delivery.',
-    image: '/assets/images/service_export_documentation_logistics.jpg',
+    title: 'Global Export & Logistics Coordination',
+    description: 'Seamless global freight management, customs compliance, and shipment tracking from factory handover to international port delivery.',
+    image: '/assets/images/service_export_logistics_global_shipping.jpg',
   },
 ];
 

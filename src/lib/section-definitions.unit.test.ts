@@ -42,21 +42,31 @@ describe('section definitions', () => {
     expect(Object.values(defaultMediaFor(services)).every((media) => media.kind === 'image' && media.isDefault)).toBe(true);
   });
 
-  it('configures home-contact with required fields for two contact persons', () => {
+  it('configures home-contact with unified corporate fields for emails, phones, and addresses', () => {
     const contact = SECTION_DEFINITIONS.find((section) => section.id === 'home-contact')!;
     expect(contact).toBeDefined();
     const fieldKeys = contact.fields.map((f) => f.key);
-    expect(fieldKeys).toContain('person1Name');
-    expect(fieldKeys).toContain('person1Email');
-    expect(fieldKeys).toContain('person1Phone');
-    expect(fieldKeys).toContain('person1UsaAddress');
-    expect(fieldKeys).toContain('person1BdAddress');
-    expect(fieldKeys).toContain('person2Name');
-    expect(fieldKeys).toContain('person2Email');
-    expect(fieldKeys).toContain('person2Phone');
-    expect(fieldKeys).toContain('person2UsaAddress');
-    expect(fieldKeys).toContain('person2BdAddress');
-    expect(contact.defaultContent.person1Name).toBe('ASHRAFUR RAHAMAN');
-    expect(contact.defaultContent.person2Name).toBe('MD SHARIFUL ISLAM');
+    expect(fieldKeys).toContain('primaryEmail');
+    expect(fieldKeys).toContain('secondaryEmail');
+    expect(fieldKeys).toContain('usaPhone');
+    expect(fieldKeys).toContain('bdPhone');
+    expect(fieldKeys).toContain('usaAddress');
+    expect(fieldKeys).toContain('bangladeshAddress');
+    expect(contact.defaultContent.primaryEmail).toBe('ashrahaman@crossweavesourcing.com');
+    expect(contact.defaultContent.secondaryEmail).toBe('sharif@crossweavesourcing.com');
+  });
+
+  it('configures global-footer with direct channel and office address fields', () => {
+    const footer = SECTION_DEFINITIONS.find((section) => section.id === 'global-footer')!;
+    expect(footer).toBeDefined();
+    const fieldKeys = footer.fields.map((f) => f.key);
+    expect(fieldKeys).toContain('contactHeading');
+    expect(fieldKeys).toContain('primaryEmail');
+    expect(fieldKeys).toContain('secondaryEmail');
+    expect(fieldKeys).toContain('usaPhone');
+    expect(fieldKeys).toContain('bdPhone');
+    expect(fieldKeys).toContain('bangladeshAddress');
+    expect(fieldKeys).toContain('usaAddress');
+    expect(fieldKeys).toContain('aboutHeading');
   });
 });
