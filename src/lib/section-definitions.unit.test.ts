@@ -42,14 +42,14 @@ describe('section definitions', () => {
     expect(Object.values(defaultMediaFor(services)).every((media) => media.kind === 'image' && media.isDefault)).toBe(true);
   });
 
-  it('configures home-contact with unified corporate fields for emails, phones, and addresses', () => {
+  it('configures home-contact with unified corporate fields for emails and addresses', () => {
     const contact = SECTION_DEFINITIONS.find((section) => section.id === 'home-contact')!;
     expect(contact).toBeDefined();
     const fieldKeys = contact.fields.map((f) => f.key);
     expect(fieldKeys).toContain('primaryEmail');
     expect(fieldKeys).toContain('secondaryEmail');
-    expect(fieldKeys).toContain('usaPhone');
-    expect(fieldKeys).toContain('bdPhone');
+    expect(fieldKeys).not.toContain('usaPhone');
+    expect(fieldKeys).not.toContain('bdPhone');
     expect(fieldKeys).toContain('usaAddress');
     expect(fieldKeys).toContain('bangladeshAddress');
     expect(contact.defaultContent.primaryEmail).toBe('ashrahaman@crossweavesourcing.com');
@@ -63,8 +63,8 @@ describe('section definitions', () => {
     expect(fieldKeys).toContain('contactHeading');
     expect(fieldKeys).toContain('primaryEmail');
     expect(fieldKeys).toContain('secondaryEmail');
-    expect(fieldKeys).toContain('usaPhone');
-    expect(fieldKeys).toContain('bdPhone');
+    expect(fieldKeys).not.toContain('usaPhone');
+    expect(fieldKeys).not.toContain('bdPhone');
     expect(fieldKeys).toContain('bangladeshAddress');
     expect(fieldKeys).toContain('usaAddress');
     expect(fieldKeys).toContain('aboutHeading');
