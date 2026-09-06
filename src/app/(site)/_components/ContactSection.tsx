@@ -1,4 +1,4 @@
-import { Mail, MapPin, Phone } from 'lucide-react';
+import { Mail, MapPin } from 'lucide-react';
 import ContactInformationForm from '@/components/ContactInformationForm';
 import { SectionItem, contentValue } from './SectionHelpers';
 
@@ -7,8 +7,6 @@ export default function ContactSection({ section }: { section?: SectionItem }) {
 
   const primaryEmail = contentValue(section, 'primaryEmail', contentValue(section, 'email', 'ashrahaman@crossweavesourcing.com'));
   const secondaryEmail = contentValue(section, 'secondaryEmail', 'sharif@crossweavesourcing.com');
-  const usaPhone = contentValue(section, 'usaPhone', '+1 (347) 659-2484, +1 (609) 453-5301');
-  const bdPhone = contentValue(section, 'bdPhone', '+880 1811-182609');
   const usaAddress = contentValue(section, 'usaAddress', 'PO Box: 41, 26 S White Horse Pike, Somerdale, NJ 08083, USA');
   const bdAddress = contentValue(section, 'bangladeshAddress', 'Bashundhara R/A, Road No. 3, Lane No. 3, House No. 1339/A, Ward No. 24, Chittagong, Bangladesh');
 
@@ -64,32 +62,6 @@ export default function ContactSection({ section }: { section?: SectionItem }) {
                       >
                         {secondaryEmail}
                       </a>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Phones */}
-              <div className="border-t border-white/10 pt-6 flex items-start gap-4">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center border border-white/15 bg-white/5 text-[#E02424]">
-                  <Phone className="h-5 w-5" />
-                </span>
-                <div className="space-y-2 min-w-0">
-                  <span className="block text-[11px] font-bold uppercase tracking-[0.24em] text-neutral-400">
-                    Call Us
-                  </span>
-                  <div className="space-y-1.5 text-sm sm:text-base text-neutral-200">
-                    {usaPhone && (
-                      <div className="flex flex-wrap items-baseline gap-1.5">
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">USA:</span>
-                        <span className="font-medium text-white">{usaPhone}</span>
-                      </div>
-                    )}
-                    {bdPhone && (
-                      <div className="flex flex-wrap items-baseline gap-1.5">
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">BD:</span>
-                        <span className="font-medium text-white">{bdPhone}</span>
-                      </div>
                     )}
                   </div>
                 </div>

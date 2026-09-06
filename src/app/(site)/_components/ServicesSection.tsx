@@ -24,9 +24,9 @@ const defaultServices = [
     image: '/assets/images/service_fabric_swatch_color_matching.jpg',
   },
   {
-    title: 'Quality Control & Inspection',
-    description: 'Inline, midline and final inspection support to maintain product quality, compliance and shipment readiness.',
-    image: '/assets/images/service_quality_control_inspection.jpg',
+    title: 'Quality Control & Lab Testing',
+    description: 'Rigorous fabric GSM weight verification, lab testing, inline inspection, and final quality audits to ensure compliance and export readiness.',
+    image: '/assets/images/service_quality_control_gsm_inspection.jpg',
   },
   {
     title: 'Global Export & Logistics Coordination',
