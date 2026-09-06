@@ -15,8 +15,6 @@ export default function SiteFooter({ categories, section }: { categories: Footer
 
   const primaryEmail = value('primaryEmail', 'ashrahaman@crossweavesourcing.com');
   const secondaryEmail = value('secondaryEmail', 'sharif@crossweavesourcing.com');
-  const usaPhone = value('usaPhone', '+1 (347) 659-2484, +1 (609) 453-5301');
-  const bdPhone = value('bdPhone', '+880 1811-182609');
 
   return (
     <footer className="landing-cws-footer border-t border-neutral-300 bg-[#DDDBCF] pb-12 pt-16 text-neutral-900">
@@ -64,24 +62,6 @@ export default function SiteFooter({ categories, section }: { categories: Footer
                   <a href={`mailto:${secondaryEmail}`} className="block truncate text-neutral-800 hover:text-[#E02424] transition-colors">
                     {secondaryEmail}
                   </a>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <span className="mb-1 block text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-600">Telephone</span>
-              <div className="space-y-1.5 text-neutral-800">
-                {usaPhone && (
-                  <div className="leading-tight">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-500 mr-1.5">USA</span>
-                    <span className="text-neutral-900 font-medium">{usaPhone}</span>
-                  </div>
-                )}
-                {bdPhone && (
-                  <div className="leading-tight">
-                    <span className="text-[9px] font-bold uppercase tracking-wider text-neutral-500 mr-1.5">BD</span>
-                    <span className="text-neutral-900 font-medium">{bdPhone}</span>
-                  </div>
                 )}
               </div>
             </div>
